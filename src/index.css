@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* Pulse HR — Light theme (default) */
+:root {
+  --radius: 0.625rem;
+  --background: #f8f9fb;
+  --foreground: #19263A;
+  --card: #ffffff;
+  --card-foreground: #19263A;
+  --popover: #ffffff;
+  --popover-foreground: #19263A;
+  --primary: #7B4CFF;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f2f5;
+  --secondary-foreground: #19263A;
+  --muted: #f0f2f5;
+  --muted-foreground: #686858;
+  --accent: #FF4F8B;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ef4444;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #7B4CFF;
+  --chart-1: #7B4CFF;
+  --chart-2: #FF4F8B;
+  --chart-3: #FF7C2D;
+  --chart-4: #19263A;
+  --chart-5: #10b981;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #19263A;
+  --sidebar-primary: #7B4CFF;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f5f3ff;
+  --sidebar-accent-foreground: #19263A;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #7B4CFF;
+}
+
+/* Pulse HR — Dark theme */
+.dark {
+  --background: #0c0f16;
+  --foreground: #f0f2f5;
+  --card: #151a24;
+  --card-foreground: #f0f2f5;
+  --popover: #1a1f2b;
+  --popover-foreground: #f0f2f5;
+  --primary: #9B7AFF;
+  --primary-foreground: #ffffff;
+  --secondary: #1e2433;
+  --secondary-foreground: #f0f2f5;
+  --muted: #1e2433;
+  --muted-foreground: #8b8f9a;
+  --accent: #FF6B9D;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ef4444;
+  --border: #2a3040;
+  --input: #2a3040;
+  --ring: #9B7AFF;
+  --chart-1: #9B7AFF;
+  --chart-2: #FF6B9D;
+  --chart-3: #FF9A5C;
+  --chart-4: #7B4CFF;
+  --chart-5: #34d399;
+  --sidebar: #0e1219;
+  --sidebar-foreground: #f0f2f5;
+  --sidebar-primary: #9B7AFF;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1e2433;
+  --sidebar-accent-foreground: #f0f2f5;
+  --sidebar-border: #2a3040;
+  --sidebar-ring: #9B7AFF;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
