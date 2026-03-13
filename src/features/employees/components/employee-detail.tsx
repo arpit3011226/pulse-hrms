@@ -1,15 +1,20 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowLeft, Mail, Phone, Calendar, Building2, Briefcase, Pencil } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, Calendar, Building2, Briefcase, Pencil, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Separator } from '@/components/ui/separator'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useEmployee } from '../hooks/use-employees'
+import { useEmployee, useEmployees } from '../hooks/use-employees'
+import { useDepartments, useDesignations } from '@/features/departments/hooks/use-departments'
 import { usePermissions } from '@/hooks/use-permissions'
 import { getInitials, formatDate } from '@/lib/utils'
+import { EmployeePersonalTab } from './employee-personal-tab'
+import { EmployeeDocumentsTab } from './employee-documents-tab'
+import { EmployeeBankTab } from './employee-bank-tab'
+import { EmployeeWorkHistoryTab } from './employee-work-history-tab'
+import { EmployeeExitTab } from './employee-exit-tab'
 
 interface EmployeeDetailProps {
   employeeId: string
@@ -17,6 +22,9 @@ interface EmployeeDetailProps {
 
 export function EmployeeDetail({ employeeId }: EmployeeDetailProps) {
   const { data: employee, isLoading } = useEmployee(employeeId)
+  const { data: departments } = useDepartments()
+  const { data: designations } = useDesignations()
+  const { data: allEmployees } = useEmployees()
   const permissions = usePermissions()
 
   if (isLoading) {
@@ -40,6 +48,12 @@ export function EmployeeDetail({ employeeId }: EmployeeDetailProps) {
     designation?: { id: string; title: string } | null
   }
 
+  const managers = (allEmployees ?? [])
+    .filter(e => e.id !== employeeId)
+    .map(e => ({ id: e.id, first_name: e.first_name, last_name: e.last_name }))
+
+  const showExitTab = ['on_notice', 'resigned', 'terminated', 'absconding'].includes(emp.status) || permissions.canInitiateExit
+
   return (
     <div>
       {/* Header */}
@@ -56,13 +70,21 @@ export function EmployeeDetail({ employeeId }: EmployeeDetailProps) {
               </AvatarFallback>
             </Avatar>
             <div>
-              <h1 className="text-2xl font-semibold">{emp.first_name} {emp.last_name}</h1>
+              <h1 className="text-2xl font-semibold">
+                {emp.salutation ? `${emp.salutation}. ` : ''}{emp.first_name} {emp.middle_name ? `${emp.middle_name} ` : ''}{emp.last_name}
+              </h1>
               <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
                 {emp.designation?.title && <span>{emp.designation.title}</span>}
                 {emp.department?.name && (
                   <>
                     <span>|</span>
                     <span>{emp.department.name}</span>
+                  </>
+                )}
+                {emp.employee_code && (
+                  <>
+                    <span>|</span>
+                    <span>{emp.employee_code}</span>
                   </>
                 )}
               </div>
@@ -83,16 +105,18 @@ export function EmployeeDetail({ employeeId }: EmployeeDetailProps) {
       </div>
 
       <Tabs defaultValue="overview">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="leave">Leave</TabsTrigger>
-          <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          <TabsTrigger value="personal">Personal</TabsTrigger>
+          <TabsTrigger value="documents">Documents & ID</TabsTrigger>
+          <TabsTrigger value="bank">Bank & Finance</TabsTrigger>
+          <TabsTrigger value="work-history">Work History</TabsTrigger>
+          {showExitTab && <TabsTrigger value="exit">Exit</TabsTrigger>}
         </TabsList>
 
+        {/* Overview Tab */}
         <TabsContent value="overview" className="mt-6">
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Personal Info */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Personal Information</CardTitle>
@@ -101,14 +125,15 @@ export function EmployeeDetail({ employeeId }: EmployeeDetailProps) {
                 <InfoRow icon={Mail} label="Work Email" value={emp.email} />
                 {emp.personal_email && <InfoRow icon={Mail} label="Personal Email" value={emp.personal_email} />}
                 {emp.phone && <InfoRow icon={Phone} label="Phone" value={emp.phone} />}
+                {emp.official_phone && <InfoRow icon={Phone} label="Official Phone" value={emp.official_phone} />}
                 {emp.date_of_birth && <InfoRow icon={Calendar} label="Date of Birth" value={formatDate(emp.date_of_birth)} />}
                 {emp.gender && <InfoRow label="Gender" value={emp.gender} />}
                 {emp.marital_status && <InfoRow label="Marital Status" value={emp.marital_status} />}
                 {emp.blood_group && <InfoRow label="Blood Group" value={emp.blood_group} />}
+                {emp.nationality && <InfoRow label="Nationality" value={emp.nationality} />}
               </CardContent>
             </Card>
 
-            {/* Employment Info */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Employment Details</CardTitle>
@@ -119,34 +144,57 @@ export function EmployeeDetail({ employeeId }: EmployeeDetailProps) {
                 <InfoRow label="Designation" value={emp.designation?.title || 'Not assigned'} />
                 <InfoRow label="Employment Type" value={emp.employment_type.replace('_', ' ')} />
                 {emp.date_of_joining && <InfoRow icon={Calendar} label="Date of Joining" value={formatDate(emp.date_of_joining)} />}
+                {emp.confirmation_date && <InfoRow icon={Calendar} label="Confirmation Date" value={formatDate(emp.confirmation_date)} />}
+                {emp.probation_end_date && <InfoRow icon={Calendar} label="Probation End" value={formatDate(emp.probation_end_date)} />}
               </CardContent>
             </Card>
+
+            {(emp.pan_number || emp.uan_number || emp.aadhar_number) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Compliance & Identity</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {emp.pan_number && <InfoRow icon={ShieldCheck} label="PAN Number" value={emp.pan_number} />}
+                  {emp.uan_number && <InfoRow icon={ShieldCheck} label="UAN (PF Number)" value={emp.uan_number} />}
+                  {emp.aadhar_number && <InfoRow icon={ShieldCheck} label="Aadhar Number" value={emp.aadhar_number} />}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 
+        {/* Personal Tab */}
+        <TabsContent value="personal" className="mt-6">
+          <EmployeePersonalTab employee={emp} />
+        </TabsContent>
+
+        {/* Documents Tab */}
         <TabsContent value="documents" className="mt-6">
-          <Card>
-            <CardContent className="py-16 text-center text-muted-foreground">
-              Document management will be available here.
-            </CardContent>
-          </Card>
+          <EmployeeDocumentsTab employee={emp} />
         </TabsContent>
 
-        <TabsContent value="leave" className="mt-6">
-          <Card>
-            <CardContent className="py-16 text-center text-muted-foreground">
-              Leave history will be available here.
-            </CardContent>
-          </Card>
+        {/* Bank & Finance Tab */}
+        <TabsContent value="bank" className="mt-6">
+          <EmployeeBankTab employee={emp} />
         </TabsContent>
 
-        <TabsContent value="attendance" className="mt-6">
-          <Card>
-            <CardContent className="py-16 text-center text-muted-foreground">
-              Attendance records will be available here.
-            </CardContent>
-          </Card>
+        {/* Work History Tab */}
+        <TabsContent value="work-history" className="mt-6">
+          <EmployeeWorkHistoryTab
+            employee={emp}
+            departments={(departments ?? []).map(d => ({ id: d.id, name: d.name }))}
+            designations={(designations ?? []).map(d => ({ id: d.id, title: d.title }))}
+            managers={managers}
+          />
         </TabsContent>
+
+        {/* Exit Tab */}
+        {showExitTab && (
+          <TabsContent value="exit" className="mt-6">
+            <EmployeeExitTab employee={emp} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )

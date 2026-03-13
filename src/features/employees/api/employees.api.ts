@@ -10,7 +10,7 @@ export interface EmployeeFilters {
 export async function getEmployees(orgId: string, filters?: EmployeeFilters) {
   let query = supabase
     .from('employees')
-    .select('*, department:departments(id, name), designation:designations(id, title)')
+    .select('*, department:departments!department_id(id, name), designation:designations!designation_id(id, title)')
     .eq('organization_id', orgId)
 
   if (filters?.status) {
@@ -24,18 +24,18 @@ export async function getEmployees(orgId: string, filters?: EmployeeFilters) {
   }
 
   const { data, error } = await query.order('created_at', { ascending: false })
-  if (error) throw error
+  if (error) throw new Error(error.message)
   return data
 }
 
 export async function getEmployee(id: string) {
   const { data, error } = await supabase
     .from('employees')
-    .select('*, department:departments(id, name), designation:designations(id, title)')
+    .select('*, department:departments!department_id(id, name), designation:designations!designation_id(id, title)')
     .eq('id', id)
     .single()
 
-  if (error) throw error
+  if (error) throw new Error(error.message)
   return data
 }
 
@@ -46,7 +46,7 @@ export async function createEmployee(employee: Partial<Employee>) {
     .select()
     .single()
 
-  if (error) throw error
+  if (error) throw new Error(error.message)
   return data
 }
 
@@ -58,7 +58,7 @@ export async function updateEmployee(id: string, updates: Partial<Employee>) {
     .select()
     .single()
 
-  if (error) throw error
+  if (error) throw new Error(error.message)
   return data
 }
 
@@ -68,7 +68,7 @@ export async function deleteEmployee(id: string) {
     .delete()
     .eq('id', id)
 
-  if (error) throw error
+  if (error) throw new Error(error.message)
 }
 
 export async function getEmployeeCount(orgId: string) {
@@ -78,6 +78,6 @@ export async function getEmployeeCount(orgId: string) {
     .eq('organization_id', orgId)
     .eq('status', 'active')
 
-  if (error) throw error
+  if (error) throw new Error(error.message)
   return count ?? 0
 }

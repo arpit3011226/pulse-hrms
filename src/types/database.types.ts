@@ -103,9 +103,19 @@ export interface Employee {
   pan_number: string | null
   aadhar_number: string | null
   passport_number: string | null
+  uan_number: string | null
   bank_details: Record<string, string> | null
   emergency_contact: Record<string, string> | null
   avatar_url: string | null
+  salutation: string | null
+  middle_name: string | null
+  official_phone: string | null
+  confirmation_date: string | null
+  nationality: string | null
+  religion: string | null
+  father_name: string | null
+  mother_name: string | null
+  spouse_name: string | null
   created_at: string
   updated_at: string
 }
@@ -121,6 +131,7 @@ export interface LeaveType {
   organization_id: string
   name: string
   code: string | null
+  leave_code: string | null
   description: string | null
   default_days: number
   is_carry_forward: boolean
@@ -128,6 +139,50 @@ export interface LeaveType {
   is_paid: boolean
   is_active: boolean
   applicable_gender: string | null
+  document_required_flag: boolean
+  gender_specific_flag: boolean
+  created_at: string
+}
+
+export interface LeavePolicy {
+  id: string
+  organization_id: string
+  policy_name: string
+  policy_code: string | null
+  description: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface LeavePolicyDetail {
+  id: string
+  leave_policy_id: string
+  leave_type_id: string
+  entitled_days: number
+  max_consecutive_days: number | null
+  min_days_per_request: number
+  max_days_per_request: number | null
+  allow_half_day: boolean
+  allow_carry_forward: boolean
+  max_carry_forward_days: number
+  carry_forward_expiry_months: number | null
+  accrual_type: 'yearly' | 'monthly' | 'quarterly'
+  accrual_start_from: string
+  probation_applicable: boolean
+  notice_days_required: number
+  is_active: boolean
+  created_at: string
+}
+
+export interface EmployeeLeavePolicyMap {
+  id: string
+  organization_id: string
+  employee_id: string
+  leave_policy_id: string
+  effective_from: string
+  effective_to: string | null
+  assigned_by: string | null
   created_at: string
 }
 
@@ -135,11 +190,16 @@ export interface LeaveBalance {
   id: string
   employee_id: string
   leave_type_id: string
+  organization_id: string | null
   year: number
   total_days: number
   used_days: number
   pending_days: number
   carried_forward_days: number
+  opening_balance: number
+  credited: number
+  debited: number
+  closing_balance: number
 }
 
 export interface LeaveRequest {
@@ -156,8 +216,294 @@ export interface LeaveRequest {
   approved_at: string | null
   rejection_reason: string | null
   attachment_url: string | null
+  is_half_day: boolean
+  half_day_period: 'first_half' | 'second_half' | null
   created_at: string
   updated_at: string
+}
+
+export interface LeaveRequestDay {
+  id: string
+  leave_request_id: string
+  leave_date: string
+  day_type: 'full' | 'first_half' | 'second_half'
+  status: string
+  created_at: string
+}
+
+export interface LeaveAttachment {
+  id: string
+  leave_request_id: string
+  file_name: string
+  file_url: string
+  file_size: number | null
+  uploaded_by: string | null
+  created_at: string
+}
+
+export interface LeaveEncashmentRequest {
+  id: string
+  organization_id: string
+  employee_id: string
+  leave_type_id: string
+  days_requested: number
+  amount_per_day: number | null
+  total_amount: number | null
+  status: string
+  approved_by: string | null
+  approved_at: string | null
+  period_year: number
+  remarks: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface LeaveCarryForwardLog {
+  id: string
+  organization_id: string
+  employee_id: string
+  leave_type_id: string
+  from_year: number
+  to_year: number
+  days_carried: number
+  days_lapsed: number
+  processed_at: string
+}
+
+export interface LeaveAccrualRun {
+  id: string
+  organization_id: string
+  leave_type_id: string
+  accrual_period: string
+  accrual_date: string
+  employees_processed: number
+  total_days_credited: number
+  run_by: string | null
+  created_at: string
+}
+
+export interface LeaveBlackoutPeriod {
+  id: string
+  organization_id: string
+  name: string
+  start_date: string
+  end_date: string
+  applicable_leave_type_ids: string[] | null
+  reason: string | null
+  is_active: boolean
+  created_at: string
+}
+
+// Joined types for leave queries
+export interface LeaveRequestWithRelations extends LeaveRequest {
+  leave_type?: LeaveType | null
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email' | 'avatar_url' | 'department_id'> & {
+    department?: Pick<Department, 'id' | 'name'> | null
+  } | null
+  approver?: Pick<Employee, 'id' | 'first_name' | 'last_name'> | null
+  leave_request_days?: LeaveRequestDay[] | null
+}
+
+export interface LeaveBalanceWithRelations extends LeaveBalance {
+  leave_type?: Pick<LeaveType, 'id' | 'name' | 'code' | 'is_paid'> | null
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email' | 'department_id'> | null
+}
+
+export interface LeavePolicyWithDetails extends LeavePolicy {
+  leave_policy_details?: (LeavePolicyDetail & {
+    leave_type?: LeaveType | null
+  })[] | null
+}
+
+export interface EmployeeLeavePolicyMapWithRelations extends EmployeeLeavePolicyMap {
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email'> | null
+  leave_policy?: Pick<LeavePolicy, 'id' | 'policy_name' | 'policy_code'> | null
+}
+
+// ============================================================================
+// Employee Lifecycle Types
+// ============================================================================
+
+export interface EmployeeAddress {
+  id: string
+  organization_id: string
+  employee_id: string
+  address_type: 'permanent' | 'current' | 'emergency'
+  line1: string
+  line2: string | null
+  city: string
+  state: string | null
+  country: string
+  pincode: string | null
+  is_primary: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface EmployeeEmergencyContact {
+  id: string
+  organization_id: string
+  employee_id: string
+  contact_name: string
+  relationship: string
+  phone: string
+  email: string | null
+  priority_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface EmployeeIdentityDocument {
+  id: string
+  organization_id: string
+  employee_id: string
+  document_type: 'pan' | 'aadhar' | 'passport' | 'voter_id' | 'driving_license' | 'other'
+  document_number: string
+  name_on_document: string | null
+  issue_date: string | null
+  expiry_date: string | null
+  file_url: string | null
+  verification_status: 'pending' | 'verified' | 'rejected'
+  created_at: string
+  updated_at: string
+}
+
+export interface EmployeeBankAccount {
+  id: string
+  organization_id: string
+  employee_id: string
+  bank_name: string
+  branch_name: string | null
+  account_number: string
+  ifsc_code: string
+  account_type: 'savings' | 'current'
+  is_salary_account: boolean
+  verification_status: 'pending' | 'verified' | 'rejected'
+  created_at: string
+  updated_at: string
+}
+
+export interface EmployeeDependent {
+  id: string
+  organization_id: string
+  employee_id: string
+  dependent_name: string
+  relationship: 'father' | 'mother' | 'spouse' | 'son' | 'daughter' | 'sibling' | 'other'
+  dob: string | null
+  gender: string | null
+  is_nominee: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface EmployeeNominee {
+  id: string
+  organization_id: string
+  employee_id: string
+  nominee_name: string
+  relationship: string
+  allocation_percent: number
+  applicable_for: 'pf' | 'gratuity' | 'insurance' | 'pension' | 'all'
+  created_at: string
+  updated_at: string
+}
+
+export interface EmployeeWorkProfile {
+  id: string
+  organization_id: string
+  employee_id: string
+  department_id: string | null
+  designation_id: string | null
+  reporting_manager_id: string | null
+  dotted_line_manager_id: string | null
+  employment_type: string | null
+  effective_from: string
+  effective_to: string | null
+  change_reason: string | null
+  is_current: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface EmployeeExitRecord {
+  id: string
+  organization_id: string
+  employee_id: string
+  resignation_date: string | null
+  last_working_date: string | null
+  exit_type: 'resignation' | 'termination' | 'retirement' | 'absconding' | 'contract_end' | 'mutual_separation'
+  exit_reason: string | null
+  regretted_attrition: boolean
+  status: 'initiated' | 'notice_period' | 'clearance_pending' | 'clearance_completed' | 'completed' | 'withdrawn'
+  exit_interview_done: boolean
+  exit_interview_notes: string | null
+  clearance_status: 'pending' | 'in_progress' | 'completed'
+  notice_period_days: number | null
+  notice_period_served: number | null
+  shortfall_recovery_amount: number | null
+  initiated_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface EmployeeStatusHistory {
+  id: string
+  organization_id: string
+  employee_id: string
+  previous_status: string | null
+  new_status: string
+  changed_on: string
+  reason: string | null
+  changed_by: string | null
+  created_at: string
+}
+
+export interface EmployeeOrgHistory {
+  id: string
+  organization_id: string
+  employee_id: string
+  change_type: 'promotion' | 'transfer' | 'redesignation' | 'manager_change' | 'initial_assignment'
+  old_department_id: string | null
+  new_department_id: string | null
+  old_designation_id: string | null
+  new_designation_id: string | null
+  old_manager_id: string | null
+  new_manager_id: string | null
+  effective_from: string
+  remarks: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export interface EmployeeDocument {
+  id: string
+  organization_id: string
+  employee_id: string
+  document_category: 'offer_letter' | 'appointment_letter' | 'experience_letter' | 'payslip' | 'tax_document' | 'policy_acknowledgement' | 'training_certificate' | 'performance_review' | 'other'
+  document_name: string
+  file_url: string
+  file_size: number | null
+  expiry_date: string | null
+  verification_status: 'pending' | 'verified' | 'rejected'
+  uploaded_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+// Joined types for employee lifecycle
+export interface EmployeeWorkProfileWithRelations extends EmployeeWorkProfile {
+  department?: Pick<Department, 'id' | 'name'> | null
+  designation?: Pick<Designation, 'id' | 'title'> | null
+  reporting_manager?: Pick<Employee, 'id' | 'first_name' | 'last_name'> | null
+}
+
+export interface EmployeeOrgHistoryWithRelations extends EmployeeOrgHistory {
+  old_department?: Pick<Department, 'id' | 'name'> | null
+  new_department?: Pick<Department, 'id' | 'name'> | null
+  old_designation?: Pick<Designation, 'id' | 'title'> | null
+  new_designation?: Pick<Designation, 'id' | 'title'> | null
+  old_manager?: Pick<Employee, 'id' | 'first_name' | 'last_name'> | null
+  new_manager?: Pick<Employee, 'id' | 'first_name' | 'last_name'> | null
 }
 
 export interface AttendanceRecord {
@@ -197,6 +543,685 @@ export interface Holiday {
   type: string
   is_active: boolean
   created_at: string
+}
+
+export interface ShiftRoster {
+  id: string
+  organization_id: string
+  employee_id: string
+  shift_id: string
+  start_date: string
+  end_date: string | null
+  assigned_by: string | null
+  notes: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface AttendanceRegularizationRequest {
+  id: string
+  organization_id: string
+  employee_id: string
+  attendance_record_id: string | null
+  date: string
+  original_clock_in: string | null
+  original_clock_out: string | null
+  requested_clock_in: string | null
+  requested_clock_out: string | null
+  original_status: string | null
+  requested_status: string | null
+  reason: string
+  status: 'pending' | 'approved' | 'rejected'
+  reviewed_by: string | null
+  reviewed_at: string | null
+  review_remarks: string | null
+  created_at: string
+  updated_at: string
+}
+
+// Attendance joined types
+export type AttendanceRecordWithRelations = AttendanceRecord & {
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email' | 'avatar_url' | 'department_id'> & {
+    department?: Pick<Department, 'id' | 'name'> | null
+  } | null
+  shift?: Pick<Shift, 'id' | 'name' | 'start_time' | 'end_time'> | null
+}
+
+export type ShiftRosterWithRelations = ShiftRoster & {
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email'> | null
+  shift?: Pick<Shift, 'id' | 'name' | 'start_time' | 'end_time'> | null
+}
+
+export type RegularizationRequestWithRelations = AttendanceRegularizationRequest & {
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email' | 'avatar_url'> | null
+  reviewer?: Pick<Employee, 'id' | 'first_name' | 'last_name'> | null
+}
+
+// ============================================================================
+// Payroll & Compensation Types
+// ============================================================================
+
+export interface SalaryComponent {
+  id: string
+  organization_id: string
+  component_name: string
+  component_code: string
+  component_type: 'earning' | 'deduction' | 'employer_contribution'
+  category: 'fixed' | 'variable' | 'statutory' | 'reimbursement'
+  is_taxable: boolean
+  is_statutory: boolean
+  statutory_type: 'pf_employee' | 'pf_employer' | 'esi_employee' | 'esi_employer' | 'pt' | 'tds' | null
+  calculation_type: 'flat' | 'percentage_of_basic' | 'percentage_of_gross'
+  default_value: number
+  description: string | null
+  display_order: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface SalaryStructure {
+  id: string
+  organization_id: string
+  structure_name: string
+  structure_code: string | null
+  description: string | null
+  is_default: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface SalaryStructureComponent {
+  id: string
+  salary_structure_id: string
+  salary_component_id: string
+  calculation_type: 'flat' | 'percentage_of_basic' | 'percentage_of_gross'
+  default_value: number
+  display_order: number
+  is_active: boolean
+  created_at: string
+}
+
+export interface EmployeeCompensation {
+  id: string
+  organization_id: string
+  employee_id: string
+  salary_structure_id: string
+  annual_ctc: number
+  monthly_gross: number
+  effective_from: string
+  effective_to: string | null
+  revision_reason: string | null
+  is_current: boolean
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface EmployeeCompensationComponent {
+  id: string
+  employee_compensation_id: string
+  salary_component_id: string
+  monthly_amount: number
+  annual_amount: number
+  calculation_type: string
+  calculation_value: number
+  created_at: string
+}
+
+export interface PayrollCycle {
+  id: string
+  organization_id: string
+  cycle_name: string
+  payroll_month: number
+  payroll_year: number
+  start_date: string
+  end_date: string
+  processing_status: 'draft' | 'processing' | 'computed' | 'approved' | 'paid' | 'cancelled'
+  pay_date: string | null
+  notes: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PayrollRun {
+  id: string
+  organization_id: string
+  payroll_cycle_id: string
+  run_number: number
+  run_type: 'regular' | 'supplementary' | 'arrears'
+  run_status: 'draft' | 'processing' | 'completed' | 'approved' | 'cancelled'
+  total_employees: number
+  total_gross: number
+  total_deductions: number
+  total_net_pay: number
+  processed_by: string | null
+  processed_at: string | null
+  approved_by: string | null
+  approved_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PayrollRunEmployee {
+  id: string
+  organization_id: string
+  payroll_run_id: string
+  employee_id: string
+  employee_compensation_id: string | null
+  gross_earnings: number
+  total_deductions: number
+  net_pay: number
+  total_employer_contributions: number
+  working_days: number
+  present_days: number
+  lop_days: number
+  payroll_status: 'draft' | 'computed' | 'approved' | 'paid' | 'on_hold'
+  remarks: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PayrollEarning {
+  id: string
+  payroll_run_employee_id: string
+  salary_component_id: string
+  amount: number
+  created_at: string
+}
+
+export interface PayrollDeduction {
+  id: string
+  payroll_run_employee_id: string
+  salary_component_id: string
+  amount: number
+  created_at: string
+}
+
+export interface Payslip {
+  id: string
+  organization_id: string
+  payroll_run_employee_id: string
+  employee_id: string
+  payslip_number: string
+  payroll_month: number
+  payroll_year: number
+  gross_earnings: number
+  total_deductions: number
+  net_pay: number
+  generated_on: string
+  published_flag: boolean
+  published_at: string | null
+  file_url: string | null
+  created_at: string
+}
+
+export interface PayrollAdjustment {
+  id: string
+  organization_id: string
+  employee_id: string
+  payroll_run_employee_id: string | null
+  adjustment_type: 'addition' | 'deduction'
+  salary_component_id: string | null
+  amount: number
+  reason: string
+  adjustment_month: number
+  adjustment_year: number
+  is_processed: boolean
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+// Payroll joined types
+export interface SalaryStructureWithComponents extends SalaryStructure {
+  salary_structure_components?: (SalaryStructureComponent & {
+    salary_component?: SalaryComponent | null
+  })[] | null
+}
+
+export interface EmployeeCompensationWithRelations extends EmployeeCompensation {
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email' | 'employee_code' | 'department_id'> & {
+    department?: Pick<Department, 'id' | 'name'> | null
+  } | null
+  salary_structure?: Pick<SalaryStructure, 'id' | 'structure_name' | 'structure_code'> | null
+  employee_compensation_components?: (EmployeeCompensationComponent & {
+    salary_component?: Pick<SalaryComponent, 'id' | 'component_name' | 'component_code' | 'component_type'> | null
+  })[] | null
+}
+
+export interface PayrollRunWithRelations extends PayrollRun {
+  payroll_cycle?: Pick<PayrollCycle, 'id' | 'cycle_name' | 'payroll_month' | 'payroll_year'> | null
+}
+
+export interface PayrollRunEmployeeWithRelations extends PayrollRunEmployee {
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email' | 'employee_code' | 'department_id'> & {
+    department?: Pick<Department, 'id' | 'name'> | null
+  } | null
+  payroll_earnings?: (PayrollEarning & {
+    salary_component?: Pick<SalaryComponent, 'id' | 'component_name' | 'component_code'> | null
+  })[] | null
+  payroll_deductions?: (PayrollDeduction & {
+    salary_component?: Pick<SalaryComponent, 'id' | 'component_name' | 'component_code'> | null
+  })[] | null
+}
+
+export interface PayslipWithRelations extends Payslip {
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email' | 'employee_code'> | null
+}
+
+// ============================================================================
+// Performance Management Types
+// ============================================================================
+
+export interface PerformanceCycle {
+  id: string
+  organization_id: string
+  cycle_name: string
+  cycle_code: string
+  cycle_type: 'quarterly' | 'half_yearly' | 'annual' | 'custom'
+  start_date: string
+  end_date: string
+  goal_setting_deadline: string | null
+  self_review_deadline: string | null
+  manager_review_deadline: string | null
+  status: 'draft' | 'active' | 'goal_setting' | 'self_review' | 'manager_review' | 'calibration' | 'completed' | 'cancelled'
+  description: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ReviewCompetency {
+  id: string
+  organization_id: string
+  competency_name: string
+  competency_code: string
+  description: string | null
+  category: 'core' | 'functional' | 'leadership'
+  is_active: boolean
+  display_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface EmployeeGoal {
+  id: string
+  organization_id: string
+  employee_id: string
+  performance_cycle_id: string
+  goal_title: string
+  goal_description: string | null
+  category: 'individual' | 'team' | 'organizational'
+  weightage: number
+  target_value: number | null
+  current_value: number
+  unit: 'percentage' | 'number' | 'currency' | 'boolean'
+  status: 'not_started' | 'in_progress' | 'on_track' | 'at_risk' | 'completed' | 'cancelled'
+  start_date: string | null
+  due_date: string | null
+  completed_date: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface GoalKeyResult {
+  id: string
+  employee_goal_id: string
+  kr_title: string
+  target_value: number
+  current_value: number
+  unit: 'percentage' | 'number' | 'currency' | 'boolean'
+  status: 'not_started' | 'in_progress' | 'completed'
+  weightage: number
+  created_at: string
+  updated_at: string
+}
+
+export interface GoalCheckin {
+  id: string
+  employee_goal_id: string
+  checkin_date: string
+  progress_value: number | null
+  comments: string | null
+  submitted_by: string | null
+  reviewed_by: string | null
+  created_at: string
+}
+
+export interface PerformanceReview {
+  id: string
+  organization_id: string
+  employee_id: string
+  performance_cycle_id: string
+  reviewer_id: string | null
+  overall_rating: number | null
+  overall_comments: string | null
+  status: 'draft' | 'self_review_pending' | 'self_review_done' | 'manager_review_pending' | 'manager_review_done' | 'acknowledged' | 'finalized'
+  final_rating: number | null
+  rating_label: 'exceeds_expectations' | 'meets_expectations' | 'needs_improvement' | 'below_expectations' | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SelfReview {
+  id: string
+  performance_review_id: string
+  self_rating: number | null
+  strengths: string | null
+  areas_for_improvement: string | null
+  achievements: string | null
+  comments: string | null
+  submitted_at: string | null
+}
+
+export interface ManagerReview {
+  id: string
+  performance_review_id: string
+  manager_id: string
+  rating: number | null
+  strengths: string | null
+  areas_for_improvement: string | null
+  development_plan: string | null
+  comments: string | null
+  submitted_at: string | null
+}
+
+export interface PerformanceImprovementPlan {
+  id: string
+  organization_id: string
+  employee_id: string
+  performance_review_id: string | null
+  initiated_by: string | null
+  plan_title: string
+  objectives: string | null
+  success_criteria: string | null
+  support_resources: string | null
+  start_date: string
+  target_end_date: string
+  actual_end_date: string | null
+  status: 'draft' | 'active' | 'extended' | 'completed_successful' | 'completed_unsuccessful' | 'cancelled'
+  progress_notes: string | null
+  outcome_notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+// Joined types
+export interface EmployeeGoalWithRelations extends EmployeeGoal {
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email' | 'employee_code'> | null
+  performance_cycle?: Pick<PerformanceCycle, 'id' | 'cycle_name' | 'cycle_code'> | null
+  goal_key_results?: GoalKeyResult[]
+  goal_checkins?: GoalCheckin[]
+}
+
+export interface PerformanceReviewWithRelations extends PerformanceReview {
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email' | 'employee_code' | 'department_id'> & { department?: { id: string; name: string } | null } | null
+  performance_cycle?: Pick<PerformanceCycle, 'id' | 'cycle_name' | 'cycle_code'> | null
+  reviewer?: Pick<Employee, 'id' | 'first_name' | 'last_name'> | null
+  self_review?: SelfReview | null
+  manager_review?: ManagerReview | null
+}
+
+export interface PerformanceImprovementPlanWithRelations extends PerformanceImprovementPlan {
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email' | 'employee_code'> | null
+  initiator?: Pick<Employee, 'id' | 'first_name' | 'last_name'> | null
+}
+
+// ============================================================================
+// Recruitment & Applicant Tracking Types
+// ============================================================================
+
+export interface InterviewStage {
+  id: string
+  organization_id: string
+  stage_name: string
+  stage_order: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface JobRequisition {
+  id: string
+  organization_id: string
+  requisition_code: string
+  title: string
+  department_id: string | null
+  hiring_manager_id: string | null
+  employment_type: 'full_time' | 'part_time' | 'contract' | 'intern'
+  headcount: number
+  description: string | null
+  requirements: string | null
+  min_experience: number | null
+  max_experience: number | null
+  min_salary: number | null
+  max_salary: number | null
+  location: string | null
+  status: 'draft' | 'open' | 'on_hold' | 'closed' | 'filled' | 'cancelled'
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Candidate {
+  id: string
+  organization_id: string
+  first_name: string
+  last_name: string
+  email: string
+  phone: string | null
+  current_company: string | null
+  current_designation: string | null
+  experience_years: number | null
+  source: 'job_portal' | 'referral' | 'direct' | 'linkedin' | 'agency' | 'campus' | 'other'
+  resume_url: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CandidateApplication {
+  id: string
+  organization_id: string
+  candidate_id: string
+  job_requisition_id: string
+  current_stage_id: string | null
+  status: 'new' | 'screening' | 'in_progress' | 'offer' | 'hired' | 'rejected' | 'withdrawn' | 'on_hold'
+  applied_date: string
+  rejection_reason: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CandidateStageHistory {
+  id: string
+  candidate_application_id: string
+  from_stage_id: string | null
+  to_stage_id: string
+  moved_by: string | null
+  notes: string | null
+  created_at: string
+}
+
+export interface Interview {
+  id: string
+  organization_id: string
+  candidate_application_id: string
+  interview_stage_id: string | null
+  interviewer_id: string | null
+  scheduled_start: string
+  scheduled_end: string
+  mode: 'phone' | 'video' | 'in_person'
+  location_or_link: string | null
+  status: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled' | 'no_show'
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface InterviewFeedback {
+  id: string
+  interview_id: string
+  interviewer_id: string
+  rating: number | null
+  strengths: string | null
+  areas_for_improvement: string | null
+  recommendation: 'strong_hire' | 'hire' | 'maybe' | 'no_hire' | 'strong_no_hire'
+  comments: string | null
+  submitted_at: string
+  created_at: string
+}
+
+export interface OfferLetter {
+  id: string
+  organization_id: string
+  candidate_application_id: string
+  offered_designation: string
+  offered_ctc: number
+  joining_date: string | null
+  offer_status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired' | 'withdrawn'
+  offer_notes: string | null
+  valid_until: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CandidateConversionRecord {
+  id: string
+  candidate_application_id: string
+  employee_id: string
+  conversion_date: string
+  notes: string | null
+  created_at: string
+}
+
+// Recruitment joined types
+export interface JobRequisitionWithRelations extends JobRequisition {
+  department?: Pick<Department, 'id' | 'name'> | null
+  hiring_manager?: Pick<Employee, 'id' | 'first_name' | 'last_name'> | null
+}
+
+export interface CandidateApplicationWithRelations extends CandidateApplication {
+  candidate?: Pick<Candidate, 'id' | 'first_name' | 'last_name' | 'email' | 'phone' | 'experience_years' | 'source'> | null
+  job_requisition?: Pick<JobRequisition, 'id' | 'title' | 'requisition_code'> | null
+  current_stage?: Pick<InterviewStage, 'id' | 'stage_name' | 'stage_order'> | null
+}
+
+export interface InterviewWithRelations extends Interview {
+  candidate_application?: CandidateApplicationWithRelations | null
+  interview_stage?: Pick<InterviewStage, 'id' | 'stage_name'> | null
+  interviewer?: Pick<Employee, 'id' | 'first_name' | 'last_name'> | null
+  interview_feedback?: InterviewFeedback | null
+}
+
+export interface OfferLetterWithRelations extends OfferLetter {
+  candidate_application?: CandidateApplicationWithRelations | null
+}
+
+export interface CandidateConversionRecordWithRelations extends CandidateConversionRecord {
+  candidate_application?: CandidateApplicationWithRelations | null
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'employee_code'> | null
+}
+
+// ============================================================================
+// Learning & Development Types
+// ============================================================================
+
+export interface CourseCategory {
+  id: string
+  organization_id: string
+  category_name: string
+  description: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface TrainingCourse {
+  id: string
+  organization_id: string
+  course_code: string
+  course_name: string
+  description: string | null
+  category_id: string | null
+  mode: 'online' | 'classroom' | 'blended' | 'self_paced'
+  duration_hours: number | null
+  instructor_name: string | null
+  max_participants: number | null
+  thumbnail_url: string | null
+  syllabus: string | null
+  prerequisites: string | null
+  status: 'draft' | 'published' | 'archived'
+  is_mandatory: boolean
+  target_departments: string[] | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TrainingEnrollment {
+  id: string
+  organization_id: string
+  course_id: string
+  employee_id: string
+  enrolled_date: string
+  completion_date: string | null
+  status: 'enrolled' | 'in_progress' | 'completed' | 'dropped' | 'failed'
+  progress_percent: number
+  certificate_url: string | null
+  feedback_rating: number | null
+  feedback_comments: string | null
+  enrolled_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TrainingAssessment {
+  id: string
+  course_id: string
+  assessment_name: string
+  assessment_type: 'quiz' | 'assignment' | 'practical' | 'certification_exam'
+  total_marks: number
+  passing_marks: number
+  duration_minutes: number | null
+  is_mandatory: boolean
+  display_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface TrainingAssessmentAttempt {
+  id: string
+  assessment_id: string
+  employee_id: string
+  attempt_number: number
+  score: number | null
+  status: 'in_progress' | 'passed' | 'failed'
+  started_at: string
+  completed_at: string | null
+  created_at: string
+}
+
+// Learning joined types
+export interface TrainingCourseWithRelations extends TrainingCourse {
+  category?: Pick<CourseCategory, 'id' | 'category_name'> | null
+}
+
+export interface TrainingEnrollmentWithRelations extends TrainingEnrollment {
+  course?: Pick<TrainingCourse, 'id' | 'course_name' | 'course_code' | 'mode' | 'duration_hours'> | null
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email' | 'employee_code' | 'department_id'> & {
+    department?: Pick<Department, 'id' | 'name'> | null
+  } | null
+}
+
+export interface TrainingAssessmentAttemptWithRelations extends TrainingAssessmentAttempt {
+  assessment?: Pick<TrainingAssessment, 'id' | 'assessment_name' | 'assessment_type' | 'total_marks' | 'passing_marks'> | null
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email'> | null
 }
 
 export interface Announcement {
@@ -259,15 +1284,72 @@ export interface Database {
       designations: { Row: Designation; Insert: Partial<Designation>; Update: Partial<Designation> }
       employees: { Row: Employee; Insert: Partial<Employee>; Update: Partial<Employee> }
       leave_types: { Row: LeaveType; Insert: Partial<LeaveType>; Update: Partial<LeaveType> }
+      leave_policies: { Row: LeavePolicy; Insert: Partial<LeavePolicy>; Update: Partial<LeavePolicy> }
+      leave_policy_details: { Row: LeavePolicyDetail; Insert: Partial<LeavePolicyDetail>; Update: Partial<LeavePolicyDetail> }
+      employee_leave_policy_map: { Row: EmployeeLeavePolicyMap; Insert: Partial<EmployeeLeavePolicyMap>; Update: Partial<EmployeeLeavePolicyMap> }
       leave_balances: { Row: LeaveBalance; Insert: Partial<LeaveBalance>; Update: Partial<LeaveBalance> }
       leave_requests: { Row: LeaveRequest; Insert: Partial<LeaveRequest>; Update: Partial<LeaveRequest> }
+      leave_request_days: { Row: LeaveRequestDay; Insert: Partial<LeaveRequestDay>; Update: Partial<LeaveRequestDay> }
+      leave_attachments: { Row: LeaveAttachment; Insert: Partial<LeaveAttachment>; Update: Partial<LeaveAttachment> }
+      leave_encashment_requests: { Row: LeaveEncashmentRequest; Insert: Partial<LeaveEncashmentRequest>; Update: Partial<LeaveEncashmentRequest> }
+      leave_carry_forward_logs: { Row: LeaveCarryForwardLog; Insert: Partial<LeaveCarryForwardLog>; Update: Partial<LeaveCarryForwardLog> }
+      leave_accrual_runs: { Row: LeaveAccrualRun; Insert: Partial<LeaveAccrualRun>; Update: Partial<LeaveAccrualRun> }
+      leave_blackout_periods: { Row: LeaveBlackoutPeriod; Insert: Partial<LeaveBlackoutPeriod>; Update: Partial<LeaveBlackoutPeriod> }
       attendance_records: { Row: AttendanceRecord; Insert: Partial<AttendanceRecord>; Update: Partial<AttendanceRecord> }
       shifts: { Row: Shift; Insert: Partial<Shift>; Update: Partial<Shift> }
+      shift_rosters: { Row: ShiftRoster; Insert: Partial<ShiftRoster>; Update: Partial<ShiftRoster> }
       holidays: { Row: Holiday; Insert: Partial<Holiday>; Update: Partial<Holiday> }
+      attendance_regularization_requests: { Row: AttendanceRegularizationRequest; Insert: Partial<AttendanceRegularizationRequest>; Update: Partial<AttendanceRegularizationRequest> }
       announcements: { Row: Announcement; Insert: Partial<Announcement>; Update: Partial<Announcement> }
       notifications: { Row: Notification; Insert: Partial<Notification>; Update: Partial<Notification> }
       documents: { Row: Document; Insert: Partial<Document>; Update: Partial<Document> }
       activity_log: { Row: ActivityLog; Insert: Partial<ActivityLog>; Update: Partial<ActivityLog> }
+      employee_addresses: { Row: EmployeeAddress; Insert: Partial<EmployeeAddress>; Update: Partial<EmployeeAddress> }
+      employee_emergency_contacts: { Row: EmployeeEmergencyContact; Insert: Partial<EmployeeEmergencyContact>; Update: Partial<EmployeeEmergencyContact> }
+      employee_identity_documents: { Row: EmployeeIdentityDocument; Insert: Partial<EmployeeIdentityDocument>; Update: Partial<EmployeeIdentityDocument> }
+      employee_bank_accounts: { Row: EmployeeBankAccount; Insert: Partial<EmployeeBankAccount>; Update: Partial<EmployeeBankAccount> }
+      employee_dependents: { Row: EmployeeDependent; Insert: Partial<EmployeeDependent>; Update: Partial<EmployeeDependent> }
+      employee_nominees: { Row: EmployeeNominee; Insert: Partial<EmployeeNominee>; Update: Partial<EmployeeNominee> }
+      employee_work_profiles: { Row: EmployeeWorkProfile; Insert: Partial<EmployeeWorkProfile>; Update: Partial<EmployeeWorkProfile> }
+      employee_exit_records: { Row: EmployeeExitRecord; Insert: Partial<EmployeeExitRecord>; Update: Partial<EmployeeExitRecord> }
+      employee_status_history: { Row: EmployeeStatusHistory; Insert: Partial<EmployeeStatusHistory>; Update: Partial<EmployeeStatusHistory> }
+      employee_org_history: { Row: EmployeeOrgHistory; Insert: Partial<EmployeeOrgHistory>; Update: Partial<EmployeeOrgHistory> }
+      employee_documents: { Row: EmployeeDocument; Insert: Partial<EmployeeDocument>; Update: Partial<EmployeeDocument> }
+      salary_components: { Row: SalaryComponent; Insert: Partial<SalaryComponent>; Update: Partial<SalaryComponent> }
+      salary_structures: { Row: SalaryStructure; Insert: Partial<SalaryStructure>; Update: Partial<SalaryStructure> }
+      salary_structure_components: { Row: SalaryStructureComponent; Insert: Partial<SalaryStructureComponent>; Update: Partial<SalaryStructureComponent> }
+      employee_compensation: { Row: EmployeeCompensation; Insert: Partial<EmployeeCompensation>; Update: Partial<EmployeeCompensation> }
+      employee_compensation_components: { Row: EmployeeCompensationComponent; Insert: Partial<EmployeeCompensationComponent>; Update: Partial<EmployeeCompensationComponent> }
+      payroll_cycles: { Row: PayrollCycle; Insert: Partial<PayrollCycle>; Update: Partial<PayrollCycle> }
+      payroll_runs: { Row: PayrollRun; Insert: Partial<PayrollRun>; Update: Partial<PayrollRun> }
+      payroll_run_employees: { Row: PayrollRunEmployee; Insert: Partial<PayrollRunEmployee>; Update: Partial<PayrollRunEmployee> }
+      payroll_earnings: { Row: PayrollEarning; Insert: Partial<PayrollEarning>; Update: Partial<PayrollEarning> }
+      payroll_deductions: { Row: PayrollDeduction; Insert: Partial<PayrollDeduction>; Update: Partial<PayrollDeduction> }
+      payslips: { Row: Payslip; Insert: Partial<Payslip>; Update: Partial<Payslip> }
+      payroll_adjustments: { Row: PayrollAdjustment; Insert: Partial<PayrollAdjustment>; Update: Partial<PayrollAdjustment> }
+      performance_cycles: { Row: PerformanceCycle; Insert: Partial<PerformanceCycle>; Update: Partial<PerformanceCycle> }
+      review_competencies: { Row: ReviewCompetency; Insert: Partial<ReviewCompetency>; Update: Partial<ReviewCompetency> }
+      employee_goals: { Row: EmployeeGoal; Insert: Partial<EmployeeGoal>; Update: Partial<EmployeeGoal> }
+      goal_key_results: { Row: GoalKeyResult; Insert: Partial<GoalKeyResult>; Update: Partial<GoalKeyResult> }
+      goal_checkins: { Row: GoalCheckin; Insert: Partial<GoalCheckin>; Update: Partial<GoalCheckin> }
+      performance_reviews: { Row: PerformanceReview; Insert: Partial<PerformanceReview>; Update: Partial<PerformanceReview> }
+      self_reviews: { Row: SelfReview; Insert: Partial<SelfReview>; Update: Partial<SelfReview> }
+      manager_reviews: { Row: ManagerReview; Insert: Partial<ManagerReview>; Update: Partial<ManagerReview> }
+      performance_improvement_plans: { Row: PerformanceImprovementPlan; Insert: Partial<PerformanceImprovementPlan>; Update: Partial<PerformanceImprovementPlan> }
+      interview_stages: { Row: InterviewStage; Insert: Partial<InterviewStage>; Update: Partial<InterviewStage> }
+      job_requisitions: { Row: JobRequisition; Insert: Partial<JobRequisition>; Update: Partial<JobRequisition> }
+      candidates: { Row: Candidate; Insert: Partial<Candidate>; Update: Partial<Candidate> }
+      candidate_applications: { Row: CandidateApplication; Insert: Partial<CandidateApplication>; Update: Partial<CandidateApplication> }
+      candidate_stage_history: { Row: CandidateStageHistory; Insert: Partial<CandidateStageHistory>; Update: Partial<CandidateStageHistory> }
+      interviews: { Row: Interview; Insert: Partial<Interview>; Update: Partial<Interview> }
+      interview_feedback: { Row: InterviewFeedback; Insert: Partial<InterviewFeedback>; Update: Partial<InterviewFeedback> }
+      offer_letters: { Row: OfferLetter; Insert: Partial<OfferLetter>; Update: Partial<OfferLetter> }
+      candidate_conversion_records: { Row: CandidateConversionRecord; Insert: Partial<CandidateConversionRecord>; Update: Partial<CandidateConversionRecord> }
+      course_categories: { Row: CourseCategory; Insert: Partial<CourseCategory>; Update: Partial<CourseCategory> }
+      training_courses: { Row: TrainingCourse; Insert: Partial<TrainingCourse>; Update: Partial<TrainingCourse> }
+      training_enrollments: { Row: TrainingEnrollment; Insert: Partial<TrainingEnrollment>; Update: Partial<TrainingEnrollment> }
+      training_assessments: { Row: TrainingAssessment; Insert: Partial<TrainingAssessment>; Update: Partial<TrainingAssessment> }
+      training_assessment_attempts: { Row: TrainingAssessmentAttempt; Insert: Partial<TrainingAssessmentAttempt>; Update: Partial<TrainingAssessmentAttempt> }
     }
   }
 }

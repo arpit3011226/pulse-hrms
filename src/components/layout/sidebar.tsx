@@ -9,6 +9,7 @@ import {
   DollarSign,
   Target,
   GraduationCap,
+  BarChart3,
   Settings,
   ChevronLeft,
   LogOut,
@@ -50,6 +51,7 @@ export function Sidebar() {
     { title: 'Payroll', href: '/payroll', icon: DollarSign, visible: permissions.canViewPayroll && isModuleEnabled('payroll') },
     { title: 'Performance', href: '/performance', icon: Target, visible: isModuleEnabled('performance') },
     { title: 'Learning', href: '/learning', icon: GraduationCap, visible: isModuleEnabled('learning') },
+    { title: 'Reports', href: '/reports', icon: BarChart3, visible: permissions.canViewReports },
   ]
 
   const bottomItems: NavItem[] = [

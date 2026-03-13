@@ -11,26 +11,42 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/page-header'
 import { useCreateEmployee, useUpdateEmployee } from '../hooks/use-employees'
-import { EMPLOYMENT_TYPES, GENDER_OPTIONS, MARITAL_STATUS_OPTIONS, BLOOD_GROUPS } from '@/lib/constants'
+import {
+  EMPLOYMENT_TYPES, GENDER_OPTIONS, MARITAL_STATUS_OPTIONS, BLOOD_GROUPS,
+  SALUTATION_OPTIONS,
+} from '@/lib/constants'
 import type { Employee, Department, Designation } from '@/types/database.types'
 import { toast } from 'sonner'
 
 const employeeSchema = z.object({
+  salutation: z.string().optional(),
   first_name: z.string().min(1, 'First name is required'),
+  middle_name: z.string().optional(),
   last_name: z.string().min(1, 'Last name is required'),
   email: z.string().email('Valid email is required'),
   personal_email: z.string().email().optional().or(z.literal('')),
   phone: z.string().optional(),
+  official_phone: z.string().optional(),
   employee_code: z.string().optional(),
   date_of_birth: z.string().optional(),
   gender: z.string().optional(),
   marital_status: z.string().optional(),
   blood_group: z.string().optional(),
+  nationality: z.string().optional(),
+  religion: z.string().optional(),
+  father_name: z.string().optional(),
+  mother_name: z.string().optional(),
+  spouse_name: z.string().optional(),
   department_id: z.string().optional(),
   designation_id: z.string().optional(),
   employment_type: z.string().optional(),
   date_of_joining: z.string().optional(),
+  probation_end_date: z.string().optional(),
+  confirmation_date: z.string().optional(),
   reporting_manager_id: z.string().optional(),
+  pan_number: z.string().optional(),
+  aadhar_number: z.string().optional(),
+  uan_number: z.string().optional(),
 })
 
 type EmployeeFormData = z.infer<typeof employeeSchema>
@@ -51,29 +67,42 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
     defaultValues: employee ? {
+      salutation: employee.salutation || '',
       first_name: employee.first_name,
+      middle_name: employee.middle_name || '',
       last_name: employee.last_name,
       email: employee.email,
       personal_email: employee.personal_email || '',
       phone: employee.phone || '',
+      official_phone: employee.official_phone || '',
       employee_code: employee.employee_code || '',
       date_of_birth: employee.date_of_birth || '',
       gender: employee.gender || '',
       marital_status: employee.marital_status || '',
       blood_group: employee.blood_group || '',
+      nationality: employee.nationality || '',
+      religion: employee.religion || '',
+      father_name: employee.father_name || '',
+      mother_name: employee.mother_name || '',
+      spouse_name: employee.spouse_name || '',
       department_id: employee.department_id || '',
       designation_id: employee.designation_id || '',
       employment_type: employee.employment_type,
       date_of_joining: employee.date_of_joining || '',
+      probation_end_date: employee.probation_end_date || '',
+      confirmation_date: employee.confirmation_date || '',
       reporting_manager_id: employee.reporting_manager_id || '',
+      pan_number: employee.pan_number || '',
+      aadhar_number: employee.aadhar_number || '',
+      uan_number: employee.uan_number || '',
     } : {
       employment_type: 'full_time',
+      nationality: 'Indian',
     },
   })
 
   const onSubmit = async (data: EmployeeFormData) => {
     try {
-      // Clean empty strings to null
       const cleaned = Object.fromEntries(
         Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
       )
@@ -103,7 +132,8 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
           <TabsList>
             <TabsTrigger value="personal">Personal Info</TabsTrigger>
             <TabsTrigger value="employment">Employment</TabsTrigger>
-            <TabsTrigger value="other">Other Details</TabsTrigger>
+            <TabsTrigger value="compliance">Compliance</TabsTrigger>
+            <TabsTrigger value="family">Family Details</TabsTrigger>
           </TabsList>
 
           <TabsContent value="personal">
@@ -111,11 +141,26 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
               <CardHeader>
                 <CardTitle>Personal Information</CardTitle>
               </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2">
+              <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-2">
+                  <Label>Salutation</Label>
+                  <Select onValueChange={(v) => setValue('salutation', v)} defaultValue={employee?.salutation || undefined}>
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {SALUTATION_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="first_name">First Name *</Label>
                   <Input id="first_name" {...register('first_name')} />
                   {errors.first_name && <p className="text-sm text-destructive">{errors.first_name.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="middle_name">Middle Name</Label>
+                  <Input id="middle_name" {...register('middle_name')} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="last_name">Last Name *</Label>
@@ -134,6 +179,10 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone</Label>
                   <Input id="phone" {...register('phone')} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="official_phone">Official Phone</Label>
+                  <Input id="official_phone" {...register('official_phone')} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="date_of_birth">Date of Birth</Label>
@@ -172,6 +221,14 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nationality">Nationality</Label>
+                  <Input id="nationality" {...register('nationality')} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="religion">Religion</Label>
+                  <Input id="religion" {...register('religion')} />
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -181,7 +238,7 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
               <CardHeader>
                 <CardTitle>Employment Details</CardTitle>
               </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2">
+              <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="employee_code">Employee Code</Label>
                   <Input id="employee_code" placeholder="EMP001" {...register('employee_code')} />
@@ -224,6 +281,14 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
                   <Input id="date_of_joining" type="date" {...register('date_of_joining')} />
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="probation_end_date">Probation End Date</Label>
+                  <Input id="probation_end_date" type="date" {...register('probation_end_date')} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmation_date">Confirmation Date</Label>
+                  <Input id="confirmation_date" type="date" {...register('confirmation_date')} />
+                </div>
+                <div className="space-y-2">
                   <Label>Reporting Manager</Label>
                   <Select onValueChange={(v) => setValue('reporting_manager_id', v)} defaultValue={employee?.reporting_manager_id || undefined}>
                     <SelectTrigger><SelectValue placeholder="Select manager" /></SelectTrigger>
@@ -240,17 +305,51 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
             </Card>
           </TabsContent>
 
-          <TabsContent value="other">
+          <TabsContent value="compliance">
             <Card>
               <CardHeader>
-                <CardTitle>Additional Details</CardTitle>
+                <CardTitle>Compliance & Identity</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Additional fields like bank details, documents, and address will be available in the employee detail view.
-                </p>
+              <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="pan_number">PAN Number</Label>
+                  <Input id="pan_number" placeholder="ABCDE1234F" {...register('pan_number')} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="aadhar_number">Aadhar Number</Label>
+                  <Input id="aadhar_number" placeholder="1234 5678 9012" {...register('aadhar_number')} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="uan_number">UAN (PF Number)</Label>
+                  <Input id="uan_number" placeholder="100123456789" {...register('uan_number')} />
+                </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="family">
+            <Card>
+              <CardHeader>
+                <CardTitle>Family Details</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="father_name">Father's Name</Label>
+                  <Input id="father_name" {...register('father_name')} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mother_name">Mother's Name</Label>
+                  <Input id="mother_name" {...register('mother_name')} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="spouse_name">Spouse's Name</Label>
+                  <Input id="spouse_name" {...register('spouse_name')} />
+                </div>
+              </CardContent>
+            </Card>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Dependents, nominees, addresses, bank accounts, and documents can be managed from the employee detail view after creation.
+            </p>
           </TabsContent>
         </Tabs>
 

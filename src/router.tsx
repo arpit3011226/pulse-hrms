@@ -15,14 +15,21 @@ import { EmployeeList } from '@/features/employees/components/employee-list'
 import { EmployeeDetail } from '@/features/employees/components/employee-detail'
 import { EmployeeFormPage } from '@/features/employees/components/employee-form-page'
 import { DepartmentList } from '@/features/departments/components/department-list'
+import { LeavePage } from '@/features/leave/components/leave-page'
+import { AttendancePage } from '@/features/attendance/components/attendance-page'
+import { PayrollPage } from '@/features/payroll/components/payroll-page'
+import { PerformancePage } from '@/features/performance/components/performance-page'
+import { RecruitmentPage } from '@/features/recruitment/components/recruitment-page'
+import { LearningPage } from '@/features/learning/components/learning-page'
+import { ReportsPage } from '@/features/reports/components/reports-page'
 import { SettingsPage } from '@/features/settings/components/settings-page'
 import { DashboardStats } from '@/features/dashboard/components/dashboard-stats'
 import { RecentActivity } from '@/features/dashboard/components/recent-activity'
 import { QuickActions } from '@/features/dashboard/components/quick-actions'
 import { PageHeader } from '@/components/layout/page-header'
-import { Card, CardContent } from '@/components/ui/card'
 import { AuthBackground } from '@/components/shared/auth-background'
 import { useAuth } from '@/features/auth/hooks/use-auth'
+import { useDashboardStats, useRecentActivity } from '@/features/dashboard/hooks/use-dashboard'
 import { Loader2 } from 'lucide-react'
 
 // Root
@@ -83,12 +90,15 @@ const appRoute = createRoute({ getParentRoute: () => rootRoute, id: 'app', compo
 
 // Dashboard
 function DashboardPage() {
+  const { data: stats, isLoading: statsLoading } = useDashboardStats()
+  const { data: activities } = useRecentActivity()
+
   return (
     <div>
       <PageHeader title="Dashboard" description="Welcome back! Here's an overview of your organization." />
-      <DashboardStats totalEmployees={0} totalDepartments={0} pendingLeaves={0} presentToday={0} />
+      <DashboardStats stats={stats} isLoading={statsLoading} />
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <RecentActivity activities={[]} />
+        <RecentActivity activities={activities ?? []} />
         <QuickActions />
       </div>
     </div>
@@ -126,25 +136,14 @@ const employeeEditRoute = createRoute({
 
 const departmentsRoute = createRoute({ getParentRoute: () => appRoute, path: '/departments', component: DepartmentList })
 
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div>
-      <PageHeader title={title} description="This module is coming soon." />
-      <Card>
-        <CardContent className="py-16 text-center text-muted-foreground">
-          {title} module will be built in the next phase.
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
 
-const leaveRoute = createRoute({ getParentRoute: () => appRoute, path: '/leave', component: () => <PlaceholderPage title="Leave Management" /> })
-const attendanceRoute = createRoute({ getParentRoute: () => appRoute, path: '/attendance', component: () => <PlaceholderPage title="Attendance" /> })
-const recruitmentRoute = createRoute({ getParentRoute: () => appRoute, path: '/recruitment', component: () => <PlaceholderPage title="Recruitment" /> })
-const payrollRoute = createRoute({ getParentRoute: () => appRoute, path: '/payroll', component: () => <PlaceholderPage title="Payroll" /> })
-const performanceRoute = createRoute({ getParentRoute: () => appRoute, path: '/performance', component: () => <PlaceholderPage title="Performance" /> })
-const learningRoute = createRoute({ getParentRoute: () => appRoute, path: '/learning', component: () => <PlaceholderPage title="Learning" /> })
+const leaveRoute = createRoute({ getParentRoute: () => appRoute, path: '/leave', component: LeavePage })
+const attendanceRoute = createRoute({ getParentRoute: () => appRoute, path: '/attendance', component: AttendancePage })
+const recruitmentRoute = createRoute({ getParentRoute: () => appRoute, path: '/recruitment', component: RecruitmentPage })
+const payrollRoute = createRoute({ getParentRoute: () => appRoute, path: '/payroll', component: PayrollPage })
+const performanceRoute = createRoute({ getParentRoute: () => appRoute, path: '/performance', component: PerformancePage })
+const learningRoute = createRoute({ getParentRoute: () => appRoute, path: '/learning', component: LearningPage })
+const reportsRoute = createRoute({ getParentRoute: () => appRoute, path: '/reports', component: ReportsPage })
 const settingsRoute = createRoute({ getParentRoute: () => appRoute, path: '/settings', component: SettingsPage })
 
 const indexRoute = createRoute({
@@ -169,6 +168,7 @@ const routeTree = rootRoute.addChildren([
     payrollRoute,
     performanceRoute,
     learningRoute,
+    reportsRoute,
     settingsRoute,
   ]),
 ])

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { type ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Plus, Eye, Pencil, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Plus, Eye, Pencil, Trash2, ArrowUpRight, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -25,7 +25,8 @@ type EmployeeRow = Employee & {
 }
 
 export function EmployeeList() {
-  const { data: employees, isLoading } = useEmployees()
+  const { data: employees, isLoading, error } = useEmployees()
+  if (error) console.error('Employee list error:', error)
   const deleteEmployee = useDeleteEmployee()
   const permissions = usePermissions()
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -108,6 +109,18 @@ export function EmployeeList() {
                       <Pencil className="mr-2 h-4 w-4" /> Edit
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/employees/$employeeId" params={{ employeeId: emp.id }} search={{ tab: 'work-history' }}>
+                      <ArrowUpRight className="mr-2 h-4 w-4" /> Promote / Transfer
+                    </Link>
+                  </DropdownMenuItem>
+                  {emp.status === 'active' && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/employees/$employeeId" params={{ employeeId: emp.id }} search={{ tab: 'exit' }}>
+                        <LogOut className="mr-2 h-4 w-4" /> Initiate Exit
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem
                     className="text-destructive"
                     onClick={() => setDeleteId(emp.id)}

@@ -134,29 +134,31 @@ export function DataTable<TData, TValue>({
         <p className="text-sm text-muted-foreground">
           {table.getFilteredRowModel().rows.length} result(s)
         </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronLeft className="mr-1 h-4 w-4" />
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-            <ChevronRight className="ml-1 h-4 w-4" />
-          </Button>
-        </div>
+        {table.getPageCount() > 0 && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Next
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )

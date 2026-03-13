@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { Profile, Organization } from '@/types/database.types'
@@ -10,6 +10,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const mountedRef = useRef(true)
+  const safetyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -50,36 +52,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, fetchProfile])
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id).finally(() => setIsLoading(false))
-      } else {
+  // Arms a safety timeout that forces isLoading=false if anything hangs
+  const armSafetyTimeout = useCallback((ms = 8000) => {
+    clearTimeout(safetyTimerRef.current)
+    safetyTimerRef.current = setTimeout(() => {
+      if (mountedRef.current) {
+        console.warn('Auth safety timeout fired — forcing isLoading=false')
         setIsLoading(false)
       }
-    })
+    }, ms)
+  }, [])
 
+  useEffect(() => {
+    mountedRef.current = true
+    armSafetyTimeout(8000)
+
+    // Listen for auth state changes — callback is NOT async to avoid hanging
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        if (session?.user) {
-          await fetchProfile(session.user.id)
+      (_event, newSession) => {
+        if (!mountedRef.current) return
+
+        setSession(newSession)
+        setUser(newSession?.user ?? null)
+
+        if (newSession?.user) {
+          // Fetch profile without blocking — .finally guarantees isLoading=false
+          fetchProfile(newSession.user.id).finally(() => {
+            if (mountedRef.current) {
+              setIsLoading(false)
+              clearTimeout(safetyTimerRef.current)
+            }
+          })
         } else {
           setProfile(null)
           setOrganization(null)
+          setIsLoading(false)
+          clearTimeout(safetyTimerRef.current)
         }
       }
     )
 
-    return () => subscription.unsubscribe()
-  }, [fetchProfile])
+    // Kick off initial session check — triggers onAuthStateChange with INITIAL_SESSION
+    supabase.auth.getSession().catch((err) => {
+      console.error('getSession error:', err)
+      if (mountedRef.current) setIsLoading(false)
+    })
+
+    return () => {
+      mountedRef.current = false
+      clearTimeout(safetyTimerRef.current)
+      subscription.unsubscribe()
+    }
+  }, [fetchProfile, armSafetyTimeout])
 
   const signIn = async (email: string, password: string) => {
+    setIsLoading(true)
+    armSafetyTimeout(10000) // Re-arm timeout for sign-in flow
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
+    if (error) {
+      setIsLoading(false)
+      clearTimeout(safetyTimerRef.current)
+      throw error
+    }
+    // onAuthStateChange will handle setting session, profile, and isLoading=false
   }
 
   const signUp = async (email: string, password: string, metadata?: Record<string, string>) => {
@@ -100,8 +135,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    try {
+      await supabase.auth.signOut()
+    } catch {
+      // Force clear even if signOut API fails (e.g. expired token)
+    }
+    setSession(null)
+    setUser(null)
     setProfile(null)
     setOrganization(null)
   }

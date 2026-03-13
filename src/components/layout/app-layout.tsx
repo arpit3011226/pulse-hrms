@@ -80,6 +80,17 @@ export function AppLayout() {
           <div className="relative z-10">
             <Outlet />
           </div>
+          <footer className="relative z-10 mt-8 flex items-center justify-between border-t border-border/40 px-2 py-4 text-xs text-muted-foreground">
+            <span>&copy; {new Date().getFullYear()} | Augustinnovate Pvt. Ltd.</span>
+            <a
+              href="https://madewithloveinindia.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-opacity hover:opacity-80"
+            >
+              Made with <span aria-label="Love" style={{ color: '#f43f5e' }}>&hearts;</span> in India
+            </a>
+          </footer>
         </main>
       </div>
     </div>
