@@ -3,15 +3,14 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { Plus, GitBranch } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/shared/data-table'
 import { StatusBadge } from '@/components/shared/status-badge'
 import {
-  useEmployeeGoals,
+  useCurrentEmployee,
   useActiveCycle,
   usePerformanceCycles,
+  useTeamGoals,
 } from '../hooks/use-performance'
-import { usePermissions } from '@/hooks/use-permissions'
 import { calculateGoalProgress } from '../utils/performance-utils'
 import { GOAL_CATEGORIES } from '@/lib/constants'
 import { GoalFormDialog } from './goal-form-dialog'
@@ -19,31 +18,32 @@ import { CascadeGoalDialog } from './cascade-goal-dialog'
 import type { EmployeeGoal, GoalKeyResult } from '@/types/database.types'
 
 type GoalWithRelations = EmployeeGoal & {
-  employee?: { id: string; first_name: string; last_name: string; email: string; employee_code: string }
-  performance_cycle?: { id: string; cycle_name: string; cycle_code: string }
+  employee?: { id: string; first_name: string; last_name: string; employee_code: string }
   goal_key_results?: GoalKeyResult[]
 }
 
 const getCategoryLabel = (value: string) =>
   GOAL_CATEGORIES.find((c) => c.value === value)?.label || value
 
-export function GoalsAdminTab() {
+export function TeamGoalsTab() {
+  const { data: employee } = useCurrentEmployee()
   const { data: activeCycle } = useActiveCycle()
   const { data: cycles } = usePerformanceCycles()
-  const { canManagePerformance, isAdmin, isHR } = usePermissions()
-  const canCreate = canManagePerformance || isAdmin || isHR
   const [selectedCycleId, setSelectedCycleId] = useState<string | undefined>(undefined)
-  const [formOpen, setFormOpen] = useState(false)
-  const [cascadeOpen, setCascadeOpen] = useState(false)
-  const [categoryFilter, setCategoryFilter] = useState<string>('all')
 
   const cycleId = selectedCycleId || activeCycle?.id
-  const { data: goals, isLoading } = useEmployeeGoals(cycleId)
+  const { data: goals, isLoading } = useTeamGoals(employee?.id || '', cycleId)
 
-  const allGoals = (goals || []) as GoalWithRelations[]
-  const goalsList = categoryFilter === 'all'
-    ? allGoals
-    : allGoals.filter((g) => g.category === categoryFilter)
+  const [formOpen, setFormOpen] = useState(false)
+  const [assigneeId, setAssigneeId] = useState<string>('')
+  const [cascadeOpen, setCascadeOpen] = useState(false)
+
+  const goalsList = (goals || []) as GoalWithRelations[]
+
+  const handleAssignGoal = (empId: string) => {
+    setAssigneeId(empId)
+    setFormOpen(true)
+  }
 
   const columns: ColumnDef<GoalWithRelations>[] = [
     {
@@ -62,15 +62,17 @@ export function GoalsAdminTab() {
     },
     {
       accessorKey: 'goal_title',
-      header: 'Goal Title',
+      header: 'Goal',
       cell: ({ row }) => (
-        <span className="font-medium">{row.original.goal_title}</span>
+        <div>
+          <span className="font-medium">{row.original.goal_title}</span>
+          {row.original.parent_goal_id && (
+            <span className="block text-[11px] text-orange-600 flex items-center gap-1 mt-0.5">
+              <GitBranch className="h-3 w-3" /> Cascaded
+            </span>
+          )}
+        </div>
       ),
-    },
-    {
-      id: 'cycle',
-      header: 'Cycle',
-      cell: ({ row }) => row.original.performance_cycle?.cycle_name || '-',
     },
     {
       id: 'category',
@@ -79,7 +81,7 @@ export function GoalsAdminTab() {
     },
     {
       accessorKey: 'weightage',
-      header: 'Weightage',
+      header: 'Weight',
       cell: ({ row }) => `${row.original.weightage}%`,
     },
     {
@@ -91,7 +93,7 @@ export function GoalsAdminTab() {
           <div className="flex items-center gap-2 min-w-[120px]">
             <div className="h-2 flex-1 rounded-full bg-muted overflow-hidden">
               <div
-                className="h-full bg-primary rounded-full transition-all"
+                className="h-full bg-orange-500 rounded-full transition-all"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -99,16 +101,6 @@ export function GoalsAdminTab() {
           </div>
         )
       },
-    },
-    {
-      id: 'cascaded',
-      header: '',
-      cell: ({ row }) =>
-        row.original.parent_goal_id ? (
-          <Badge variant="outline" className="text-[10px] gap-1">
-            <GitBranch className="h-3 w-3" /> Cascaded
-          </Badge>
-        ) : null,
     },
     {
       accessorKey: 'status',
@@ -123,7 +115,7 @@ export function GoalsAdminTab() {
         columns={columns}
         data={goalsList}
         searchKey="goal_title"
-        searchPlaceholder="Search goals..."
+        searchPlaceholder="Search team goals..."
         isLoading={isLoading}
         toolbarActions={
           <div className="flex items-center gap-2">
@@ -131,7 +123,7 @@ export function GoalsAdminTab() {
               value={cycleId || ''}
               onValueChange={(v) => setSelectedCycleId(v)}
             >
-              <SelectTrigger className="w-52">
+              <SelectTrigger className="w-60">
                 <SelectValue placeholder="Filter by cycle" />
               </SelectTrigger>
               <SelectContent>
@@ -143,29 +135,14 @@ export function GoalsAdminTab() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-44">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {GOAL_CATEGORIES.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {canCreate && cycleId && (
-              <>
-                <Button variant="outline" onClick={() => setCascadeOpen(true)}>
-                  <GitBranch className="mr-2 h-4 w-4" />
-                  Cascade
-                </Button>
-                <Button onClick={() => setFormOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Goal
-                </Button>
-              </>
-            )}
+            <Button variant="outline" onClick={() => setCascadeOpen(true)}>
+              <GitBranch className="mr-2 h-4 w-4" />
+              Cascade Goal
+            </Button>
+            <Button onClick={() => handleAssignGoal('')}>
+              <Plus className="mr-2 h-4 w-4" />
+              Assign Goal
+            </Button>
           </div>
         }
       />
@@ -173,8 +150,11 @@ export function GoalsAdminTab() {
       {cycleId && (
         <GoalFormDialog
           open={formOpen}
-          onOpenChange={setFormOpen}
-          employeeId=""
+          onOpenChange={(open) => {
+            setFormOpen(open)
+            if (!open) setAssigneeId('')
+          }}
+          employeeId={assigneeId || employee?.id || ''}
           cycleId={cycleId}
         />
       )}

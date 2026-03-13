@@ -7,6 +7,7 @@ export const ROLES = {
   HR_ADMIN: 'hr_admin',
   PAYROLL_ADMIN: 'payroll_admin',
   MANAGER: 'manager',
+  LEADERSHIP: 'leadership',
   EMPLOYEE: 'employee',
 } as const
 
@@ -17,6 +18,7 @@ export const ROLE_LABELS: Record<string, string> = {
   hr_admin: 'HR Admin',
   payroll_admin: 'Payroll Admin',
   manager: 'Manager',
+  leadership: 'Leadership',
   employee: 'Employee',
 }
 
@@ -25,6 +27,7 @@ export const ROLE_DESCRIPTIONS: Record<string, string> = {
   hr_admin: 'Manages employees, departments, leave, attendance, recruitment, and reporting.',
   payroll_admin: 'Dedicated access to payroll processing, employee compensation data, and payroll reports.',
   manager: 'Approves leave requests and views reports for their team.',
+  leadership: 'Executive-level access to view employees, performance, reports, and organizational analytics.',
   employee: 'Self-service access to own profile, leave applications, and attendance.',
 }
 
@@ -236,6 +239,16 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'view_candidates',
     'view_learning',
     'view_reports',
+  ],
+  leadership: [
+    'view_employees',
+    'view_leave_reports',
+    'view_payroll',
+    'view_attendance',
+    'view_performance',
+    'view_candidates',
+    'view_learning',
+    'view_reports', 'export_reports',
   ],
   employee: [],
 }

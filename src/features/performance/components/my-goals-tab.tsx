@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, ClipboardCheck, Target } from 'lucide-react'
+import { Plus, Pencil, Trash2, ClipboardCheck, Target, GitBranch, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -178,6 +178,16 @@ export function MyGoalsTab() {
                     <span className="text-xs text-muted-foreground">
                       Weight: {goal.weightage}%
                     </span>
+                    {goal.parent_goal_id && (
+                      <Badge variant="outline" className="text-[10px] gap-1 text-orange-600 border-orange-300">
+                        <GitBranch className="h-3 w-3" /> Cascaded
+                      </Badge>
+                    )}
+                    {goal.created_by && goal.created_by !== employee?.id && (
+                      <Badge variant="outline" className="text-[10px] gap-1 text-blue-600 border-blue-300">
+                        <UserCheck className="h-3 w-3" /> Assigned
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Progress */}

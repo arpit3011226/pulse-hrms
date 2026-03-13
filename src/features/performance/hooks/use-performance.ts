@@ -10,6 +10,9 @@ import type {
   SelfReview,
   ManagerReview,
   PerformanceImprovementPlan,
+  PeerReview,
+  SkipLevelReview,
+  ReviewParticipant,
 } from '@/types/database.types'
 import {
   getPerformanceCycles,
@@ -44,6 +47,22 @@ import {
   updatePIP,
   updatePIPStatus,
   getCurrentEmployee,
+  getReviewParticipants,
+  addReviewParticipant,
+  removeReviewParticipant,
+  getPeerReviews,
+  submitPeerReview,
+  getSkipLevelReview,
+  submitSkipLevelReview,
+  getOrganizationGoals,
+  getGoalHierarchy,
+  getTeamGoals,
+  createGoalForEmployee,
+  getSkippedEmployees,
+  manuallyIncludeEmployee,
+  manuallyExcludeEmployee,
+  getPerformanceAnalytics,
+  getRatingTrend,
 } from '../api/performance.api'
 
 // ============================================
@@ -400,5 +419,191 @@ export function useUpdatePIPStatus() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pips'] })
     },
+  })
+}
+
+// ============================================
+// 360 Review: Participants & Peer Reviews
+// ============================================
+
+export function useReviewParticipants(reviewId: string) {
+  return useQuery({
+    queryKey: ['review-participants', reviewId],
+    queryFn: () => getReviewParticipants(reviewId),
+    enabled: !!reviewId,
+  })
+}
+
+export function useAddReviewParticipant() {
+  const queryClient = useQueryClient()
+  const { organization } = useAuth()
+  return useMutation({
+    mutationFn: (data: Partial<ReviewParticipant>) =>
+      addReviewParticipant({ ...data, organization_id: organization!.id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['review-participants'] })
+      queryClient.invalidateQueries({ queryKey: ['performance-reviews'] })
+      queryClient.invalidateQueries({ queryKey: ['my-review'] })
+      queryClient.invalidateQueries({ queryKey: ['team-reviews'] })
+    },
+  })
+}
+
+export function useRemoveReviewParticipant() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, reviewId, reviewerId, reviewerType }: { id: string; reviewId: string; reviewerId: string; reviewerType: string }) =>
+      removeReviewParticipant(id, reviewId, reviewerId, reviewerType),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['review-participants'] })
+      queryClient.invalidateQueries({ queryKey: ['performance-reviews'] })
+    },
+  })
+}
+
+export function usePeerReviews(reviewId: string) {
+  return useQuery({
+    queryKey: ['peer-reviews', reviewId],
+    queryFn: () => getPeerReviews(reviewId),
+    enabled: !!reviewId,
+  })
+}
+
+export function useSubmitPeerReview() {
+  const queryClient = useQueryClient()
+  const { organization } = useAuth()
+  return useMutation({
+    mutationFn: (data: Partial<PeerReview>) =>
+      submitPeerReview({ ...data, organization_id: organization!.id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['peer-reviews'] })
+      queryClient.invalidateQueries({ queryKey: ['review-participants'] })
+      queryClient.invalidateQueries({ queryKey: ['my-review'] })
+    },
+  })
+}
+
+export function useSkipLevelReview(reviewId: string) {
+  return useQuery({
+    queryKey: ['skip-level-review', reviewId],
+    queryFn: () => getSkipLevelReview(reviewId),
+    enabled: !!reviewId,
+  })
+}
+
+export function useSubmitSkipLevelReview() {
+  const queryClient = useQueryClient()
+  const { organization } = useAuth()
+  return useMutation({
+    mutationFn: (data: Partial<SkipLevelReview>) =>
+      submitSkipLevelReview({ ...data, organization_id: organization!.id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['skip-level-review'] })
+      queryClient.invalidateQueries({ queryKey: ['review-participants'] })
+    },
+  })
+}
+
+// ============================================
+// OKR Goals: Organization & Team
+// ============================================
+
+export function useOrganizationGoals(cycleId?: string) {
+  const { organization } = useAuth()
+  return useQuery({
+    queryKey: ['org-goals', organization?.id, cycleId],
+    queryFn: () => getOrganizationGoals(organization!.id, cycleId),
+    enabled: !!organization?.id,
+  })
+}
+
+export function useGoalHierarchy(parentGoalId: string) {
+  return useQuery({
+    queryKey: ['goal-hierarchy', parentGoalId],
+    queryFn: () => getGoalHierarchy(parentGoalId),
+    enabled: !!parentGoalId,
+  })
+}
+
+export function useTeamGoals(managerId: string, cycleId?: string) {
+  const { organization } = useAuth()
+  return useQuery({
+    queryKey: ['team-goals', managerId, organization?.id, cycleId],
+    queryFn: () => getTeamGoals(managerId, organization!.id, cycleId),
+    enabled: !!managerId && !!organization?.id,
+  })
+}
+
+export function useCreateGoalForEmployee() {
+  const queryClient = useQueryClient()
+  const { organization } = useAuth()
+  return useMutation({
+    mutationFn: (data: Partial<EmployeeGoal>) =>
+      createGoalForEmployee({ ...data, organization_id: organization!.id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employee-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['my-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['team-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['org-goals'] })
+    },
+  })
+}
+
+// ============================================
+// Skipped Employees
+// ============================================
+
+export function useSkippedEmployees(cycleId: string) {
+  const { organization } = useAuth()
+  return useQuery({
+    queryKey: ['skipped-employees', cycleId, organization?.id],
+    queryFn: () => getSkippedEmployees(cycleId, organization!.id),
+    enabled: !!cycleId && !!organization?.id,
+  })
+}
+
+export function useManuallyIncludeEmployee() {
+  const queryClient = useQueryClient()
+  const { organization } = useAuth()
+  return useMutation({
+    mutationFn: ({ cycleId, employeeId }: { cycleId: string; employeeId: string }) =>
+      manuallyIncludeEmployee(cycleId, employeeId, organization!.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['skipped-employees'] })
+      queryClient.invalidateQueries({ queryKey: ['performance-reviews'] })
+    },
+  })
+}
+
+export function useManuallyExcludeEmployee() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (reviewId: string) => manuallyExcludeEmployee(reviewId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['skipped-employees'] })
+      queryClient.invalidateQueries({ queryKey: ['performance-reviews'] })
+    },
+  })
+}
+
+// ============================================
+// Performance Analytics
+// ============================================
+
+export function usePerformanceAnalytics(cycleId: string, teamManagerId?: string) {
+  const { organization } = useAuth()
+  return useQuery({
+    queryKey: ['performance-analytics', organization?.id, cycleId, teamManagerId],
+    queryFn: () => getPerformanceAnalytics(organization!.id, cycleId, teamManagerId),
+    enabled: !!organization?.id && !!cycleId,
+  })
+}
+
+export function useRatingTrend(teamManagerId?: string) {
+  const { organization } = useAuth()
+  return useQuery({
+    queryKey: ['rating-trend', organization?.id, teamManagerId],
+    queryFn: () => getRatingTrend(organization!.id, teamManagerId),
+    enabled: !!organization?.id,
   })
 }

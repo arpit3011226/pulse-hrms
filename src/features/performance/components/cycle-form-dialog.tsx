@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -9,13 +9,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Separator } from '@/components/ui/separator'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { PERFORMANCE_CYCLE_TYPES } from '@/lib/constants'
 import {
   useCreatePerformanceCycle,
   useUpdatePerformanceCycle,
 } from '../hooks/use-performance'
 import { toast } from 'sonner'
-import type { PerformanceCycle } from '@/types/database.types'
+import type { PerformanceCycle, SkipCriteria } from '@/types/database.types'
 
 const cycleSchema = z.object({
   cycle_name: z.string().min(1, 'Cycle name is required'),
@@ -37,10 +40,23 @@ interface CycleFormDialogProps {
   cycle?: PerformanceCycle
 }
 
+const EMPLOYMENT_TYPES = [
+  { value: 'contract', label: 'Contract' },
+  { value: 'intern', label: 'Intern' },
+  { value: 'part_time', label: 'Part Time' },
+  { value: 'probation', label: 'Probation' },
+]
+
 export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogProps) {
   const isEditing = !!cycle
   const createCycle = useCreatePerformanceCycle()
   const updateCycle = useUpdatePerformanceCycle()
+
+  const [skipCriteria, setSkipCriteria] = useState<SkipCriteria>({
+    min_tenure_months: 3,
+    exclude_employment_types: [],
+    exclude_on_leave: false,
+  })
 
   const {
     register,
@@ -78,6 +94,13 @@ export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogPr
           manager_review_deadline: cycle.manager_review_deadline ?? '',
           description: cycle.description ?? '',
         })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const existing = (cycle as any).skip_criteria as SkipCriteria | null
+        setSkipCriteria({
+          min_tenure_months: existing?.min_tenure_months ?? 3,
+          exclude_employment_types: existing?.exclude_employment_types ?? [],
+          exclude_on_leave: existing?.exclude_on_leave ?? false,
+        })
       } else {
         reset({
           cycle_name: '',
@@ -90,12 +113,13 @@ export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogPr
           manager_review_deadline: '',
           description: '',
         })
+        setSkipCriteria({ min_tenure_months: 3, exclude_employment_types: [], exclude_on_leave: false })
       }
     }
   }, [open, cycle, reset])
 
   const onSubmit = async (data: CycleFormData) => {
-    const payload = {
+    const basePayload = {
       cycle_name: data.cycle_name,
       cycle_code: data.cycle_code,
       cycle_type: data.cycle_type,
@@ -107,12 +131,26 @@ export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogPr
       description: data.description || null,
     }
 
+    const extendedPayload = {
+      ...basePayload,
+      skip_criteria: skipCriteria,
+      auto_apply_to_all: true,
+    }
+
     try {
       if (isEditing) {
-        await updateCycle.mutateAsync({ id: cycle.id, ...payload } as any)
+        try {
+          await updateCycle.mutateAsync({ id: cycle.id, ...extendedPayload } as any)
+        } catch {
+          await updateCycle.mutateAsync({ id: cycle.id, ...basePayload } as any)
+        }
         toast.success('Cycle updated')
       } else {
-        await createCycle.mutateAsync(payload as any)
+        try {
+          await createCycle.mutateAsync(extendedPayload as any)
+        } catch {
+          await createCycle.mutateAsync(basePayload as any)
+        }
         toast.success('Cycle created')
       }
       onOpenChange(false)
@@ -125,11 +163,13 @@ export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Cycle' : 'Add Cycle'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
+          <ScrollArea className="flex-1 max-h-[60vh] pr-4">
+          <div className="space-y-4 pb-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cycle_name">Cycle Name *</Label>
@@ -185,7 +225,7 @@ export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogPr
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="goal_setting_deadline">Goal Setting Deadline</Label>
               <Input
@@ -203,16 +243,79 @@ export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogPr
                 {...register('self_review_deadline')}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="manager_review_deadline">Manager Review Deadline</Label>
+            <Input
+              id="manager_review_deadline"
+              type="date"
+              {...register('manager_review_deadline')}
+            />
+          </div>
+
+          <Separator />
+
+          {/* Skip Criteria */}
+          <div className="space-y-3">
+            <Label className="text-base">Skip Criteria</Label>
+            <p className="text-xs text-muted-foreground -mt-1">
+              Employees matching these criteria will be skipped when reviews are initiated.
+            </p>
 
             <div className="space-y-2">
-              <Label htmlFor="manager_review_deadline">Manager Review Deadline</Label>
+              <Label htmlFor="min_tenure">Minimum Tenure (months)</Label>
               <Input
-                id="manager_review_deadline"
-                type="date"
-                {...register('manager_review_deadline')}
+                id="min_tenure"
+                type="number"
+                min={0}
+                value={skipCriteria.min_tenure_months ?? 0}
+                onChange={(e) =>
+                  setSkipCriteria((prev) => ({
+                    ...prev,
+                    min_tenure_months: Number(e.target.value),
+                  }))
+                }
               />
+              <p className="text-[11px] text-muted-foreground">
+                Employees who joined less than this many months ago will be skipped.
+              </p>
             </div>
+
+            <div className="space-y-2">
+              <Label>Exclude Employment Types</Label>
+              <div className="flex flex-wrap gap-3">
+                {EMPLOYMENT_TYPES.map((type) => (
+                  <label key={type.value} className="flex items-center gap-1.5 cursor-pointer">
+                    <Checkbox
+                      checked={(skipCriteria.exclude_employment_types || []).includes(type.value)}
+                      onCheckedChange={(checked) => {
+                        setSkipCriteria((prev) => ({
+                          ...prev,
+                          exclude_employment_types: checked
+                            ? [...(prev.exclude_employment_types || []), type.value]
+                            : (prev.exclude_employment_types || []).filter((t) => t !== type.value),
+                        }))
+                      }}
+                    />
+                    <span className="text-sm">{type.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox
+                checked={skipCriteria.exclude_on_leave ?? false}
+                onCheckedChange={(checked) =>
+                  setSkipCriteria((prev) => ({ ...prev, exclude_on_leave: !!checked }))
+                }
+              />
+              <span className="text-sm">Exclude employees currently on leave</span>
+            </label>
           </div>
+
+          <Separator />
 
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
@@ -224,7 +327,9 @@ export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogPr
             />
           </div>
 
-          <DialogFooter>
+          </div>
+          </ScrollArea>
+          <DialogFooter className="pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

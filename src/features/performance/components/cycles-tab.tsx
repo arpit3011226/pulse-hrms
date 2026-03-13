@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Plus, Pencil, Trash2, Play, RefreshCw } from 'lucide-react'
+import { MoreHorizontal, Plus, Pencil, Trash2, Play, RefreshCw, UserX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ import { DataTable } from '@/components/shared/data-table'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { CycleFormDialog } from './cycle-form-dialog'
+import { SkippedEmployeesDialog } from './skipped-employees-dialog'
 import {
   usePerformanceCycles,
   useDeletePerformanceCycle,
@@ -41,6 +42,7 @@ export function CyclesTab() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [statusAction, setStatusAction] = useState<{ id: string; status: string } | null>(null)
   const [initiateId, setInitiateId] = useState<string | null>(null)
+  const [skippedCycleId, setSkippedCycleId] = useState<string>('')
 
   const activeCycleExists = (cycles || []).some((c: PerformanceCycle) => c.status === 'active')
 
@@ -142,6 +144,12 @@ export function CyclesTab() {
                   onClick={() => setStatusAction({ id: cycle.id, status: 'completed' })}
                 >
                   <RefreshCw className="mr-2 h-4 w-4" /> Complete
+                </DropdownMenuItem>
+              )}
+
+              {!isDraft && (
+                <DropdownMenuItem onClick={() => setSkippedCycleId(cycle.id)}>
+                  <UserX className="mr-2 h-4 w-4" /> View Skipped
                 </DropdownMenuItem>
               )}
 
@@ -252,14 +260,23 @@ export function CyclesTab() {
         open={!!initiateId}
         onOpenChange={() => setInitiateId(null)}
         title="Initiate Reviews"
-        description="This will create performance reviews for all active employees in the current cycle. Continue?"
+        description="This will create performance reviews for eligible employees (skip criteria will be applied). Continue?"
         confirmLabel="Initiate"
         isLoading={initiateReviews.isPending}
         onConfirm={async () => {
           if (initiateId) {
             try {
-              await initiateReviews.mutateAsync(initiateId)
-              toast.success('Reviews initiated successfully')
+              const result = await initiateReviews.mutateAsync(initiateId)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const r = result as any
+              if (r && typeof r === 'object' && 'created' in r) {
+                toast.success(`Reviews initiated: ${r.created} created, ${r.skipped} skipped`)
+                if (r.skipped > 0) {
+                  setSkippedCycleId(initiateId)
+                }
+              } else {
+                toast.success('Reviews initiated successfully')
+              }
             } catch {
               toast.error('Failed to initiate reviews')
             }
@@ -267,6 +284,14 @@ export function CyclesTab() {
           }
         }}
       />
+
+      {skippedCycleId && (
+        <SkippedEmployeesDialog
+          open={!!skippedCycleId}
+          onOpenChange={(open) => { if (!open) setSkippedCycleId('') }}
+          cycleId={skippedCycleId}
+        />
+      )}
     </>
   )
 }

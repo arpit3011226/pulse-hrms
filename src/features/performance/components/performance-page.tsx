@@ -5,11 +5,13 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { MyGoalsTab } from './my-goals-tab'
 import { MyReviewsTab } from './my-reviews-tab'
 import { TeamReviewsTab } from './team-reviews-tab'
+import { TeamGoalsTab } from './team-goals-tab'
 import { GoalsAdminTab } from './goals-admin-tab'
 import { AllReviewsTab } from './all-reviews-tab'
 import { CyclesTab } from './cycles-tab'
 import { CompetenciesTab } from './competencies-tab'
 import { PipTab } from './pip-tab'
+import { AnalyticsTab } from './analytics-tab'
 
 export function PerformancePage() {
   const { canManagePerformance, isAdmin, isHR, isManager } = usePermissions()
@@ -25,9 +27,11 @@ export function PerformancePage() {
         <TabsList>
           <TabsTrigger value="my-goals">My Goals</TabsTrigger>
           <TabsTrigger value="my-reviews">My Reviews</TabsTrigger>
+          {(isManager || canAdmin) && <TabsTrigger value="team-goals">Team Goals</TabsTrigger>}
           {(isManager || canAdmin) && <TabsTrigger value="team-reviews">Team Reviews</TabsTrigger>}
           {canAdmin && <TabsTrigger value="all-goals">All Goals</TabsTrigger>}
           {canAdmin && <TabsTrigger value="all-reviews">All Reviews</TabsTrigger>}
+          {(isManager || canAdmin) && <TabsTrigger value="analytics">Analytics</TabsTrigger>}
           {canAdmin && <TabsTrigger value="cycles">Cycles</TabsTrigger>}
           {canAdmin && <TabsTrigger value="competencies">Competencies</TabsTrigger>}
           {canAdmin && <TabsTrigger value="pip">PIP</TabsTrigger>}
@@ -39,6 +43,11 @@ export function PerformancePage() {
         <TabsContent value="my-reviews" className="mt-6">
           <MyReviewsTab />
         </TabsContent>
+        {(isManager || canAdmin) && (
+          <TabsContent value="team-goals" className="mt-6">
+            <TeamGoalsTab />
+          </TabsContent>
+        )}
         {(isManager || canAdmin) && (
           <TabsContent value="team-reviews" className="mt-6">
             <TeamReviewsTab />
@@ -52,6 +61,11 @@ export function PerformancePage() {
         {canAdmin && (
           <TabsContent value="all-reviews" className="mt-6">
             <AllReviewsTab />
+          </TabsContent>
+        )}
+        {(isManager || canAdmin) && (
+          <TabsContent value="analytics" className="mt-6">
+            <AnalyticsTab />
           </TabsContent>
         )}
         {canAdmin && (
