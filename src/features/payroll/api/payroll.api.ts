@@ -126,10 +126,16 @@ export async function upsertStructureComponents(
     .eq('salary_structure_id', structureId)
   if (deleteError) throw deleteError
 
+  // Attach salary_structure_id to each component before insert
+  const withStructureId = components.map((c) => ({
+    ...c,
+    salary_structure_id: structureId,
+  }))
+
   // Bulk insert new ones
   const { data, error } = await supabase
     .from('salary_structure_components')
-    .insert(components)
+    .insert(withStructureId)
     .select()
   if (error) throw error
   return data

@@ -209,8 +209,10 @@ export function StructureFormDialog({ open, onOpenChange, structure }: Structure
         toast.success('Salary structure created')
       }
       onOpenChange(false)
-    } catch {
-      toast.error('Failed to save salary structure')
+    } catch (err: unknown) {
+      console.error('Salary structure error:', err)
+      const msg = err instanceof Error ? err.message : 'Failed to save salary structure'
+      toast.error(msg)
     }
   }
 

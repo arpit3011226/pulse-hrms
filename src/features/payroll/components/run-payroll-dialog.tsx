@@ -97,8 +97,10 @@ export function RunPayrollDialog({ open, onOpenChange }: RunPayrollDialogProps) 
 
       toast.success('Payroll cycle created with initial run')
       onOpenChange(false)
-    } catch {
-      toast.error('Failed to create payroll cycle')
+    } catch (err: unknown) {
+      console.error('Payroll cycle error:', err)
+      const msg = err instanceof Error ? err.message : 'Failed to create payroll cycle'
+      toast.error(msg)
     }
   }
 

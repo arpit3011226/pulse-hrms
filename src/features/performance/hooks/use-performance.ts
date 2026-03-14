@@ -221,6 +221,7 @@ export function useCreateEmployeeGoal() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employee-goals'] })
       queryClient.invalidateQueries({ queryKey: ['my-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['team-goals'] })
     },
   })
 }

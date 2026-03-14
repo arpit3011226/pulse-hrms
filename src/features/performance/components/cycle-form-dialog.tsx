@@ -150,12 +150,12 @@ export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] flex flex-col mx-auto">
-        <DialogHeader>
+      <DialogContent className="w-[95vw] max-w-2xl mx-auto p-0 gap-0">
+        <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle>{isEditing ? 'Edit Cycle' : 'Add Cycle'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
-          <ScrollArea className="flex-1 max-h-[60vh] pr-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col overflow-hidden">
+          <ScrollArea className="max-h-[calc(80vh-140px)] px-6">
           <div className="space-y-4 pb-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -316,7 +316,7 @@ export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogPr
 
           </div>
           </ScrollArea>
-          <DialogFooter className="pt-4">
+          <DialogFooter className="px-6 py-4 border-t">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

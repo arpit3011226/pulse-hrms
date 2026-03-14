@@ -46,8 +46,10 @@ export function ClockInOutCard() {
         shiftId: shift?.id,
       })
       toast.success('Clocked in successfully')
-    } catch {
-      toast.error('Failed to clock in')
+    } catch (err: unknown) {
+      console.error('Clock-in error:', err)
+      const msg = err instanceof Error ? err.message : 'Failed to clock in'
+      toast.error(msg)
     }
   }
 

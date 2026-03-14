@@ -132,8 +132,10 @@ export function ComponentFormDialog({ open, onOpenChange, component }: Component
         toast.success('Salary component created')
       }
       onOpenChange(false)
-    } catch {
-      toast.error('Failed to save salary component')
+    } catch (err: unknown) {
+      console.error('Salary component error:', err)
+      const msg = err instanceof Error ? err.message : 'Failed to save salary component'
+      toast.error(msg)
     }
   }
 
