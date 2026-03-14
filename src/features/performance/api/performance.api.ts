@@ -897,7 +897,7 @@ export async function getCurrentEmployee(profileId: string) {
     .from('employees')
     .select('*')
     .eq('profile_id', profileId)
-    .single()
+    .maybeSingle()
   if (error) throw error
   return data
 }

@@ -44,3 +44,15 @@ CREATE POLICY "manage_own_attendance" ON attendance_records
       OR get_user_role() IN ('super_admin', 'hr_admin')
     )
   );
+
+-- Review Competencies: Also allow manager role
+DROP POLICY IF EXISTS "Admin can manage review_competencies" ON review_competencies;
+CREATE POLICY "Admin can manage review_competencies" ON review_competencies FOR ALL USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('super_admin', 'hr_admin', 'manager'))
+);
+
+-- Performance Cycles: Also allow manager role
+DROP POLICY IF EXISTS "Admin can manage performance_cycles" ON performance_cycles;
+CREATE POLICY "Admin can manage performance_cycles" ON performance_cycles FOR ALL USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('super_admin', 'hr_admin', 'manager'))
+);

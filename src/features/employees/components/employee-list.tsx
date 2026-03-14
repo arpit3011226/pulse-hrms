@@ -100,7 +100,7 @@ export function EmployeeList() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link to="/employees/$employeeId" params={{ employeeId: emp.id }} search={{}}>
+                <Link to="/employees/$employeeId" params={{ employeeId: emp.id }}>
                   <Eye className="mr-2 h-4 w-4" /> View
                 </Link>
               </DropdownMenuItem>
@@ -112,13 +112,13 @@ export function EmployeeList() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/employees/$employeeId" params={{ employeeId: emp.id }} search={{ view: 'details', tab: 'work-history' }}>
+                    <Link to="/employees/$employeeId" params={{ employeeId: emp.id }}>
                       <ArrowUpRight className="mr-2 h-4 w-4" /> Promote / Transfer
                     </Link>
                   </DropdownMenuItem>
                   {emp.status === 'active' && (
                     <DropdownMenuItem asChild>
-                      <Link to="/employees/$employeeId" params={{ employeeId: emp.id }} search={{ view: 'details', tab: 'exit' }}>
+                      <Link to="/employees/$employeeId" params={{ employeeId: emp.id }}>
                         <LogOut className="mr-2 h-4 w-4" /> Initiate Exit
                       </Link>
                     </DropdownMenuItem>

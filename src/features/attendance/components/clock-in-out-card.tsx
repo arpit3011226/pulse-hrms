@@ -74,6 +74,20 @@ export function ClockInOutCard() {
     )
   }
 
+  if (!employee) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+            <Clock className="h-8 w-8 opacity-50" />
+            <p className="text-sm font-medium">No employee record linked to your account</p>
+            <p className="text-xs">Contact your admin to link your profile to an employee record.</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   const isClockedIn = !!todayRecord?.clock_in && !todayRecord?.clock_out
   const isClockedOut = !!todayRecord?.clock_in && !!todayRecord?.clock_out
 

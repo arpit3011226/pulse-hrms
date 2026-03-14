@@ -10,6 +10,8 @@ Track feedback, bugs, and improvements for regular build releases.
 
 | # | Type | Module | Description | Priority | Reported |
 |---|------|--------|-------------|----------|----------|
+| 20 | bug | performance | Add competency not working | high | 2026-03-15 |
+| 21 | enhancement | employees | Simplify employee details — combine all sections (bank, docs, family, compliance, etc.) into one unified screen with expandable sections, permission-gated editing | high | 2026-03-15 |
 
 ## In Progress
 
@@ -33,6 +35,12 @@ Track feedback, bugs, and improvements for regular build releases.
 | 9 | enhancement | payroll | Payroll date configurable (last working Friday), two-level approval flow, reminder settings | 2026-03-15 |
 | 12 | enhancement | auth | Seed/demo users for all roles (Admin, HR, Manager, Employee, Contractor) with departments & designations | 2026-03-15 |
 | 13 | enhancement | payroll | Indian Income Tax — TDS u/s 192 (Old/New regime, 80C/80D/HRA/NPS), employee declaration form, admin verification, contractor TDS 194C/194J | 2026-03-15 |
+| 14 | bug | payroll | Failed to create payroll cycle — RLS policy missing hr_admin role, fixed | 2026-03-15 |
+| 15 | bug | payroll | Failed to create payroll structure — salary_structure_id missing from component inserts, fixed | 2026-03-15 |
+| 16 | bug | payroll | Failed to create salary components — improved error surfacing for RLS failures | 2026-03-15 |
+| 17 | bug | attendance | Clock-in not working — RLS broadened for attendance insert, error logging added | 2026-03-15 |
+| 18 | bug | performance | Assign Goal button not refreshing — added team-goals cache invalidation | 2026-03-15 |
+| 19 | ui-fix | performance | Cycle form dialog still overlapping — rebuilt with calc-based ScrollArea + border-separated footer | 2026-03-15 |
 
 ---
 

@@ -101,8 +101,10 @@ export function CompetencyFormDialog({ open, onOpenChange, competency }: Compete
         toast.success('Competency created')
       }
       onOpenChange(false)
-    } catch {
-      toast.error(isEditing ? 'Failed to update competency' : 'Failed to create competency')
+    } catch (err: unknown) {
+      console.error('Competency save error:', err)
+      const msg = err instanceof Error ? err.message : (isEditing ? 'Failed to update competency' : 'Failed to create competency')
+      toast.error(msg)
     }
   }
 
