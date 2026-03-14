@@ -5,6 +5,7 @@ import { ProfileSettings } from './profile-settings'
 import { OrganizationSettings } from './organization-settings'
 import { AdminSettings } from './admin-settings'
 import { RolesDefinitions } from './roles-definitions'
+import { SeedDemoData } from './seed-demo-data'
 
 export function SettingsPage() {
   const { canManageSettings } = usePermissions()
@@ -23,6 +24,9 @@ export function SettingsPage() {
           )}
           {showAdmin && (
             <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
+          )}
+          {showAdmin && (
+            <TabsTrigger value="seed">Demo Data</TabsTrigger>
           )}
         </TabsList>
 
@@ -43,6 +47,12 @@ export function SettingsPage() {
         {showAdmin && (
           <TabsContent value="roles" className="mt-6">
             <RolesDefinitions />
+          </TabsContent>
+        )}
+
+        {showAdmin && (
+          <TabsContent value="seed" className="mt-6">
+            <SeedDemoData />
           </TabsContent>
         )}
       </Tabs>

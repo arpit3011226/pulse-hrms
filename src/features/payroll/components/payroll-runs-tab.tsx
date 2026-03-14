@@ -9,13 +9,28 @@ import {
   Send,
   ChevronDown,
   ChevronRight,
+  Workflow,
+  ShieldCheck,
+  XCircle,
+  Clock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { DataTable } from '@/components/shared/data-table'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { RunPayrollDialog } from './run-payroll-dialog'
+import { PayrollRunWorkflow } from './payroll-workflow/payroll-run-workflow'
 import {
   usePayrollCycles,
   usePayrollRuns,
@@ -25,7 +40,15 @@ import {
   useApprovePayrollRun,
   useGeneratePayslips,
   usePublishPayslips,
+  useCurrentEmployee,
 } from '../hooks/use-payroll'
+import {
+  usePayrollApprovals,
+  useSubmitForApproval,
+  useApprovePayrollCycle,
+  useRejectPayrollCycle,
+  usePayrollConfig,
+} from '../hooks/use-payroll-config'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatCurrency, getMonthName } from '../utils/payroll-utils'
@@ -43,6 +66,8 @@ interface PayrollCycleRow {
   pay_date: string | null
   start_date: string
   end_date: string
+  approval_status?: string
+  submitted_for_approval_at?: string | null
 }
 
 interface PayrollRunRow {
@@ -76,12 +101,36 @@ interface RunEmployeeRow {
 }
 
 // --------------------------------------------------
+// Approval status badge helper
+// --------------------------------------------------
+
+function ApprovalStatusBadge({ status }: { status?: string }) {
+  if (!status || status === 'not_submitted') return null
+
+  const variants: Record<string, { label: string; className: string }> = {
+    pending_l1: { label: 'Pending L1', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+    pending_l2: { label: 'Pending L2', className: 'bg-blue-100 text-blue-800 border-blue-200' },
+    approved: { label: 'Approved', className: 'bg-green-100 text-green-800 border-green-200' },
+    rejected: { label: 'Rejected', className: 'bg-red-100 text-red-800 border-red-200' },
+  }
+
+  const v = variants[status]
+  if (!v) return null
+
+  return (
+    <Badge variant="outline" className={v.className}>
+      {v.label}
+    </Badge>
+  )
+}
+
+// --------------------------------------------------
 // Component
 // --------------------------------------------------
 
 export function PayrollRunsTab() {
   const { profile } = useAuth()
-  const { canManagePayroll } = usePermissions()
+  const { canManagePayroll, isAdmin, isPayrollAdmin, isHR, role } = usePermissions()
   const currentYear = new Date().getFullYear()
 
   // State
@@ -90,6 +139,11 @@ export function PayrollRunsTab() {
   const [selectedRunId, setSelectedRunId] = useState<string>('')
   const [showDetail, setShowDetail] = useState(false)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [workflowCycleId, setWorkflowCycleId] = useState<string>('')
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
+  const [rejectCycleId, setRejectCycleId] = useState<string>('')
+  const [rejectLevel, setRejectLevel] = useState<1 | 2>(1)
+  const [rejectRemarks, setRejectRemarks] = useState('')
 
   // Queries
   const { data: cycles, isLoading: cyclesLoading } = usePayrollCycles(selectedYear)
@@ -97,6 +151,9 @@ export function PayrollRunsTab() {
   const { data: runDetail, isLoading: detailLoading } = usePayrollRunDetail(
     showDetail ? selectedRunId : ''
   )
+  const { data: currentEmployee } = useCurrentEmployee()
+  const { data: payrollConfig } = usePayrollConfig()
+  const { data: approvals } = usePayrollApprovals(selectedCycleId)
 
   // Mutations
   const createRun = useCreatePayrollRun()
@@ -104,9 +161,28 @@ export function PayrollRunsTab() {
   const approveRun = useApprovePayrollRun()
   const generatePayslips = useGeneratePayslips()
   const publishPayslips = usePublishPayslips()
+  const submitForApproval = useSubmitForApproval()
+  const approveCycle = useApprovePayrollCycle()
+  const rejectCycle = useRejectPayrollCycle()
 
   // Year options (current year +/- 2)
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i)
+
+  // ------------------------------------------------
+  // Role-based approval checks
+  // ------------------------------------------------
+
+  const canApproveL1 = (() => {
+    if (!payrollConfig) return canManagePayroll
+    const approverRole = payrollConfig.first_approver_role
+    return role === 'super_admin' || role === approverRole
+  })()
+
+  const canApproveL2 = (() => {
+    if (!payrollConfig) return isAdmin || isHR
+    const approverRole = payrollConfig.second_approver_role
+    return role === 'super_admin' || role === approverRole
+  })()
 
   // ------------------------------------------------
   // Handlers
@@ -162,6 +238,52 @@ export function PayrollRunsTab() {
     }
   }
 
+  const handleSubmitForApproval = async (cycleId: string) => {
+    if (!currentEmployee?.id) {
+      toast.error('Cannot identify current employee')
+      return
+    }
+    try {
+      await submitForApproval.mutateAsync({ cycleId, submittedBy: currentEmployee.id })
+      toast.success('Payroll submitted for approval')
+    } catch {
+      toast.error('Failed to submit for approval')
+    }
+  }
+
+  const handleApproveCycle = async (cycleId: string, level: 1 | 2) => {
+    if (!currentEmployee?.id) {
+      toast.error('Cannot identify current employee')
+      return
+    }
+    try {
+      await approveCycle.mutateAsync({ cycleId, level, approverId: currentEmployee.id })
+      toast.success(`Level ${level} approval granted`)
+    } catch {
+      toast.error('Failed to approve')
+    }
+  }
+
+  const handleRejectCycle = async () => {
+    if (!currentEmployee?.id || !rejectRemarks.trim()) {
+      toast.error('Please provide rejection remarks')
+      return
+    }
+    try {
+      await rejectCycle.mutateAsync({
+        cycleId: rejectCycleId,
+        level: rejectLevel,
+        approverId: currentEmployee.id,
+        remarks: rejectRemarks,
+      })
+      toast.success('Payroll rejected')
+      setRejectDialogOpen(false)
+      setRejectRemarks('')
+    } catch {
+      toast.error('Failed to reject')
+    }
+  }
+
   // ------------------------------------------------
   // Cycle columns
   // ------------------------------------------------
@@ -182,6 +304,11 @@ export function PayrollRunsTab() {
       cell: ({ row }) => <StatusBadge status={row.original.processing_status} />,
     },
     {
+      id: 'approval_status',
+      header: 'Approval',
+      cell: ({ row }) => <ApprovalStatusBadge status={row.original.approval_status} />,
+    },
+    {
       accessorKey: 'pay_date',
       header: 'Pay Date',
       cell: ({ row }) =>
@@ -195,23 +322,107 @@ export function PayrollRunsTab() {
       cell: ({ row }) => {
         const cycle = row.original
         const isSelected = selectedCycleId === cycle.id
+        const approvalStatus = cycle.approval_status || 'not_submitted'
+        const isComputed = cycle.processing_status === 'computed'
+
         return (
-          <Button
-            variant={isSelected ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setSelectedCycleId(isSelected ? '' : cycle.id)
-              setSelectedRunId('')
-              setShowDetail(false)
-            }}
-          >
-            {isSelected ? (
-              <ChevronDown className="mr-1 h-4 w-4" />
-            ) : (
-              <ChevronRight className="mr-1 h-4 w-4" />
+          <div className="flex items-center gap-1">
+            <Button
+              variant={isSelected ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setSelectedCycleId(isSelected ? '' : cycle.id)
+                setSelectedRunId('')
+                setShowDetail(false)
+              }}
+            >
+              {isSelected ? (
+                <ChevronDown className="mr-1 h-4 w-4" />
+              ) : (
+                <ChevronRight className="mr-1 h-4 w-4" />
+              )}
+              {isSelected ? 'Hide Runs' : 'View Runs'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setWorkflowCycleId(cycle.id)}
+            >
+              <Workflow className="mr-1 h-3 w-3" />
+              Workflow
+            </Button>
+
+            {/* Submit for Approval - shown when computed and not yet submitted */}
+            {isComputed && approvalStatus === 'not_submitted' && canManagePayroll && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSubmitForApproval(cycle.id)}
+                disabled={submitForApproval.isPending}
+              >
+                <Send className="mr-1 h-3 w-3" />
+                Submit for Approval
+              </Button>
             )}
-            {isSelected ? 'Hide Runs' : 'View Runs'}
-          </Button>
+
+            {/* L1 Approve/Reject - shown to L1 approvers when pending L1 */}
+            {approvalStatus === 'pending_l1' && canApproveL1 && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-green-700 hover:text-green-800"
+                  onClick={() => handleApproveCycle(cycle.id, 1)}
+                  disabled={approveCycle.isPending}
+                >
+                  <CheckCircle className="mr-1 h-3 w-3" />
+                  Approve L1
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-700 hover:text-red-800"
+                  onClick={() => {
+                    setRejectCycleId(cycle.id)
+                    setRejectLevel(1)
+                    setRejectDialogOpen(true)
+                  }}
+                >
+                  <XCircle className="mr-1 h-3 w-3" />
+                  Reject
+                </Button>
+              </>
+            )}
+
+            {/* L2 Approve/Reject - shown to L2 approvers when pending L2 */}
+            {approvalStatus === 'pending_l2' && canApproveL2 && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-green-700 hover:text-green-800"
+                  onClick={() => handleApproveCycle(cycle.id, 2)}
+                  disabled={approveCycle.isPending}
+                >
+                  <ShieldCheck className="mr-1 h-3 w-3" />
+                  Approve L2
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-700 hover:text-red-800"
+                  onClick={() => {
+                    setRejectCycleId(cycle.id)
+                    setRejectLevel(2)
+                    setRejectDialogOpen(true)
+                  }}
+                >
+                  <XCircle className="mr-1 h-3 w-3" />
+                  Reject
+                </Button>
+              </>
+            )}
+          </div>
         )
       },
     },
@@ -409,6 +620,16 @@ export function PayrollRunsTab() {
   // Render
   // ------------------------------------------------
 
+  // If workflow mode is active, render the workflow view
+  if (workflowCycleId) {
+    return (
+      <PayrollRunWorkflow
+        cycleId={workflowCycleId}
+        onBack={() => setWorkflowCycleId('')}
+      />
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Cycles Section */}
@@ -449,6 +670,60 @@ export function PayrollRunsTab() {
           </div>
         }
       />
+
+      {/* Approval Timeline (visible when a cycle is selected) */}
+      {selectedCycleId && approvals && approvals.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Approval Timeline
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-start gap-6">
+              {(approvals as Array<{
+                id: string
+                approval_level: number
+                status: string
+                remarks: string | null
+                approved_at: string | null
+                approver?: { first_name: string; last_name: string } | null
+              }>).map((approval) => (
+                <div key={approval.id} className="flex items-start gap-3">
+                  <div className={`mt-1 h-3 w-3 rounded-full shrink-0 ${
+                    approval.status === 'approved'
+                      ? 'bg-green-500'
+                      : approval.status === 'rejected'
+                        ? 'bg-red-500'
+                        : 'bg-yellow-500'
+                  }`} />
+                  <div>
+                    <p className="text-sm font-medium">
+                      Level {approval.approval_level} - <span className="capitalize">{approval.status}</span>
+                    </p>
+                    {approval.approver && (
+                      <p className="text-xs text-muted-foreground">
+                        {approval.approver.first_name} {approval.approver.last_name}
+                      </p>
+                    )}
+                    {approval.approved_at && (
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(approval.approved_at).toLocaleString()}
+                      </p>
+                    )}
+                    {approval.remarks && (
+                      <p className="text-xs text-muted-foreground mt-1 italic">
+                        &ldquo;{approval.remarks}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Runs Section (visible when a cycle is selected) */}
       {selectedCycleId && (
@@ -501,6 +776,36 @@ export function PayrollRunsTab() {
 
       {/* Create Cycle Dialog */}
       <RunPayrollDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+
+      {/* Reject Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Payroll</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this payroll cycle.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder="Enter rejection remarks..."
+            value={rejectRemarks}
+            onChange={(e) => setRejectRemarks(e.target.value)}
+            rows={4}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRejectCycle}
+              disabled={rejectCycle.isPending || !rejectRemarks.trim()}
+            >
+              Reject Payroll
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -6,6 +6,9 @@ import { SalaryComponentsTab } from './salary-components-tab'
 import { SalaryStructuresTab } from './salary-structures-tab'
 import { CompensationTab } from './compensation-tab'
 import { PayrollRunsTab } from './payroll-runs-tab'
+import { TaxDeclarationForm } from './tax-declaration-form'
+import { TaxDeclarationsTab } from './tax-declarations-tab'
+import { PayrollConfigPanel } from './payroll-config-panel'
 
 export function PayrollPage() {
   const {
@@ -21,6 +24,8 @@ export function PayrollPage() {
   const showComponentsTab = showAdminTabs
   const showStructuresTab = showAdminTabs
   const showRunsTab = showAdminTabs
+  const showTaxAdminTab = showAdminTabs || isHR
+  const showSettingsTab = showAdminTabs
 
   return (
     <div>
@@ -36,6 +41,9 @@ export function PayrollPage() {
           {showComponentsTab && <TabsTrigger value="components">Components</TabsTrigger>}
           {showStructuresTab && <TabsTrigger value="structures">Structures</TabsTrigger>}
           {showRunsTab && <TabsTrigger value="runs">Payroll Runs</TabsTrigger>}
+          <TabsTrigger value="my-tax">My Tax</TabsTrigger>
+          {showTaxAdminTab && <TabsTrigger value="tax-declarations">Income Tax</TabsTrigger>}
+          {showSettingsTab && <TabsTrigger value="settings">Settings</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="my-payslips" className="mt-6">
@@ -63,6 +71,22 @@ export function PayrollPage() {
         {showRunsTab && (
           <TabsContent value="runs" className="mt-6">
             <PayrollRunsTab />
+          </TabsContent>
+        )}
+
+        <TabsContent value="my-tax" className="mt-6">
+          <TaxDeclarationForm />
+        </TabsContent>
+
+        {showTaxAdminTab && (
+          <TabsContent value="tax-declarations" className="mt-6">
+            <TaxDeclarationsTab />
+          </TabsContent>
+        )}
+
+        {showSettingsTab && (
+          <TabsContent value="settings" className="mt-6">
+            <PayrollConfigPanel />
           </TabsContent>
         )}
       </Tabs>

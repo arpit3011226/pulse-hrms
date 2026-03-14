@@ -13,6 +13,7 @@ import { ForgotPasswordForm } from '@/features/auth/components/forgot-password-f
 import { OnboardingForm } from '@/features/auth/components/onboarding-form'
 import { EmployeeList } from '@/features/employees/components/employee-list'
 import { EmployeeDetail } from '@/features/employees/components/employee-detail'
+import { EmployeeLifecycleHub } from '@/features/employees/components/lifecycle-hub/employee-lifecycle-hub'
 import { EmployeeFormPage } from '@/features/employees/components/employee-form-page'
 import { DepartmentList } from '@/features/departments/components/department-list'
 import { LeavePage } from '@/features/leave/components/leave-page'
@@ -119,9 +120,15 @@ const employeeNewRoute = createRoute({
 const employeeDetailRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/employees/$employeeId',
+  validateSearch: (search: Record<string, unknown>): { view?: string; tab?: string } => ({
+    ...(search.view ? { view: search.view as string } : {}),
+    ...(search.tab ? { tab: search.tab as string } : {}),
+  }),
   component: function EmployeeDetailPage() {
     const { employeeId } = employeeDetailRoute.useParams()
-    return <EmployeeDetail employeeId={employeeId} />
+    const { view } = employeeDetailRoute.useSearch()
+    if (view === 'details') return <EmployeeDetail employeeId={employeeId} />
+    return <EmployeeLifecycleHub employeeId={employeeId} />
   },
 })
 

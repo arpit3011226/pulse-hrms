@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import type { OrganizationSettings } from '@/types/database.types'
 
-const EDITABLE_ROLES = ['hr_admin', 'payroll_admin', 'manager', 'employee'] as const
+const EDITABLE_ROLES = ['hr_admin', 'payroll_admin', 'manager', 'leadership', 'employee'] as const
 const ALL_ROLES = ['super_admin', ...EDITABLE_ROLES] as const
 
 type RolePermissions = Record<string, PermissionKey[]>

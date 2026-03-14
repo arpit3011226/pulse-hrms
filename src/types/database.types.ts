@@ -683,6 +683,9 @@ export interface PayrollCycle {
   pay_date: string | null
   notes: string | null
   created_by: string | null
+  approval_status: 'not_submitted' | 'pending_l1' | 'pending_l2' | 'approved' | 'rejected'
+  submitted_for_approval_at: string | null
+  submitted_by: string | null
   created_at: string
   updated_at: string
 }
@@ -774,6 +777,33 @@ export interface PayrollAdjustment {
   created_by: string | null
   created_at: string
   updated_at: string
+}
+
+export interface PayrollConfig {
+  id: string
+  organization_id: string
+  pay_day_type: 'last_working_friday' | 'fixed_date' | 'last_day_of_month'
+  fixed_pay_day: number | null
+  skip_holidays: boolean
+  reminder_days_before: number
+  reminder_enabled: boolean
+  require_two_level_approval: boolean
+  first_approver_role: string
+  second_approver_role: string
+  created_at: string
+  updated_at: string
+}
+
+export interface PayrollApproval {
+  id: string
+  organization_id: string
+  payroll_cycle_id: string
+  approval_level: 1 | 2
+  approver_id: string | null
+  status: 'pending' | 'approved' | 'rejected'
+  remarks: string | null
+  approved_at: string | null
+  created_at: string
 }
 
 // Payroll joined types
@@ -1345,6 +1375,65 @@ export interface ActivityLog {
   created_at: string
 }
 
+// ============================================================================
+// Income Tax & TDS Types
+// ============================================================================
+
+export type TaxRegime = 'old' | 'new'
+export type TaxDeclarationStatus = 'draft' | 'submitted' | 'verified' | 'rejected'
+
+export interface TaxDeclaration {
+  id: string
+  organization_id: string
+  employee_id: string
+  financial_year: string
+  tax_regime: TaxRegime
+  section_80c: number
+  section_80d: number
+  home_loan_interest: number
+  hra_claimed: number
+  nps_contribution: number
+  other_deductions: number
+  other_deductions_detail: string | null
+  status: TaxDeclarationStatus
+  verified_by: string | null
+  verified_at: string | null
+  remarks: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TdsRecord {
+  id: string
+  organization_id: string
+  employee_id: string
+  financial_year: string
+  month: number
+  year: number
+  projected_annual_income: number | null
+  total_exemptions: number
+  taxable_income: number | null
+  annual_tax_liability: number | null
+  monthly_tds: number
+  invoice_amount: number | null
+  tds_rate: number | null
+  tds_section: string | null
+  tds_deducted: number
+  payslip_id: string | null
+  created_at: string
+}
+
+export interface TaxDeclarationWithRelations extends TaxDeclaration {
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email' | 'employee_code' | 'department_id' | 'employment_type'> & {
+    department?: Pick<Department, 'id' | 'name'> | null
+  } | null
+  verifier?: Pick<Employee, 'id' | 'first_name' | 'last_name'> | null
+}
+
+export interface TdsRecordWithRelations extends TdsRecord {
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email' | 'employee_code'> | null
+}
+
 // Supabase Database type (simplified for manual use)
 export interface Database {
   public: {
@@ -1398,6 +1487,8 @@ export interface Database {
       payroll_deductions: { Row: PayrollDeduction; Insert: Partial<PayrollDeduction>; Update: Partial<PayrollDeduction> }
       payslips: { Row: Payslip; Insert: Partial<Payslip>; Update: Partial<Payslip> }
       payroll_adjustments: { Row: PayrollAdjustment; Insert: Partial<PayrollAdjustment>; Update: Partial<PayrollAdjustment> }
+      payroll_config: { Row: PayrollConfig; Insert: Partial<PayrollConfig>; Update: Partial<PayrollConfig> }
+      payroll_approvals: { Row: PayrollApproval; Insert: Partial<PayrollApproval>; Update: Partial<PayrollApproval> }
       performance_cycles: { Row: PerformanceCycle; Insert: Partial<PerformanceCycle>; Update: Partial<PerformanceCycle> }
       review_competencies: { Row: ReviewCompetency; Insert: Partial<ReviewCompetency>; Update: Partial<ReviewCompetency> }
       employee_goals: { Row: EmployeeGoal; Insert: Partial<EmployeeGoal>; Update: Partial<EmployeeGoal> }
@@ -1424,6 +1515,8 @@ export interface Database {
       training_enrollments: { Row: TrainingEnrollment; Insert: Partial<TrainingEnrollment>; Update: Partial<TrainingEnrollment> }
       training_assessments: { Row: TrainingAssessment; Insert: Partial<TrainingAssessment>; Update: Partial<TrainingAssessment> }
       training_assessment_attempts: { Row: TrainingAssessmentAttempt; Insert: Partial<TrainingAssessmentAttempt>; Update: Partial<TrainingAssessmentAttempt> }
+      employee_tax_declarations: { Row: TaxDeclaration; Insert: Partial<TaxDeclaration>; Update: Partial<TaxDeclaration> }
+      employee_tds_records: { Row: TdsRecord; Insert: Partial<TdsRecord>; Update: Partial<TdsRecord> }
     }
   }
 }
