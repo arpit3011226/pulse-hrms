@@ -52,6 +52,7 @@ export const EMPLOYMENT_TYPES = [
   { value: 'part_time', label: 'Part Time' },
   { value: 'contract', label: 'Contract' },
   { value: 'intern', label: 'Intern' },
+  { value: 'freelance', label: 'Freelance' },
 ] as const
 
 export const EMPLOYEE_STATUSES = [
@@ -76,6 +77,21 @@ export const MARITAL_STATUS_OPTIONS = [
 ] as const
 
 export const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const
+
+export const RELIGION_OPTIONS = [
+  { value: 'Hinduism', label: 'Hinduism' },
+  { value: 'Islam', label: 'Islam' },
+  { value: 'Christianity', label: 'Christianity' },
+  { value: 'Sikhism', label: 'Sikhism' },
+  { value: 'Buddhism', label: 'Buddhism' },
+  { value: 'Jainism', label: 'Jainism' },
+  { value: 'Other', label: 'Other' },
+  { value: 'Prefer not to say', label: 'Prefer not to say' },
+] as const
+
+export const NATIONALITY_OPTIONS = [
+  { value: 'Indian', label: 'Indian' },
+] as const
 
 export const LEAVE_STATUSES = [
   { value: 'pending', label: 'Pending' },

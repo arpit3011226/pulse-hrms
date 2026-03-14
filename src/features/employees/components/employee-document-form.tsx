@@ -1,7 +1,8 @@
+import { useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Upload, FileText, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,6 +22,9 @@ import {
 } from '../hooks/use-employee-lifecycle'
 import type { EmployeeIdentityDocument, EmployeeDocument } from '@/types/database.types'
 import { toast } from 'sonner'
+import { uploadFile, validateFile, formatFileSize, FileValidationError } from '@/lib/storage'
+
+const STORAGE_BUCKET = 'employee-documents'
 
 const identityDocSchema = z.object({
   document_type: z.string().min(1, 'Document type is required'),
@@ -35,7 +39,7 @@ const identityDocSchema = z.object({
 const employeeDocSchema = z.object({
   document_category: z.string().min(1, 'Category is required'),
   document_name: z.string().min(1, 'Document name is required'),
-  file_url: z.string().min(1, 'File URL is required'),
+  file_url: z.string().optional(),
   file_size: z.number().optional(),
   expiry_date: z.string().optional(),
   verification_status: z.string().optional(),
@@ -57,10 +61,80 @@ export function EmployeeDocumentForm({ open, onOpenChange, employeeId, type, ide
   return <EmpDocForm open={open} onOpenChange={onOpenChange} employeeId={employeeId} document={employeeDocument} />
 }
 
+// ── Shared file picker component ────────────────────────────────────
+function FilePicker({ selectedFile, onFileChange, existingUrl }: {
+  selectedFile: File | null
+  onFileChange: (file: File | null) => void
+  existingUrl?: string | null
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [fileError, setFileError] = useState<string | null>(null)
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      validateFile(file)
+      setFileError(null)
+      onFileChange(file)
+    } catch (err) {
+      if (err instanceof FileValidationError) {
+        setFileError(err.message)
+      }
+      e.target.value = ''
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label>File Upload</Label>
+      {selectedFile ? (
+        <div className="flex items-center gap-3 rounded-md border p-3">
+          <FileText className="h-5 w-5 text-muted-foreground" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+            <p className="text-xs text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
+          </div>
+          <Button type="button" variant="ghost" size="sm" onClick={() => { onFileChange(null); if (fileInputRef.current) fileInputRef.current.value = '' }}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : existingUrl ? (
+        <div className="flex items-center gap-3 rounded-md border p-3">
+          <FileText className="h-5 w-5 text-muted-foreground" />
+          <p className="flex-1 text-sm text-muted-foreground truncate">Current file attached</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+            Replace
+          </Button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="flex w-full items-center justify-center gap-2 rounded-md border-2 border-dashed p-6 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+        >
+          <Upload className="h-5 w-5" />
+          Click to upload (JPG, PNG, PDF — max 5MB)
+        </button>
+      )}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".jpg,.jpeg,.png,.pdf"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+      {fileError && <p className="text-sm text-destructive">{fileError}</p>}
+    </div>
+  )
+}
+
+// ── Identity Document Form ──────────────────────────────────────────
 function IdentityDocForm({ open, onOpenChange, employeeId, document }: { open: boolean; onOpenChange: (open: boolean) => void; employeeId: string; document?: EmployeeIdentityDocument }) {
   const isEditing = !!document
   const createDoc = useCreateIdentityDocument()
   const updateDoc = useUpdateIdentityDocument()
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(identityDocSchema),
@@ -77,8 +151,17 @@ function IdentityDocForm({ open, onOpenChange, employeeId, document }: { open: b
 
   const onSubmit = async (data: z.infer<typeof identityDocSchema>) => {
     try {
+      let fileUrl = data.file_url || null
+
+      // Upload file if selected
+      if (selectedFile) {
+        const ext = selectedFile.name.split('.').pop()
+        const path = `${employeeId}/identity/${data.document_type || 'doc'}_${Date.now()}.${ext}`
+        fileUrl = await uploadFile(STORAGE_BUCKET, path, selectedFile)
+      }
+
       const cleaned = Object.fromEntries(
-        Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
+        Object.entries({ ...data, file_url: fileUrl }).map(([k, v]) => [k, v === '' ? null : v])
       )
       if (isEditing) {
         await updateDoc.mutateAsync({ id: document.id, ...cleaned })
@@ -87,10 +170,11 @@ function IdentityDocForm({ open, onOpenChange, employeeId, document }: { open: b
         await createDoc.mutateAsync({ ...cleaned, employee_id: employeeId })
         toast.success('Document added')
       }
+      setSelectedFile(null)
       reset()
       onOpenChange(false)
-    } catch {
-      toast.error('Failed to save document')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save document')
     }
   }
 
@@ -137,10 +221,11 @@ function IdentityDocForm({ open, onOpenChange, employeeId, document }: { open: b
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="file_url">File URL</Label>
-            <Input id="file_url" placeholder="https://..." {...register('file_url')} />
-          </div>
+          <FilePicker
+            selectedFile={selectedFile}
+            onFileChange={setSelectedFile}
+            existingUrl={document?.file_url}
+          />
 
           <div className="space-y-2">
             <Label>Verification Status</Label>
@@ -167,10 +252,12 @@ function IdentityDocForm({ open, onOpenChange, employeeId, document }: { open: b
   )
 }
 
+// ── Employee Document Form ──────────────────────────────────────────
 function EmpDocForm({ open, onOpenChange, employeeId, document }: { open: boolean; onOpenChange: (open: boolean) => void; employeeId: string; document?: EmployeeDocument }) {
   const isEditing = !!document
   const createDoc = useCreateEmployeeDocument()
   const updateDoc = useUpdateEmployeeDocument()
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(employeeDocSchema),
@@ -186,8 +273,24 @@ function EmpDocForm({ open, onOpenChange, employeeId, document }: { open: boolea
 
   const onSubmit = async (data: z.infer<typeof employeeDocSchema>) => {
     try {
+      let fileUrl = data.file_url || null
+      let fileSize = data.file_size || null
+
+      // Upload file if selected
+      if (selectedFile) {
+        const ext = selectedFile.name.split('.').pop()
+        const path = `${employeeId}/documents/${data.document_category || 'doc'}_${Date.now()}.${ext}`
+        fileUrl = await uploadFile(STORAGE_BUCKET, path, selectedFile)
+        fileSize = selectedFile.size
+      }
+
+      if (!fileUrl && !isEditing) {
+        toast.error('Please upload a file')
+        return
+      }
+
       const cleaned = Object.fromEntries(
-        Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
+        Object.entries({ ...data, file_url: fileUrl, file_size: fileSize }).map(([k, v]) => [k, v === '' ? null : v])
       )
       if (isEditing) {
         await updateDoc.mutateAsync({ id: document.id, ...cleaned })
@@ -196,10 +299,11 @@ function EmpDocForm({ open, onOpenChange, employeeId, document }: { open: boolea
         await createDoc.mutateAsync({ ...cleaned, employee_id: employeeId })
         toast.success('Document uploaded')
       }
+      setSelectedFile(null)
       reset()
       onOpenChange(false)
-    } catch {
-      toast.error('Failed to save document')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save document')
     }
   }
 
@@ -229,11 +333,11 @@ function EmpDocForm({ open, onOpenChange, employeeId, document }: { open: boolea
             {errors.document_name && <p className="text-sm text-destructive">{errors.document_name.message}</p>}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="file_url">File URL *</Label>
-            <Input id="file_url" placeholder="https://..." {...register('file_url')} />
-            {errors.file_url && <p className="text-sm text-destructive">{errors.file_url.message}</p>}
-          </div>
+          <FilePicker
+            selectedFile={selectedFile}
+            onFileChange={setSelectedFile}
+            existingUrl={document?.file_url}
+          />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">

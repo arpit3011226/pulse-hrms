@@ -14,6 +14,7 @@ export interface SubmitResignationData {
   notice_period_days: number
   last_working_date: string
   initiated_by: string // profile_id of submitter
+  exit_type?: EmployeeExitRecord['exit_type']
 }
 
 export interface ResignationFilters {
@@ -34,7 +35,7 @@ export async function submitResignation(data: SubmitResignationData) {
       exit_reason: data.exit_reason,
       notice_period_days: data.notice_period_days,
       last_working_date: data.last_working_date,
-      exit_type: 'resignation' as const,
+      exit_type: data.exit_type || 'resignation',
       status: 'initiated' as const,
       approval_status: 'submitted' as const,
       initiated_by: data.initiated_by,

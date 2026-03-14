@@ -8,6 +8,7 @@ import {
   Trash2,
   User,
   Briefcase,
+  Building2,
   Heart,
   ShieldCheck,
   MapPin,
@@ -60,9 +61,12 @@ import {
   useDeleteNominee,
   useDeleteIdentityDocument,
   useDeleteEmployeeDocument,
+  usePreviousExperience,
+  useDeletePreviousExperience,
 } from '../hooks/use-employee-lifecycle'
 import { useDepartments, useDesignations } from '@/features/departments/hooks/use-departments'
 import { usePermissions } from '@/hooks/use-permissions'
+import { useAuth } from '@/features/auth/hooks/use-auth'
 import { getInitials, formatDate } from '@/lib/utils'
 
 import {
@@ -82,6 +86,8 @@ import {
   EXIT_TYPES,
   EXIT_STATUSES,
   CLEARANCE_STATUSES,
+  RELIGION_OPTIONS,
+  NATIONALITY_OPTIONS,
 } from '@/lib/constants'
 
 import { EmployeeAddressForm } from './employee-address-form'
@@ -90,6 +96,7 @@ import { EmployeeBankForm } from './employee-bank-form'
 import { EmployeeDependentForm } from './employee-dependent-form'
 import { EmployeeDocumentForm } from './employee-document-form'
 import { EmployeePromotionDialog } from './employee-promotion-dialog'
+import { PreviousExperienceForm } from './previous-experience-form'
 
 import type {
   Employee,
@@ -101,6 +108,7 @@ import type {
   EmployeeNominee,
   EmployeeIdentityDocument,
   EmployeeDocument,
+  EmployeePreviousExperience,
 } from '@/types/database.types'
 
 // ---------------------------------------------------------------------------
@@ -187,6 +195,7 @@ interface EmployeeUnifiedViewProps {
 export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
   const navigate = useNavigate()
   const permissions = usePermissions()
+  const { profile } = useAuth()
   const canEdit = permissions.canManageEmployees
 
   // Core data
@@ -207,6 +216,7 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
   const { data: exitRecord } = useExitRecord(employeeId)
   const { data: statusHistory } = useStatusHistory(employeeId)
   const { data: orgHistory } = useOrgHistory(employeeId)
+  const { data: previousExperience } = usePreviousExperience(employeeId)
 
   // Mutations
   const updateEmployee = useUpdateEmployee()
@@ -218,6 +228,7 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
   const deleteNominee = useDeleteNominee()
   const deleteIdentityDoc = useDeleteIdentityDocument()
   const deleteEmpDocument = useDeleteEmployeeDocument()
+  const deletePrevExperience = useDeletePreviousExperience()
 
   // Editing state for inline sections
   const [editingSection, setEditingSection] = useState<string | null>(null)
@@ -243,6 +254,8 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
   const [editingEmpDocument, setEditingEmpDocument] = useState<EmployeeDocument | undefined>()
 
   const [promotionDialogOpen, setPromotionDialogOpen] = useState(false)
+  const [experienceFormOpen, setExperienceFormOpen] = useState(false)
+  const [editingExperience, setEditingExperience] = useState<EmployeePreviousExperience | undefined>()
 
   // Confirm delete
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; title: string; description: string; onConfirm: () => void }>({
@@ -408,6 +421,21 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
                 <InfoField label="Probation End Date" value={emp.probation_end_date ? formatDate(emp.probation_end_date) : null} />
                 <InfoField label="Reporting Manager" value={emp.reporting_manager ? `${emp.reporting_manager.first_name} ${emp.reporting_manager.last_name}` : null} />
                 <InfoField label="Status" value={emp.status} />
+                {/* Probation Status Badge */}
+                {emp.probation_end_date && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Probation Status</p>
+                    {emp.confirmation_date ? (
+                      <Badge variant="outline" className="mt-1 border-green-200 bg-green-50 text-green-700">Confirmed</Badge>
+                    ) : new Date(emp.probation_end_date) >= new Date() ? (
+                      <Badge variant="outline" className="mt-1 border-amber-200 bg-amber-50 text-amber-700">
+                        On Probation ({Math.ceil((new Date(emp.probation_end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days remaining)
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="mt-1 border-yellow-200 bg-yellow-50 text-yellow-700">Probation Ended — Awaiting Confirmation</Badge>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </AccordionContent>
@@ -842,6 +870,92 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
             {(!workProfiles || workProfiles.length === 0) && (!orgHistory || orgHistory.length === 0) && (
               <p className="text-sm text-muted-foreground">No work history recorded.</p>
             )}
+
+            {/* Previous Experience */}
+            {(() => {
+              const isOwnProfile = employee?.profile_id === profile?.id
+              const canManageExp = permissions.canManageWorkProfiles || isOwnProfile
+              return (
+                <>
+                  <div className="mt-6 flex items-center justify-between">
+                    <h4 className="text-sm font-semibold">Previous Experience</h4>
+                    {canManageExp && (
+                      <Button variant="outline" size="sm" onClick={() => { setEditingExperience(undefined); setExperienceFormOpen(true) }}>
+                        <Plus className="mr-1 h-3 w-3" /> Add Experience
+                      </Button>
+                    )}
+                  </div>
+                  {previousExperience && previousExperience.length > 0 ? (
+                    <div className="mt-3 space-y-3">
+                      {previousExperience.map((exp) => (
+                        <Card key={exp.id}>
+                          <CardContent className="flex items-start justify-between p-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                                <span className="text-sm font-medium">{exp.company_name}</span>
+                                {exp.employment_type && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {EMPLOYMENT_TYPES.find((t) => t.value === exp.employment_type)?.label || exp.employment_type}
+                                  </Badge>
+                                )}
+                              </div>
+                              {exp.designation && (
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                  {exp.designation}{exp.department ? ` · ${exp.department}` : ''}
+                                </p>
+                              )}
+                              <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+                                <span>
+                                  {formatDate(exp.start_date)} — {exp.end_date ? formatDate(exp.end_date) : 'Present'}
+                                </span>
+                                {exp.location && (
+                                  <span className="flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" /> {exp.location}
+                                  </span>
+                                )}
+                              </div>
+                              {exp.reason_for_leaving && (
+                                <p className="mt-1 text-xs text-muted-foreground italic">Left: {exp.reason_for_leaving}</p>
+                              )}
+                            </div>
+                            {canManageExp && (
+                              <div className="flex items-center gap-1 ml-2 shrink-0">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingExperience(exp); setExperienceFormOpen(true) }}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive"
+                                  onClick={() => setConfirmDelete({
+                                    open: true,
+                                    title: 'Delete Experience',
+                                    description: `Remove ${exp.company_name} from previous experience?`,
+                                    onConfirm: async () => {
+                                      try {
+                                        await deletePrevExperience.mutateAsync(exp.id)
+                                        toast.success('Experience deleted')
+                                      } catch {
+                                        toast.error('Failed to delete experience')
+                                      }
+                                    },
+                                  })}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm text-muted-foreground">No previous experience recorded.</p>
+                  )}
+                </>
+              )
+            })()}
           </AccordionContent>
         </AccordionItem>
 
@@ -942,6 +1056,13 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
           managers={managers}
         />
       )}
+
+      <PreviousExperienceForm
+        open={experienceFormOpen}
+        onOpenChange={(open) => { setExperienceFormOpen(open); if (!open) setEditingExperience(undefined) }}
+        employeeId={employeeId}
+        experience={editingExperience}
+      />
 
       <ConfirmDialog
         open={confirmDelete.open}
@@ -1067,11 +1188,21 @@ function PersonalEditForm({ employee, onSave, onCancel, isPending }: InlineEditF
         </div>
         <div className="space-y-1">
           <Label>Nationality</Label>
-          <Input {...register('nationality')} />
+          <Select onValueChange={(v) => setValue('nationality', v)} defaultValue={employee.nationality || undefined}>
+            <SelectTrigger><SelectValue placeholder="Select nationality" /></SelectTrigger>
+            <SelectContent>
+              {NATIONALITY_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-1">
           <Label>Religion</Label>
-          <Input {...register('religion')} />
+          <Select onValueChange={(v) => setValue('religion', v)} defaultValue={employee.religion || undefined}>
+            <SelectTrigger><SelectValue placeholder="Select religion" /></SelectTrigger>
+            <SelectContent>
+              {RELIGION_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <div className="flex justify-end gap-2">

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
+import { Loader2, UserMinus } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
+import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -11,10 +12,11 @@ import { MyResignationTab } from './my-resignation-tab'
 import { ResignationApprovalList } from './resignation-approval-list'
 import { ResignationActionDialog } from './resignation-action-dialog'
 import { ClearanceTab } from './clearance-tab'
+import { InitiateSeparationDialog } from './initiate-separation-dialog'
 
 export function ResignationPage() {
   const { profile } = useAuth()
-  const { isManager, isHR, isAdmin } = usePermissions()
+  const { isManager, isHR, isAdmin, isLeadership } = usePermissions()
 
   const { data: currentEmployee, isLoading: empLoading } = useQuery({
     queryKey: ['current-employee', profile?.id],
@@ -38,10 +40,12 @@ export function ResignationPage() {
   const [actionRequest, setActionRequest] = useState<any>(null)
   const [actionLevel, setActionLevel] = useState<'manager' | 'hr'>('manager')
   const [actionOpen, setActionOpen] = useState(false)
+  const [separationOpen, setSeparationOpen] = useState(false)
 
   const showTeamTab = isManager
   const showAllTab = isHR || isAdmin
   const showClearanceTab = isHR || isAdmin
+  const canInitiateSeparation = isManager || isHR || isAdmin || isLeadership
 
   if (empLoading) {
     return (
@@ -70,6 +74,14 @@ export function ResignationPage() {
       <PageHeader
         title="Separation"
         description="Manage resignations, approvals, and exit clearances."
+        actions={
+          canInitiateSeparation ? (
+            <Button onClick={() => setSeparationOpen(true)}>
+              <UserMinus className="mr-2 h-4 w-4" />
+              Initiate Separation
+            </Button>
+          ) : undefined
+        }
       />
 
       <Tabs defaultValue="my-resignation">
@@ -123,6 +135,11 @@ export function ResignationPage() {
         request={actionRequest}
         level={actionLevel}
         approverEmployeeId={employeeId}
+      />
+
+      <InitiateSeparationDialog
+        open={separationOpen}
+        onOpenChange={setSeparationOpen}
       />
     </div>
   )

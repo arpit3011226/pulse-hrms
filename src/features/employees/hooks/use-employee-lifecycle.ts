@@ -12,6 +12,7 @@ import type {
   EmployeeExitRecord,
   EmployeeOrgHistory,
   EmployeeDocument,
+  EmployeePreviousExperience,
 } from '@/types/database.types'
 
 // ============================================================================
@@ -420,6 +421,49 @@ export function useDeleteEmployeeDocument() {
     mutationFn: api.deleteEmployeeDocument,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employee-documents'] })
+    },
+  })
+}
+
+// ── Previous Work Experience ─────────────────────────────────────────
+
+export function usePreviousExperience(employeeId: string) {
+  return useQuery({
+    queryKey: ['previous-experience', employeeId],
+    queryFn: () => api.getPreviousExperience(employeeId),
+    enabled: !!employeeId,
+  })
+}
+
+export function useCreatePreviousExperience() {
+  const queryClient = useQueryClient()
+  const { organization } = useAuth()
+  return useMutation({
+    mutationFn: (exp: Partial<EmployeePreviousExperience>) =>
+      api.createPreviousExperience({ ...exp, organization_id: organization!.id }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['previous-experience', variables.employee_id] })
+    },
+  })
+}
+
+export function useUpdatePreviousExperience() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...updates }: Partial<EmployeePreviousExperience> & { id: string }) =>
+      api.updatePreviousExperience(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['previous-experience'] })
+    },
+  })
+}
+
+export function useDeletePreviousExperience() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.deletePreviousExperience,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['previous-experience'] })
     },
   })
 }

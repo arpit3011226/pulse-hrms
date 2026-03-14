@@ -11,6 +11,7 @@ import type {
   EmployeeStatusHistory,
   EmployeeOrgHistory,
   EmployeeDocument,
+  EmployeePreviousExperience,
 } from '@/types/database.types'
 
 // ============================================================================
@@ -486,6 +487,47 @@ export async function updateEmployeeDocument(id: string, updates: Partial<Employ
 export async function deleteEmployeeDocument(id: string) {
   const { error } = await supabase
     .from('employee_documents')
+    .delete()
+    .eq('id', id)
+  if (error) throw error
+}
+
+// ── Previous Work Experience ─────────────────────────────────────────
+
+export async function getPreviousExperience(employeeId: string) {
+  const { data, error } = await supabase
+    .from('employee_previous_experience')
+    .select('*')
+    .eq('employee_id', employeeId)
+    .order('start_date', { ascending: false })
+  if (error) throw error
+  return data as EmployeePreviousExperience[]
+}
+
+export async function createPreviousExperience(exp: Partial<EmployeePreviousExperience>) {
+  const { data, error } = await supabase
+    .from('employee_previous_experience')
+    .insert(exp)
+    .select()
+    .single()
+  if (error) throw error
+  return data as EmployeePreviousExperience
+}
+
+export async function updatePreviousExperience(id: string, updates: Partial<EmployeePreviousExperience>) {
+  const { data, error } = await supabase
+    .from('employee_previous_experience')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data as EmployeePreviousExperience
+}
+
+export async function deletePreviousExperience(id: string) {
+  const { error } = await supabase
+    .from('employee_previous_experience')
     .delete()
     .eq('id', id)
   if (error) throw error

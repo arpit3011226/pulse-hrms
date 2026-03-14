@@ -47,7 +47,7 @@ export function usePermissions() {
     canManageShifts: has('manage_shifts'),
     canManageRoles: role === 'super_admin' || has('manage_roles'),
     canManageEmployeeDocuments: has('edit_employees'),
-    canInitiateExit: role === 'super_admin' || role === 'hr_admin',
+    canInitiateExit: role === 'super_admin' || role === 'hr_admin' || role === 'manager' || role === 'leadership',
     canManageWorkProfiles: role === 'super_admin' || role === 'hr_admin',
     canViewPerformance: has('view_performance'),
     canManagePerformance: has('manage_performance'),
@@ -65,6 +65,7 @@ export function usePermissions() {
     isHR: role === 'hr_admin',
     isPayrollAdmin: role === 'payroll_admin',
     isManager: role === 'manager',
+    isLeadership: role === 'leadership',
     isEmployee: role === 'employee',
     role,
 

@@ -23,6 +23,12 @@ const leaveTypeSchema = z.object({
   applicable_gender: z.string().optional(),
   document_required_flag: z.boolean().default(false),
   gender_specific_flag: z.boolean().default(false),
+  accrual_frequency: z.string().default('yearly'),
+  monthly_credit_amount: z.coerce.number().min(0).optional().nullable(),
+  is_regional: z.boolean().default(false),
+  applicable_region: z.string().optional(),
+  max_leaves_per_month: z.coerce.number().min(0).optional().nullable(),
+  is_use_it_or_lose_it: z.boolean().default(false),
 })
 
 type LeaveTypeFormData = z.infer<typeof leaveTypeSchema>
@@ -66,6 +72,12 @@ export function LeaveTypeFormDialog({
           applicable_gender: leaveType.applicable_gender || '',
           document_required_flag: leaveType.document_required_flag,
           gender_specific_flag: leaveType.gender_specific_flag,
+          accrual_frequency: leaveType.accrual_frequency || 'yearly',
+          monthly_credit_amount: leaveType.monthly_credit_amount ?? undefined,
+          is_regional: leaveType.is_regional || false,
+          applicable_region: leaveType.applicable_region || '',
+          max_leaves_per_month: leaveType.max_leaves_per_month ?? undefined,
+          is_use_it_or_lose_it: leaveType.is_use_it_or_lose_it || false,
         }
       : {
           default_days: 12,
@@ -74,11 +86,19 @@ export function LeaveTypeFormDialog({
           max_carry_forward_days: 0,
           document_required_flag: false,
           gender_specific_flag: false,
+          accrual_frequency: 'yearly',
+          monthly_credit_amount: undefined,
+          is_regional: false,
+          applicable_region: '',
+          max_leaves_per_month: undefined,
+          is_use_it_or_lose_it: false,
         },
   })
 
   const isCarryForward = watch('is_carry_forward')
   const isGenderSpecific = watch('gender_specific_flag')
+  const accrualFrequency = watch('accrual_frequency')
+  const isRegional = watch('is_regional')
 
   const onSubmit = async (data: LeaveTypeFormData) => {
     await onSave(data)
@@ -87,7 +107,7 @@ export function LeaveTypeFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Leave Type' : 'Add Leave Type'}</DialogTitle>
         </DialogHeader>
@@ -182,6 +202,82 @@ export function LeaveTypeFormDialog({
                   </SelectContent>
                 </Select>
               </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="is_regional">Regional Leave</Label>
+              <Switch
+                id="is_regional"
+                checked={isRegional}
+                onCheckedChange={(v) => setValue('is_regional', v)}
+              />
+            </div>
+
+            {isRegional && (
+              <div className="space-y-2 pl-4">
+                <Label htmlFor="applicable_region">Applicable Region</Label>
+                <Input id="applicable_region" {...register('applicable_region')} placeholder="e.g., Karnataka, Tamil Nadu" />
+              </div>
+            )}
+          </div>
+
+          {/* Accrual Configuration */}
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Accrual Frequency</Label>
+              <Select
+                onValueChange={(v) => setValue('accrual_frequency', v)}
+                defaultValue={leaveType?.accrual_frequency || 'yearly'}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yearly">Yearly (credited at start of year)</SelectItem>
+                  <SelectItem value="monthly">Monthly (credited each month)</SelectItem>
+                  <SelectItem value="quarterly">Quarterly (credited each quarter)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {accrualFrequency === 'monthly' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="monthly_credit_amount">Monthly Credit Amount (days)</Label>
+                  <Input
+                    id="monthly_credit_amount"
+                    type="number"
+                    step="0.5"
+                    placeholder="e.g., 1.5"
+                    {...register('monthly_credit_amount')}
+                  />
+                  <p className="text-xs text-muted-foreground">Days credited per month. Leave blank to auto-calculate from default days ÷ 12.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="max_leaves_per_month">Max Leaves Per Month</Label>
+                  <Input
+                    id="max_leaves_per_month"
+                    type="number"
+                    step="0.5"
+                    placeholder="e.g., 1"
+                    {...register('max_leaves_per_month')}
+                  />
+                  <p className="text-xs text-muted-foreground">Maximum leaves that can be applied in a single month. Leave blank for no limit.</p>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="is_use_it_or_lose_it">Use It or Lose It</Label>
+                    <p className="text-xs text-muted-foreground">Unused monthly credit expires at end of month (not accumulated)</p>
+                  </div>
+                  <Switch
+                    id="is_use_it_or_lose_it"
+                    checked={watch('is_use_it_or_lose_it')}
+                    onCheckedChange={(v) => setValue('is_use_it_or_lose_it', v)}
+                  />
+                </div>
+              </>
             )}
           </div>
 

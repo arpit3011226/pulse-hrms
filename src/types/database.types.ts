@@ -141,6 +141,12 @@ export interface LeaveType {
   applicable_gender: string | null
   document_required_flag: boolean
   gender_specific_flag: boolean
+  accrual_frequency: 'yearly' | 'monthly' | 'quarterly'
+  monthly_credit_amount: number | null
+  is_regional: boolean
+  applicable_region: string | null
+  max_leaves_per_month: number | null
+  is_use_it_or_lose_it: boolean
   created_at: string
 }
 
@@ -522,6 +528,23 @@ export interface EmployeeDocument {
   expiry_date: string | null
   verification_status: 'pending' | 'verified' | 'rejected'
   uploaded_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface EmployeePreviousExperience {
+  id: string
+  organization_id: string
+  employee_id: string
+  company_name: string
+  designation: string | null
+  department: string | null
+  employment_type: 'full_time' | 'part_time' | 'contract' | 'intern' | 'freelance' | null
+  start_date: string
+  end_date: string | null
+  location: string | null
+  reason_for_leaving: string | null
+  is_current: boolean
   created_at: string
   updated_at: string
 }

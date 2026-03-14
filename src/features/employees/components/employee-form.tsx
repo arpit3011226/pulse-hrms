@@ -14,7 +14,7 @@ import { PageHeader } from '@/components/layout/page-header'
 import { useCreateEmployee, useUpdateEmployee, useNextEmployeeCode } from '../hooks/use-employees'
 import {
   EMPLOYMENT_TYPES, GENDER_OPTIONS, MARITAL_STATUS_OPTIONS, BLOOD_GROUPS,
-  SALUTATION_OPTIONS,
+  SALUTATION_OPTIONS, RELIGION_OPTIONS, NATIONALITY_OPTIONS,
 } from '@/lib/constants'
 import type { Employee, Department, Designation } from '@/types/database.types'
 import { toast } from 'sonner'
@@ -43,6 +43,7 @@ const employeeSchema = z.object({
   designation_id: z.string().optional(),
   employment_type: z.string().optional(),
   date_of_joining: z.string().optional(),
+  probation_days: z.coerce.number().min(0).optional(),
   probation_end_date: z.string().optional(),
   confirmation_date: z.string().optional(),
   reporting_manager_id: z.string().optional(),
@@ -56,7 +57,7 @@ type EmployeeFormData = z.infer<typeof employeeSchema>
 // Fields required per wizard step (for validation gating)
 const STEP_FIELDS: Record<number, (keyof EmployeeFormData)[]> = {
   0: ['salutation', 'first_name', 'middle_name', 'last_name', 'email', 'personal_email', 'phone', 'official_phone', 'date_of_birth', 'gender', 'marital_status', 'blood_group', 'nationality', 'religion'],
-  1: ['employee_code', 'department_id', 'designation_id', 'employment_type', 'date_of_joining', 'probation_end_date', 'confirmation_date', 'reporting_manager_id'],
+  1: ['employee_code', 'department_id', 'designation_id', 'employment_type', 'date_of_joining', 'probation_days', 'probation_end_date', 'confirmation_date', 'reporting_manager_id'],
   2: ['pan_number', 'aadhar_number', 'uan_number'],
   3: ['father_name', 'mother_name', 'spouse_name'],
 }
@@ -83,8 +84,8 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
   const [currentStep, setCurrentStep] = useState(0)
   const { data: nextCode } = useNextEmployeeCode()
 
-  const { register, handleSubmit, setValue, trigger, formState: { errors, isSubmitting } } = useForm<EmployeeFormData>({
-    resolver: zodResolver(employeeSchema),
+  const { register, handleSubmit, setValue, watch, trigger, formState: { errors, isSubmitting } } = useForm<EmployeeFormData>({
+    resolver: zodResolver(employeeSchema) as any,
     defaultValues: employee ? {
       salutation: employee.salutation || '',
       first_name: employee.first_name,
@@ -108,6 +109,9 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
       designation_id: employee.designation_id || '',
       employment_type: employee.employment_type,
       date_of_joining: employee.date_of_joining || '',
+      probation_days: employee.date_of_joining && employee.probation_end_date
+        ? Math.round((new Date(employee.probation_end_date).getTime() - new Date(employee.date_of_joining).getTime()) / (1000 * 60 * 60 * 24))
+        : 180,
       probation_end_date: employee.probation_end_date || '',
       confirmation_date: employee.confirmation_date || '',
       reporting_manager_id: employee.reporting_manager_id || '',
@@ -117,6 +121,7 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
     } : {
       employment_type: 'full_time',
       nationality: 'Indian',
+      probation_days: 180,
     },
   })
 
@@ -127,10 +132,24 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
     }
   }, [isEditing, nextCode, setValue])
 
+  // Auto-calculate probation end date from joining date + probation days
+  const joiningDate = watch('date_of_joining')
+  const probationDays = watch('probation_days')
+  useEffect(() => {
+    const days = Number(probationDays)
+    if (joiningDate && days > 0) {
+      const d = new Date(joiningDate)
+      d.setDate(d.getDate() + days)
+      setValue('probation_end_date', d.toISOString().split('T')[0])
+    }
+  }, [joiningDate, probationDays, setValue])
+
   const onSubmit = async (data: EmployeeFormData) => {
     try {
+      // Remove probation_days (UI-only field, not a DB column)
+      const { probation_days: _, ...dbData } = data
       const cleaned = Object.fromEntries(
-        Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
+        Object.entries(dbData).map(([k, v]) => [k, v === '' ? null : v])
       )
 
       if (isEditing) {
@@ -240,12 +259,26 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
         </Select>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="nationality">Nationality</Label>
-        <Input id="nationality" {...register('nationality')} />
+        <Label>Nationality</Label>
+        <Select onValueChange={(v) => setValue('nationality', v)} defaultValue={employee?.nationality || 'Indian'}>
+          <SelectTrigger><SelectValue placeholder="Select nationality" /></SelectTrigger>
+          <SelectContent>
+            {NATIONALITY_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="religion">Religion</Label>
-        <Input id="religion" {...register('religion')} />
+        <Label>Religion</Label>
+        <Select onValueChange={(v) => setValue('religion', v)} defaultValue={employee?.religion || undefined}>
+          <SelectTrigger><SelectValue placeholder="Select religion" /></SelectTrigger>
+          <SelectContent>
+            {RELIGION_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   )
@@ -303,8 +336,13 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
         <Input id="date_of_joining" type="date" {...register('date_of_joining')} />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="probation_end_date">Probation End Date</Label>
-        <Input id="probation_end_date" type="date" {...register('probation_end_date')} />
+        <Label htmlFor="probation_days">Probation Period (days)</Label>
+        <Input id="probation_days" type="number" {...register('probation_days')} placeholder="e.g., 180" />
+        {watch('probation_end_date') && (
+          <p className="text-xs text-muted-foreground">
+            Ends on: {new Date(watch('probation_end_date')!).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="confirmation_date">Confirmation Date</Label>
@@ -506,7 +544,9 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
             </div>
           </CardHeader>
           <CardContent className="pt-6">
-            {stepContent[currentStep]}
+            <div key={currentStep}>
+              {stepContent[currentStep]}
+            </div>
             {isLastStep && (
               <p className="mt-4 text-sm text-muted-foreground">
                 Dependents, nominees, addresses, bank accounts, and documents can be managed from the employee detail view after creation.

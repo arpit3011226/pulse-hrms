@@ -7,6 +7,15 @@ import { formatDate } from '@/lib/utils'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ResignationWithEmployee = any
 
+const EXIT_TYPE_COLORS: Record<string, string> = {
+  resignation: 'bg-amber-50 text-amber-700 border-amber-200',
+  termination: 'bg-red-50 text-red-700 border-red-200',
+  mutual_separation: 'bg-purple-50 text-purple-700 border-purple-200',
+  retirement: 'bg-blue-50 text-blue-700 border-blue-200',
+  absconding: 'bg-rose-50 text-rose-700 border-rose-200',
+  contract_end: 'bg-gray-50 text-gray-700 border-gray-200',
+}
+
 const STATUS_COLORS: Record<string, string> = {
   submitted: 'bg-amber-100 text-amber-700 border-amber-200',
   manager_approved: 'bg-blue-100 text-blue-700 border-blue-200',
@@ -88,7 +97,12 @@ export function ResignationApprovalList({ requests, onAction, level }: Resignati
                 <span>{request.last_working_date ? formatDate(request.last_working_date) : '-'}</span>
               </div>
 
-              {/* Status */}
+              {/* Exit Type + Status */}
+              {request.exit_type && request.exit_type !== 'resignation' && (
+                <Badge variant="outline" className={`capitalize shrink-0 ${EXIT_TYPE_COLORS[request.exit_type] || ''}`}>
+                  {statusLabel(request.exit_type)}
+                </Badge>
+              )}
               <Badge variant="outline" className={`capitalize shrink-0 ${colorClass}`}>
                 {statusLabel(request.approval_status)}
               </Badge>
