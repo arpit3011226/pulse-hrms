@@ -60,6 +60,20 @@ export function usePermissions() {
     canApproveResignationAsHR: role === 'hr_admin' || role === 'super_admin',
     canManageClearances: role === 'hr_admin' || role === 'super_admin',
 
+    // Self Service / Letters
+    canManageLetterTemplates: role === 'super_admin' || role === 'hr_admin',
+    canGenerateHRLetters: role === 'super_admin' || role === 'hr_admin',
+    canApproveLettersAsManager: role === 'manager' || role === 'leadership' || role === 'super_admin' || role === 'hr_admin',
+    canApproveLettersAsHR: role === 'hr_admin' || role === 'super_admin',
+
+    // Reimbursements
+    canApproveReimbursementsAsManager: role === 'manager' || role === 'leadership' || role === 'super_admin' || role === 'hr_admin',
+    canApproveReimbursementsAsFinance: role === 'payroll_admin' || role === 'super_admin',
+
+    // General Requests
+    canApproveGeneralRequestsAsManager: role === 'manager' || role === 'leadership' || role === 'super_admin' || role === 'hr_admin',
+    canApproveGeneralRequestsAsHR: role === 'hr_admin' || role === 'super_admin',
+
     // Role shortcuts
     isAdmin: role === 'super_admin',
     isHR: role === 'hr_admin',

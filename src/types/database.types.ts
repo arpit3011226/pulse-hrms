@@ -1493,6 +1493,138 @@ export interface TdsRecordWithRelations extends TdsRecord {
   employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email' | 'employee_code'> | null
 }
 
+// ============================================================================
+// Self-Service: Letter Templates & Requests
+// ============================================================================
+
+export type LetterCategory =
+  | 'experience_letter' | 'salary_certificate' | 'address_proof' | 'bonafide_certificate'
+  | 'relieving_letter' | 'noc' | 'reference_letter'
+  | 'offer_letter' | 'appointment_letter' | 'confirmation_letter'
+  | 'warning_letter' | 'termination_letter' | 'salary_revision_letter'
+
+export type LetterApprovalType = 'auto' | 'approval_required' | 'hr_only'
+
+export type LetterRequestStatus =
+  | 'draft' | 'pending_manager' | 'manager_approved' | 'manager_rejected'
+  | 'pending_hr' | 'hr_approved' | 'hr_rejected' | 'completed' | 'cancelled'
+
+export interface LetterTemplate {
+  id: string
+  organization_id: string
+  name: string
+  category: LetterCategory
+  description: string | null
+  body_html: string
+  approval_type: LetterApprovalType
+  is_active: boolean
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface LetterRequest {
+  id: string
+  organization_id: string
+  template_id: string
+  employee_id: string
+  requested_by: string
+  status: LetterRequestStatus
+  manager_approved_by: string | null
+  manager_approved_at: string | null
+  manager_remarks: string | null
+  hr_approved_by: string | null
+  hr_approved_at: string | null
+  hr_remarks: string | null
+  generated_pdf_url: string | null
+  resolved_body_html: string | null
+  custom_fields: Record<string, string>
+  remarks: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface LetterRequestWithRelations extends LetterRequest {
+  template?: LetterTemplate | null
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email' | 'employee_code' | 'department_id'> & {
+    department?: Pick<Department, 'id' | 'name'> | null
+    designation?: Pick<Designation, 'id' | 'title'> | null
+  } | null
+}
+
+// ── Reimbursement Request types ──────────────────────────────
+
+export type ReimbursementCategory =
+  | 'travel' | 'medical' | 'mobile_internet' | 'relocation' | 'training' | 'meal_food'
+
+export type ReimbursementStatus =
+  | 'draft' | 'pending_manager' | 'manager_approved' | 'manager_rejected'
+  | 'pending_finance' | 'finance_approved' | 'finance_rejected' | 'completed' | 'cancelled'
+
+export interface ReimbursementRequest {
+  id: string
+  organization_id: string
+  employee_id: string
+  requested_by: string
+  category: ReimbursementCategory
+  amount: number
+  description: string
+  expense_date: string
+  receipt_url: string | null
+  status: ReimbursementStatus
+  manager_approved_by: string | null
+  manager_approved_at: string | null
+  manager_remarks: string | null
+  finance_approved_by: string | null
+  finance_approved_at: string | null
+  finance_remarks: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ReimbursementRequestWithRelations extends ReimbursementRequest {
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email' | 'employee_code' | 'department_id'> & {
+    department?: Pick<Department, 'id' | 'name'> | null
+    designation?: Pick<Designation, 'id' | 'title'> | null
+  } | null
+}
+
+// ── General Request types ────────────────────────────────────
+
+export type GeneralRequestType =
+  | 'id_card_request' | 'asset_request' | 'wfh_request' | 'shift_change_request' | 'overtime_request'
+
+export type GeneralRequestStatus =
+  | 'pending_manager' | 'manager_approved' | 'manager_rejected'
+  | 'pending_hr' | 'hr_approved' | 'hr_rejected' | 'completed' | 'cancelled'
+
+export interface GeneralRequest {
+  id: string
+  organization_id: string
+  employee_id: string
+  requested_by: string
+  request_type: GeneralRequestType
+  title: string
+  description: string | null
+  custom_fields: Record<string, any>
+  status: GeneralRequestStatus
+  manager_approved_by: string | null
+  manager_approved_at: string | null
+  manager_remarks: string | null
+  hr_approved_by: string | null
+  hr_approved_at: string | null
+  hr_remarks: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface GeneralRequestWithRelations extends GeneralRequest {
+  employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email' | 'employee_code' | 'department_id'> & {
+    department?: Pick<Department, 'id' | 'name'> | null
+    designation?: Pick<Designation, 'id' | 'title'> | null
+  } | null
+}
+
 // Supabase Database type (simplified for manual use)
 export interface Database {
   public: {
@@ -1576,6 +1708,10 @@ export interface Database {
       training_assessment_attempts: { Row: TrainingAssessmentAttempt; Insert: Partial<TrainingAssessmentAttempt>; Update: Partial<TrainingAssessmentAttempt> }
       employee_tax_declarations: { Row: TaxDeclaration; Insert: Partial<TaxDeclaration>; Update: Partial<TaxDeclaration> }
       employee_tds_records: { Row: TdsRecord; Insert: Partial<TdsRecord>; Update: Partial<TdsRecord> }
+      letter_templates: { Row: LetterTemplate; Insert: Partial<LetterTemplate>; Update: Partial<LetterTemplate> }
+      letter_requests: { Row: LetterRequest; Insert: Partial<LetterRequest>; Update: Partial<LetterRequest> }
+      reimbursement_requests: { Row: ReimbursementRequest; Insert: Partial<ReimbursementRequest>; Update: Partial<ReimbursementRequest> }
+      general_requests: { Row: GeneralRequest; Insert: Partial<GeneralRequest>; Update: Partial<GeneralRequest> }
     }
   }
 }

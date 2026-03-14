@@ -117,6 +117,17 @@ function LearningIcon({ className }: { className?: string }) {
   )
 }
 
+function SelfServiceIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="3" width="18" height="18" rx="2.5" fill="#DBEAFE" />
+      <path d="M7 8h10M7 12h6" stroke="#3B82F6" strokeWidth="1.5" strokeLinecap="round" />
+      <rect x="7" y="15" width="4" height="3" rx="0.5" fill="#2563EB" />
+      <path d="M15 14l2 2 4-4" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function SeparationIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none">
@@ -188,6 +199,7 @@ export function Sidebar() {
     { title: 'Payroll', href: '/payroll', icon: PayrollIcon, visible: permissions.canViewPayroll && isModuleEnabled('payroll') },
     { title: 'Performance', href: '/performance', icon: PerformanceIcon, visible: isModuleEnabled('performance') },
     { title: 'Learning', href: '/learning', icon: LearningIcon, visible: isModuleEnabled('learning') },
+    { title: 'Self Service', href: '/self-service', icon: SelfServiceIcon, visible: true },
     { title: 'Separation', href: '/separation', icon: SeparationIcon, visible: true },
     { title: 'Reports', href: '/reports', icon: ReportsIcon, visible: permissions.canViewReports },
   ]

@@ -698,6 +698,97 @@ export const ATTEMPT_STATUSES = [
   { value: 'failed', label: 'Failed' },
 ] as const
 
+// ============================================================================
+// Self-Service: Letter Management
+// ============================================================================
+
+export const LETTER_CATEGORIES = [
+  { value: 'experience_letter', label: 'Experience Letter', approvalType: 'auto' },
+  { value: 'salary_certificate', label: 'Salary Certificate', approvalType: 'auto' },
+  { value: 'address_proof', label: 'Address Proof Letter', approvalType: 'auto' },
+  { value: 'bonafide_certificate', label: 'Bonafide Certificate', approvalType: 'auto' },
+  { value: 'relieving_letter', label: 'Relieving Letter', approvalType: 'approval_required' },
+  { value: 'noc', label: 'No Objection Certificate', approvalType: 'approval_required' },
+  { value: 'reference_letter', label: 'Reference Letter', approvalType: 'approval_required' },
+  { value: 'offer_letter', label: 'Offer Letter', approvalType: 'hr_only' },
+  { value: 'appointment_letter', label: 'Appointment Letter', approvalType: 'hr_only' },
+  { value: 'confirmation_letter', label: 'Confirmation Letter', approvalType: 'hr_only' },
+  { value: 'warning_letter', label: 'Warning Letter', approvalType: 'hr_only' },
+  { value: 'termination_letter', label: 'Termination Letter', approvalType: 'hr_only' },
+  { value: 'salary_revision_letter', label: 'Salary Revision Letter', approvalType: 'hr_only' },
+] as const
+
+export const LETTER_REQUEST_STATUSES = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'pending_manager', label: 'Pending Manager' },
+  { value: 'manager_approved', label: 'Manager Approved' },
+  { value: 'manager_rejected', label: 'Manager Rejected' },
+  { value: 'pending_hr', label: 'Pending HR' },
+  { value: 'hr_approved', label: 'HR Approved' },
+  { value: 'hr_rejected', label: 'HR Rejected' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
+] as const
+
+export const TEMPLATE_PLACEHOLDERS = [
+  { key: '{{employee_name}}', label: 'Employee Full Name' },
+  { key: '{{employee_code}}', label: 'Employee Code' },
+  { key: '{{designation}}', label: 'Designation' },
+  { key: '{{department}}', label: 'Department' },
+  { key: '{{date_of_joining}}', label: 'Date of Joining' },
+  { key: '{{date_of_leaving}}', label: 'Last Working Date' },
+  { key: '{{company_name}}', label: 'Company Name' },
+  { key: '{{company_address}}', label: 'Company Address' },
+  { key: '{{current_date}}', label: 'Current Date' },
+  { key: '{{salary}}', label: 'Current CTC/Salary' },
+  { key: '{{pan_number}}', label: 'PAN Number' },
+  { key: '{{current_address}}', label: 'Current Address' },
+] as const
+
+// ── Reimbursement constants ──────────────────────────────────
+
+export const REIMBURSEMENT_CATEGORIES = [
+  { value: 'travel', label: 'Travel / Conveyance' },
+  { value: 'medical', label: 'Medical' },
+  { value: 'mobile_internet', label: 'Mobile / Internet' },
+  { value: 'relocation', label: 'Relocation Expenses' },
+  { value: 'training', label: 'Training / Certification' },
+  { value: 'meal_food', label: 'Meal / Food Allowance' },
+] as const
+
+export const REIMBURSEMENT_STATUSES = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'pending_manager', label: 'Pending Manager' },
+  { value: 'manager_approved', label: 'Manager Approved' },
+  { value: 'manager_rejected', label: 'Manager Rejected' },
+  { value: 'pending_finance', label: 'Pending Finance' },
+  { value: 'finance_approved', label: 'Finance Approved' },
+  { value: 'finance_rejected', label: 'Finance Rejected' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
+] as const
+
+// ── General Request constants ────────────────────────────────
+
+export const GENERAL_REQUEST_TYPES = [
+  { value: 'id_card_request', label: 'ID Card Request' },
+  { value: 'asset_request', label: 'Asset Request' },
+  { value: 'wfh_request', label: 'Work From Home' },
+  { value: 'shift_change_request', label: 'Shift Change' },
+  { value: 'overtime_request', label: 'Overtime Approval' },
+] as const
+
+export const GENERAL_REQUEST_STATUSES = [
+  { value: 'pending_manager', label: 'Pending Manager' },
+  { value: 'manager_approved', label: 'Manager Approved' },
+  { value: 'manager_rejected', label: 'Manager Rejected' },
+  { value: 'pending_hr', label: 'Pending HR' },
+  { value: 'hr_approved', label: 'HR Approved' },
+  { value: 'hr_rejected', label: 'HR Rejected' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
+] as const
+
 export const DAYS_OF_WEEK = [
   { value: 0, label: 'Sunday', short: 'Sun' },
   { value: 1, label: 'Monday', short: 'Mon' },
