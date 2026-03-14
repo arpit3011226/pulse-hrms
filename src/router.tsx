@@ -22,6 +22,7 @@ import { PerformancePage } from '@/features/performance/components/performance-p
 import { RecruitmentPage } from '@/features/recruitment/components/recruitment-page'
 import { LearningPage } from '@/features/learning/components/learning-page'
 import { ReportsPage } from '@/features/reports/components/reports-page'
+import { ResignationPage } from '@/features/resignation/components/resignation-page'
 import { SettingsPage } from '@/features/settings/components/settings-page'
 import { DashboardStats } from '@/features/dashboard/components/dashboard-stats'
 import { RecentActivity } from '@/features/dashboard/components/recent-activity'
@@ -143,6 +144,7 @@ const recruitmentRoute = createRoute({ getParentRoute: () => appRoute, path: '/r
 const payrollRoute = createRoute({ getParentRoute: () => appRoute, path: '/payroll', component: PayrollPage })
 const performanceRoute = createRoute({ getParentRoute: () => appRoute, path: '/performance', component: PerformancePage })
 const learningRoute = createRoute({ getParentRoute: () => appRoute, path: '/learning', component: LearningPage })
+const separationRoute = createRoute({ getParentRoute: () => appRoute, path: '/separation', component: ResignationPage })
 const reportsRoute = createRoute({ getParentRoute: () => appRoute, path: '/reports', component: ReportsPage })
 const settingsRoute = createRoute({ getParentRoute: () => appRoute, path: '/settings', component: SettingsPage })
 
@@ -168,6 +170,7 @@ const routeTree = rootRoute.addChildren([
     payrollRoute,
     performanceRoute,
     learningRoute,
+    separationRoute,
     reportsRoute,
     settingsRoute,
   ]),

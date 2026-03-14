@@ -1,4 +1,4 @@
-import { Bell, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { getInitials } from '@/lib/utils'
+import { NotificationPopover } from '@/components/layout/notification-popover'
 import { Link } from '@tanstack/react-router'
 
 export function Topbar() {
@@ -37,10 +38,7 @@ export function Topbar() {
       {/* Right side */}
       <div className="flex items-center gap-3">
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
-        </Button>
+        <NotificationPopover />
 
         {/* User menu */}
         <DropdownMenu>

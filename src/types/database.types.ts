@@ -442,8 +442,44 @@ export interface EmployeeExitRecord {
   notice_period_served: number | null
   shortfall_recovery_amount: number | null
   initiated_by: string | null
+  // Approval tracking
+  approval_status: 'draft' | 'submitted' | 'manager_approved' | 'manager_rejected' | 'hr_approved' | 'hr_rejected' | 'withdrawn'
+  manager_approved_by: string | null
+  manager_approved_at: string | null
+  manager_remarks: string | null
+  hr_approved_by: string | null
+  hr_approved_at: string | null
+  hr_remarks: string | null
+  hr_override_last_working_date: string | null
   created_at: string
   updated_at: string
+}
+
+export interface ExitClearance {
+  id: string
+  organization_id: string
+  exit_record_id: string
+  employee_id: string
+  department_name: string
+  clearance_status: 'pending' | 'no_objection' | 'objection'
+  cleared_by: string | null
+  cleared_at: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface AppNotification {
+  id: string
+  organization_id: string
+  recipient_profile_id: string
+  title: string
+  message: string
+  type: 'resignation_submitted' | 'resignation_manager_approved' | 'resignation_hr_approved' | 'resignation_rejected' | 'clearance_requested' | 'clearance_updated' | 'general'
+  reference_id: string | null
+  reference_type: string | null
+  is_read: boolean
+  created_at: string
 }
 
 export interface EmployeeStatusHistory {
