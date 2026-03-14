@@ -131,30 +131,17 @@ export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogPr
       description: data.description || null,
     }
 
-    const extendedPayload = {
-      ...basePayload,
-      skip_criteria: skipCriteria,
-      auto_apply_to_all: true,
-    }
-
     try {
       if (isEditing) {
-        try {
-          await updateCycle.mutateAsync({ id: cycle.id, ...extendedPayload } as any)
-        } catch {
-          await updateCycle.mutateAsync({ id: cycle.id, ...basePayload } as any)
-        }
+        await updateCycle.mutateAsync({ id: cycle.id, ...basePayload } as any)
         toast.success('Cycle updated')
       } else {
-        try {
-          await createCycle.mutateAsync(extendedPayload as any)
-        } catch {
-          await createCycle.mutateAsync(basePayload as any)
-        }
+        await createCycle.mutateAsync(basePayload as any)
         toast.success('Cycle created')
       }
       onOpenChange(false)
-    } catch {
+    } catch (err) {
+      console.error('Cycle save error:', err)
       toast.error(isEditing ? 'Failed to update cycle' : 'Failed to create cycle')
     }
   }
@@ -163,14 +150,14 @@ export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] flex flex-col mx-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Cycle' : 'Add Cycle'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
           <ScrollArea className="flex-1 max-h-[60vh] pr-4">
           <div className="space-y-4 pb-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cycle_name">Cycle Name *</Label>
               <Input id="cycle_name" {...register('cycle_name')} placeholder="e.g., FY 2025-26" />
@@ -207,7 +194,7 @@ export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogPr
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="start_date">Start Date *</Label>
               <Input id="start_date" type="date" {...register('start_date')} />
@@ -225,7 +212,7 @@ export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogPr
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="goal_setting_deadline">Goal Setting Deadline</Label>
               <Input

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { type ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Plus, Eye, Pencil, Trash2, ArrowUpRight, LogOut } from 'lucide-react'
+import { MoreHorizontal, Plus, Eye, Pencil, Trash2, ArrowUpRight, LogOut, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -16,6 +16,7 @@ import { PageHeader } from '@/components/layout/page-header'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { useEmployees, useDeleteEmployee } from '../hooks/use-employees'
 import { usePermissions } from '@/hooks/use-permissions'
+import { CsvUploadDialog } from './csv-upload-dialog'
 import { getInitials, formatDate } from '@/lib/utils'
 import type { Employee } from '@/types/database.types'
 
@@ -30,6 +31,7 @@ export function EmployeeList() {
   const deleteEmployee = useDeleteEmployee()
   const permissions = usePermissions()
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false)
 
   const columns: ColumnDef<EmployeeRow>[] = [
     {
@@ -38,7 +40,7 @@ export function EmployeeList() {
       cell: ({ row }) => {
         const emp = row.original
         return (
-          <Link to="/employees/$employeeId" params={{ employeeId: emp.id }} className="flex items-center gap-3 hover:underline">
+          <Link to="/employees/$employeeId" params={{ employeeId: emp.id }} search={{}} className="flex items-center gap-3 hover:underline">
             <Avatar className="h-9 w-9">
               <AvatarImage src={emp.avatar_url || undefined} />
               <AvatarFallback className="text-xs">
@@ -98,7 +100,7 @@ export function EmployeeList() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link to="/employees/$employeeId" params={{ employeeId: emp.id }}>
+                <Link to="/employees/$employeeId" params={{ employeeId: emp.id }} search={{}}>
                   <Eye className="mr-2 h-4 w-4" /> View
                 </Link>
               </DropdownMenuItem>
@@ -110,13 +112,13 @@ export function EmployeeList() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/employees/$employeeId" params={{ employeeId: emp.id }} search={{ tab: 'work-history' }}>
+                    <Link to="/employees/$employeeId" params={{ employeeId: emp.id }} search={{ view: 'details', tab: 'work-history' }}>
                       <ArrowUpRight className="mr-2 h-4 w-4" /> Promote / Transfer
                     </Link>
                   </DropdownMenuItem>
                   {emp.status === 'active' && (
                     <DropdownMenuItem asChild>
-                      <Link to="/employees/$employeeId" params={{ employeeId: emp.id }} search={{ tab: 'exit' }}>
+                      <Link to="/employees/$employeeId" params={{ employeeId: emp.id }} search={{ view: 'details', tab: 'exit' }}>
                         <LogOut className="mr-2 h-4 w-4" /> Initiate Exit
                       </Link>
                     </DropdownMenuItem>
@@ -143,11 +145,16 @@ export function EmployeeList() {
         description="Manage your organization's employees"
         actions={
           permissions.canManageEmployees ? (
-            <Button asChild>
-              <Link to="/employees/new">
-                <Plus className="mr-2 h-4 w-4" /> Add Employee
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setCsvDialogOpen(true)}>
+                <Upload className="mr-2 h-4 w-4" /> CSV Upload
+              </Button>
+              <Button asChild>
+                <Link to="/employees/new">
+                  <Plus className="mr-2 h-4 w-4" /> Add Employee
+                </Link>
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -159,6 +166,8 @@ export function EmployeeList() {
         searchKey="first_name"
         searchPlaceholder="Search employees..."
       />
+
+      <CsvUploadDialog open={csvDialogOpen} onOpenChange={setCsvDialogOpen} />
 
       <ConfirmDialog
         open={!!deleteId}

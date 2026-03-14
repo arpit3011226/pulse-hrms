@@ -6,6 +6,8 @@ import { AttendanceReportsTab } from './attendance-reports-tab'
 import { PayrollReportsTab } from './payroll-reports-tab'
 import { RecruitmentReportsTab } from './recruitment-reports-tab'
 import { LearningReportsTab } from './learning-reports-tab'
+import { PeopleAnalyticsTab } from './people-analytics-tab'
+import { SentimentAnalyticsTab } from './sentiment-analytics-tab'
 
 export function ReportsPage() {
   return (
@@ -15,8 +17,10 @@ export function ReportsPage() {
         description="View organization-wide reports and export data."
       />
 
-      <Tabs defaultValue="employees">
-        <TabsList>
+      <Tabs defaultValue="analytics">
+        <TabsList className="flex-wrap">
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="sentiment">Sentiment</TabsTrigger>
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="leave">Leave</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
@@ -25,6 +29,12 @@ export function ReportsPage() {
           <TabsTrigger value="learning">Learning</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="analytics" className="mt-6">
+          <PeopleAnalyticsTab />
+        </TabsContent>
+        <TabsContent value="sentiment" className="mt-6">
+          <SentimentAnalyticsTab />
+        </TabsContent>
         <TabsContent value="employees" className="mt-6">
           <EmployeeReportsTab />
         </TabsContent>

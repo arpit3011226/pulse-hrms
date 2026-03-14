@@ -1,22 +1,24 @@
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useNavigate } from '@tanstack/react-router'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Check, ArrowRight, ArrowLeft, User, Briefcase, Shield, Heart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/page-header'
-import { useCreateEmployee, useUpdateEmployee } from '../hooks/use-employees'
+import { useCreateEmployee, useUpdateEmployee, useNextEmployeeCode } from '../hooks/use-employees'
 import {
   EMPLOYMENT_TYPES, GENDER_OPTIONS, MARITAL_STATUS_OPTIONS, BLOOD_GROUPS,
   SALUTATION_OPTIONS,
 } from '@/lib/constants'
 import type { Employee, Department, Designation } from '@/types/database.types'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 const employeeSchema = z.object({
   salutation: z.string().optional(),
@@ -51,6 +53,21 @@ const employeeSchema = z.object({
 
 type EmployeeFormData = z.infer<typeof employeeSchema>
 
+// Fields required per wizard step (for validation gating)
+const STEP_FIELDS: Record<number, (keyof EmployeeFormData)[]> = {
+  0: ['salutation', 'first_name', 'middle_name', 'last_name', 'email', 'personal_email', 'phone', 'official_phone', 'date_of_birth', 'gender', 'marital_status', 'blood_group', 'nationality', 'religion'],
+  1: ['employee_code', 'department_id', 'designation_id', 'employment_type', 'date_of_joining', 'probation_end_date', 'confirmation_date', 'reporting_manager_id'],
+  2: ['pan_number', 'aadhar_number', 'uan_number'],
+  3: ['father_name', 'mother_name', 'spouse_name'],
+}
+
+const WIZARD_STEPS = [
+  { title: 'Personal Info', description: 'Basic personal details', icon: User, color: 'text-blue-500', bg: 'bg-blue-50', border: 'border-blue-200', activeBg: 'bg-blue-500' },
+  { title: 'Employment', description: 'Role & department details', icon: Briefcase, color: 'text-amber-500', bg: 'bg-amber-50', border: 'border-amber-200', activeBg: 'bg-amber-500' },
+  { title: 'Compliance', description: 'Identity & statutory info', icon: Shield, color: 'text-emerald-500', bg: 'bg-emerald-50', border: 'border-emerald-200', activeBg: 'bg-emerald-500' },
+  { title: 'Family Details', description: 'Family & emergency info', icon: Heart, color: 'text-rose-500', bg: 'bg-rose-50', border: 'border-rose-200', activeBg: 'bg-rose-500' },
+]
+
 interface EmployeeFormProps {
   employee?: Employee
   departments: Department[]
@@ -63,8 +80,10 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
   const createEmployee = useCreateEmployee()
   const updateEmployee = useUpdateEmployee()
   const isEditing = !!employee
+  const [currentStep, setCurrentStep] = useState(0)
+  const { data: nextCode } = useNextEmployeeCode()
 
-  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<EmployeeFormData>({
+  const { register, handleSubmit, setValue, trigger, formState: { errors, isSubmitting } } = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
     defaultValues: employee ? {
       salutation: employee.salutation || '',
@@ -101,6 +120,13 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
     },
   })
 
+  // Auto-fill employee code for new employees
+  useEffect(() => {
+    if (!isEditing && nextCode) {
+      setValue('employee_code', nextCode)
+    }
+  }, [isEditing, nextCode, setValue])
+
   const onSubmit = async (data: EmployeeFormData) => {
     try {
       const cleaned = Object.fromEntries(
@@ -120,247 +146,401 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
     }
   }
 
+  const handleNext = async () => {
+    const fields = STEP_FIELDS[currentStep]
+    const valid = await trigger(fields)
+    if (valid) setCurrentStep((s) => Math.min(s + 1, 3))
+  }
+
+  const handleBack = () => {
+    setCurrentStep((s) => Math.max(s - 1, 0))
+  }
+
+  // ── Shared field renderers ──────────────────────────────────────────
+
+  const personalFields = (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="space-y-2">
+        <Label>Salutation</Label>
+        <Select onValueChange={(v) => setValue('salutation', v)} defaultValue={employee?.salutation || undefined}>
+          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+          <SelectContent>
+            {SALUTATION_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="first_name">First Name *</Label>
+        <Input id="first_name" {...register('first_name')} />
+        {errors.first_name && <p className="text-sm text-destructive">{errors.first_name.message}</p>}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="middle_name">Middle Name</Label>
+        <Input id="middle_name" {...register('middle_name')} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="last_name">Last Name *</Label>
+        <Input id="last_name" {...register('last_name')} />
+        {errors.last_name && <p className="text-sm text-destructive">{errors.last_name.message}</p>}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="email">Work Email *</Label>
+        <Input id="email" type="email" {...register('email')} />
+        {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="personal_email">Personal Email</Label>
+        <Input id="personal_email" type="email" {...register('personal_email')} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="phone">Phone</Label>
+        <Input id="phone" {...register('phone')} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="official_phone">Official Phone</Label>
+        <Input id="official_phone" {...register('official_phone')} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="date_of_birth">Date of Birth</Label>
+        <Input id="date_of_birth" type="date" {...register('date_of_birth')} />
+      </div>
+      <div className="space-y-2">
+        <Label>Gender</Label>
+        <Select onValueChange={(v) => setValue('gender', v)} defaultValue={employee?.gender || undefined}>
+          <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+          <SelectContent>
+            {GENDER_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Marital Status</Label>
+        <Select onValueChange={(v) => setValue('marital_status', v)} defaultValue={employee?.marital_status || undefined}>
+          <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+          <SelectContent>
+            {MARITAL_STATUS_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Blood Group</Label>
+        <Select onValueChange={(v) => setValue('blood_group', v)} defaultValue={employee?.blood_group || undefined}>
+          <SelectTrigger><SelectValue placeholder="Select blood group" /></SelectTrigger>
+          <SelectContent>
+            {BLOOD_GROUPS.map((bg) => (
+              <SelectItem key={bg} value={bg}>{bg}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="nationality">Nationality</Label>
+        <Input id="nationality" {...register('nationality')} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="religion">Religion</Label>
+        <Input id="religion" {...register('religion')} />
+      </div>
+    </div>
+  )
+
+  const employmentFields = (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="space-y-2">
+        <Label htmlFor="employee_code">Employee Code</Label>
+        <Input
+          id="employee_code"
+          placeholder="Auto-generated"
+          {...register('employee_code')}
+          readOnly={!isEditing}
+          className={!isEditing ? 'bg-muted cursor-not-allowed' : ''}
+        />
+        {!isEditing && (
+          <p className="text-[11px] text-muted-foreground">Auto-generated — cannot be changed</p>
+        )}
+      </div>
+      <div className="space-y-2">
+        <Label>Department</Label>
+        <Select onValueChange={(v) => setValue('department_id', v)} defaultValue={employee?.department_id || undefined}>
+          <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+          <SelectContent>
+            {departments.map((dept) => (
+              <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Designation</Label>
+        <Select onValueChange={(v) => setValue('designation_id', v)} defaultValue={employee?.designation_id || undefined}>
+          <SelectTrigger><SelectValue placeholder="Select designation" /></SelectTrigger>
+          <SelectContent>
+            {designations.map((des) => (
+              <SelectItem key={des.id} value={des.id}>{des.title}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Employment Type</Label>
+        <Select onValueChange={(v) => setValue('employment_type', v)} defaultValue={employee?.employment_type || 'full_time'}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {EMPLOYMENT_TYPES.map((type) => (
+              <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="date_of_joining">Date of Joining</Label>
+        <Input id="date_of_joining" type="date" {...register('date_of_joining')} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="probation_end_date">Probation End Date</Label>
+        <Input id="probation_end_date" type="date" {...register('probation_end_date')} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="confirmation_date">Confirmation Date</Label>
+        <Input id="confirmation_date" type="date" {...register('confirmation_date')} />
+      </div>
+      <div className="space-y-2">
+        <Label>Reporting Manager</Label>
+        <Select onValueChange={(v) => setValue('reporting_manager_id', v)} defaultValue={employee?.reporting_manager_id || undefined}>
+          <SelectTrigger><SelectValue placeholder="Select manager" /></SelectTrigger>
+          <SelectContent>
+            {managers.map((mgr) => (
+              <SelectItem key={mgr.id} value={mgr.id}>
+                {mgr.first_name} {mgr.last_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  )
+
+  const complianceFields = (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="space-y-2">
+        <Label htmlFor="pan_number">PAN Number</Label>
+        <Input id="pan_number" placeholder="ABCDE1234F" {...register('pan_number')} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="aadhar_number">Aadhar Number</Label>
+        <Input id="aadhar_number" placeholder="1234 5678 9012" {...register('aadhar_number')} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="uan_number">UAN (PF Number)</Label>
+        <Input id="uan_number" placeholder="100123456789" {...register('uan_number')} />
+      </div>
+    </div>
+  )
+
+  const familyFields = (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="space-y-2">
+        <Label htmlFor="father_name">Father's Name</Label>
+        <Input id="father_name" {...register('father_name')} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="mother_name">Mother's Name</Label>
+        <Input id="mother_name" {...register('mother_name')} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="spouse_name">Spouse's Name</Label>
+        <Input id="spouse_name" {...register('spouse_name')} />
+      </div>
+    </div>
+  )
+
+  const stepContent = [personalFields, employmentFields, complianceFields, familyFields]
+
+  // ── Edit mode: keep existing tabs layout ────────────────────────────
+
+  if (isEditing) {
+    return (
+      <div>
+        <PageHeader
+          title="Edit Employee"
+          description="Update employee information"
+        />
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Tabs defaultValue="personal" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="personal">Personal Info</TabsTrigger>
+              <TabsTrigger value="employment">Employment</TabsTrigger>
+              <TabsTrigger value="compliance">Compliance</TabsTrigger>
+              <TabsTrigger value="family">Family Details</TabsTrigger>
+            </TabsList>
+            <TabsContent value="personal">
+              <Card>
+                <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
+                <CardContent>{personalFields}</CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="employment">
+              <Card>
+                <CardHeader><CardTitle>Employment Details</CardTitle></CardHeader>
+                <CardContent>{employmentFields}</CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="compliance">
+              <Card>
+                <CardHeader><CardTitle>Compliance & Identity</CardTitle></CardHeader>
+                <CardContent>{complianceFields}</CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="family">
+              <Card>
+                <CardHeader><CardTitle>Family Details</CardTitle></CardHeader>
+                <CardContent>{familyFields}</CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+          <div className="mt-6 flex items-center gap-3">
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Update Employee
+            </Button>
+            <Button type="button" variant="outline" onClick={() => navigate({ to: '/employees' })}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </div>
+    )
+  }
+
+  // ── Create mode: progressive wizard ─────────────────────────────────
+
+  const step = WIZARD_STEPS[currentStep]
+  const StepIcon = step.icon
+  const isLastStep = currentStep === 3
+
   return (
     <div>
       <PageHeader
-        title={isEditing ? 'Edit Employee' : 'Add Employee'}
-        description={isEditing ? 'Update employee information' : 'Add a new employee to your organization'}
+        title="Add Employee"
+        description="Add a new employee to your organization"
       />
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <Tabs defaultValue="personal" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="personal">Personal Info</TabsTrigger>
-            <TabsTrigger value="employment">Employment</TabsTrigger>
-            <TabsTrigger value="compliance">Compliance</TabsTrigger>
-            <TabsTrigger value="family">Family Details</TabsTrigger>
-          </TabsList>
+        {/* ── Stepper ── */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            {WIZARD_STEPS.map((s, i) => {
+              const Icon = s.icon
+              const isCompleted = i < currentStep
+              const isActive = i === currentStep
+              const isFuture = i > currentStep
 
-          <TabsContent value="personal">
-            <Card>
-              <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="space-y-2">
-                  <Label>Salutation</Label>
-                  <Select onValueChange={(v) => setValue('salutation', v)} defaultValue={employee?.salutation || undefined}>
-                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>
-                      {SALUTATION_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="first_name">First Name *</Label>
-                  <Input id="first_name" {...register('first_name')} />
-                  {errors.first_name && <p className="text-sm text-destructive">{errors.first_name.message}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="middle_name">Middle Name</Label>
-                  <Input id="middle_name" {...register('middle_name')} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="last_name">Last Name *</Label>
-                  <Input id="last_name" {...register('last_name')} />
-                  {errors.last_name && <p className="text-sm text-destructive">{errors.last_name.message}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Work Email *</Label>
-                  <Input id="email" type="email" {...register('email')} />
-                  {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="personal_email">Personal Email</Label>
-                  <Input id="personal_email" type="email" {...register('personal_email')} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" {...register('phone')} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="official_phone">Official Phone</Label>
-                  <Input id="official_phone" {...register('official_phone')} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="date_of_birth">Date of Birth</Label>
-                  <Input id="date_of_birth" type="date" {...register('date_of_birth')} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Gender</Label>
-                  <Select onValueChange={(v) => setValue('gender', v)} defaultValue={employee?.gender || undefined}>
-                    <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
-                    <SelectContent>
-                      {GENDER_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Marital Status</Label>
-                  <Select onValueChange={(v) => setValue('marital_status', v)} defaultValue={employee?.marital_status || undefined}>
-                    <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
-                    <SelectContent>
-                      {MARITAL_STATUS_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Blood Group</Label>
-                  <Select onValueChange={(v) => setValue('blood_group', v)} defaultValue={employee?.blood_group || undefined}>
-                    <SelectTrigger><SelectValue placeholder="Select blood group" /></SelectTrigger>
-                    <SelectContent>
-                      {BLOOD_GROUPS.map((bg) => (
-                        <SelectItem key={bg} value={bg}>{bg}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nationality">Nationality</Label>
-                  <Input id="nationality" {...register('nationality')} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="religion">Religion</Label>
-                  <Input id="religion" {...register('religion')} />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              return (
+                <div key={s.title} className="flex flex-1 items-center">
+                  {/* Step circle + label */}
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div
+                      className={cn(
+                        'flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all duration-300',
+                        isCompleted && 'border-emerald-500 bg-emerald-500 text-white',
+                        isActive && cn('border-transparent text-white shadow-lg', s.activeBg),
+                        isFuture && 'border-muted-foreground/25 bg-muted/50 text-muted-foreground/50'
+                      )}
+                    >
+                      {isCompleted ? (
+                        <Check className="h-5 w-5" />
+                      ) : (
+                        <Icon className="h-5 w-5" />
+                      )}
+                    </div>
+                    <div className="text-center">
+                      <p className={cn(
+                        'text-xs font-semibold',
+                        isActive && 'text-foreground',
+                        isCompleted && 'text-emerald-600',
+                        isFuture && 'text-muted-foreground/50'
+                      )}>
+                        {s.title}
+                      </p>
+                      <p className={cn(
+                        'hidden text-[10px] sm:block',
+                        isActive ? 'text-muted-foreground' : 'text-muted-foreground/40'
+                      )}>
+                        Step {i + 1} of 4
+                      </p>
+                    </div>
+                  </div>
 
-          <TabsContent value="employment">
-            <Card>
-              <CardHeader>
-                <CardTitle>Employment Details</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="employee_code">Employee Code</Label>
-                  <Input id="employee_code" placeholder="EMP001" {...register('employee_code')} />
+                  {/* Connector line */}
+                  {i < WIZARD_STEPS.length - 1 && (
+                    <div className="mx-2 mt-[-20px] flex-1">
+                      <div className={cn(
+                        'h-0.5 w-full rounded-full transition-all duration-500',
+                        i < currentStep ? 'bg-emerald-500' : 'bg-muted-foreground/15'
+                      )} />
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label>Department</Label>
-                  <Select onValueChange={(v) => setValue('department_id', v)} defaultValue={employee?.department_id || undefined}>
-                    <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
-                    <SelectContent>
-                      {departments.map((dept) => (
-                        <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Designation</Label>
-                  <Select onValueChange={(v) => setValue('designation_id', v)} defaultValue={employee?.designation_id || undefined}>
-                    <SelectTrigger><SelectValue placeholder="Select designation" /></SelectTrigger>
-                    <SelectContent>
-                      {designations.map((des) => (
-                        <SelectItem key={des.id} value={des.id}>{des.title}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Employment Type</Label>
-                  <Select onValueChange={(v) => setValue('employment_type', v)} defaultValue={employee?.employment_type || 'full_time'}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {EMPLOYMENT_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="date_of_joining">Date of Joining</Label>
-                  <Input id="date_of_joining" type="date" {...register('date_of_joining')} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="probation_end_date">Probation End Date</Label>
-                  <Input id="probation_end_date" type="date" {...register('probation_end_date')} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmation_date">Confirmation Date</Label>
-                  <Input id="confirmation_date" type="date" {...register('confirmation_date')} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Reporting Manager</Label>
-                  <Select onValueChange={(v) => setValue('reporting_manager_id', v)} defaultValue={employee?.reporting_manager_id || undefined}>
-                    <SelectTrigger><SelectValue placeholder="Select manager" /></SelectTrigger>
-                    <SelectContent>
-                      {managers.map((mgr) => (
-                        <SelectItem key={mgr.id} value={mgr.id}>
-                          {mgr.first_name} {mgr.last_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              )
+            })}
+          </div>
+        </div>
 
-          <TabsContent value="compliance">
-            <Card>
-              <CardHeader>
-                <CardTitle>Compliance & Identity</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="pan_number">PAN Number</Label>
-                  <Input id="pan_number" placeholder="ABCDE1234F" {...register('pan_number')} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="aadhar_number">Aadhar Number</Label>
-                  <Input id="aadhar_number" placeholder="1234 5678 9012" {...register('aadhar_number')} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="uan_number">UAN (PF Number)</Label>
-                  <Input id="uan_number" placeholder="100123456789" {...register('uan_number')} />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+        {/* ── Step content ── */}
+        <Card className={cn('border', step.border, 'transition-colors duration-300')}>
+          <CardHeader className={cn(step.bg, 'rounded-t-lg transition-colors duration-300')}>
+            <div className="flex items-center gap-3">
+              <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg text-white', step.activeBg)}>
+                <StepIcon className="h-4 w-4" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">{step.title}</CardTitle>
+                <CardDescription>{step.description}</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            {stepContent[currentStep]}
+            {isLastStep && (
+              <p className="mt-4 text-sm text-muted-foreground">
+                Dependents, nominees, addresses, bank accounts, and documents can be managed from the employee detail view after creation.
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
-          <TabsContent value="family">
-            <Card>
-              <CardHeader>
-                <CardTitle>Family Details</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="father_name">Father's Name</Label>
-                  <Input id="father_name" {...register('father_name')} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="mother_name">Mother's Name</Label>
-                  <Input id="mother_name" {...register('mother_name')} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="spouse_name">Spouse's Name</Label>
-                  <Input id="spouse_name" {...register('spouse_name')} />
-                </div>
-              </CardContent>
-            </Card>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Dependents, nominees, addresses, bank accounts, and documents can be managed from the employee detail view after creation.
-            </p>
-          </TabsContent>
-        </Tabs>
-
-        <div className="mt-6 flex items-center gap-3">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isEditing ? 'Update Employee' : 'Create Employee'}
-          </Button>
-          <Button type="button" variant="outline" onClick={() => navigate({ to: '/employees' })}>
-            Cancel
-          </Button>
+        {/* ── Navigation buttons ── */}
+        <div className="mt-6 flex items-center justify-between">
+          <div>
+            {currentStep > 0 && (
+              <Button type="button" variant="outline" onClick={handleBack} className="gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <Button type="button" variant="ghost" onClick={() => navigate({ to: '/employees' })}>
+              Cancel
+            </Button>
+            {isLastStep ? (
+              <Button type="submit" disabled={isSubmitting} className="gap-2">
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create Employee
+              </Button>
+            ) : (
+              <Button type="button" onClick={handleNext} className="gap-2">
+                Next
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </form>
     </div>

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { FileText, Download, Loader2 } from 'lucide-react'
+import { FileText, Download, Loader2, Eye } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -99,33 +99,16 @@ export function MyPayslipsTab() {
           {filteredPayslips.map((payslip) => (
             <Card
               key={payslip.id}
-              className="cursor-pointer transition-shadow hover:shadow-md"
-              onClick={() => setSelectedPayslip(payslip)}
+              className="transition-shadow hover:shadow-md"
             >
               <CardContent className="p-5">
                 <div className="mb-3 flex items-center justify-between">
                   <h4 className="font-semibold">
                     {getMonthName(payslip.payroll_month)} {payslip.payroll_year}
                   </h4>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={(e) => handleDownloadPdf(payslip, e)}
-                      disabled={downloadingId === payslip.id}
-                      title="Download PDF"
-                    >
-                      {downloadingId === payslip.id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Download className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                    <span className="text-xs text-muted-foreground">
-                      {payslip.payslip_number}
-                    </span>
-                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {payslip.payslip_number}
+                  </span>
                 </div>
 
                 <div className="space-y-2 text-sm">
@@ -147,6 +130,32 @@ export function MyPayslipsTab() {
                       </span>
                     </div>
                   </div>
+                </div>
+
+                {/* View & Download buttons */}
+                <div className="mt-4 flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setSelectedPayslip(payslip)}
+                  >
+                    <Eye className="mr-2 h-3.5 w-3.5" /> View
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="flex-1"
+                    onClick={(e) => handleDownloadPdf(payslip, e)}
+                    disabled={downloadingId === payslip.id}
+                  >
+                    {downloadingId === payslip.id ? (
+                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Download className="mr-2 h-3.5 w-3.5" />
+                    )}
+                    Download
+                  </Button>
                 </div>
               </CardContent>
             </Card>

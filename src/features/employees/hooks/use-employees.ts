@@ -6,6 +6,7 @@ import {
   createEmployee,
   updateEmployee,
   deleteEmployee,
+  generateNextEmployeeCode,
   type EmployeeFilters,
 } from '../api/employees.api'
 import type { Employee } from '@/types/database.types'
@@ -25,6 +26,15 @@ export function useEmployee(id: string) {
     queryKey: ['employees', id],
     queryFn: () => getEmployee(id),
     enabled: !!id,
+  })
+}
+
+export function useNextEmployeeCode() {
+  const { organization } = useAuth()
+  return useQuery({
+    queryKey: ['next-employee-code', organization?.id],
+    queryFn: () => generateNextEmployeeCode(organization!.id),
+    enabled: !!organization?.id,
   })
 }
 

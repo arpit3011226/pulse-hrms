@@ -125,4 +125,23 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Ensure all clickable elements show pointer cursor */
+  a,
+  button,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"],
+  [role="option"],
+  [role="link"],
+  [role="checkbox"],
+  [role="radio"],
+  [role="switch"],
+  label[for],
+  select,
+  summary,
+  [data-clickable],
+  .cursor-pointer {
+    cursor: pointer;
+  }
 }

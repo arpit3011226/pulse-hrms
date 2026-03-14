@@ -19,6 +19,11 @@ import { useCreatePayrollCycle, useCreatePayrollRun } from '../hooks/use-payroll
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { toast } from 'sonner'
 
+function generateCycleName(month: number, year: number): string {
+  const monthName = MONTH_OPTIONS.find((m) => m.value === month)?.label ?? `Month ${month}`
+  return `${monthName} ${year} Payroll`
+}
+
 const cycleSchema = z.object({
   payroll_month: z.number().min(1).max(12, 'Month is required'),
   payroll_year: z.number().min(2020).max(2099, 'Enter a valid year'),
@@ -72,6 +77,7 @@ export function RunPayrollDialog({ open, onOpenChange }: RunPayrollDialogProps) 
   const onSubmit = async (data: CycleFormValues) => {
     try {
       const cycle = await createCycle.mutateAsync({
+        cycle_name: generateCycleName(data.payroll_month, data.payroll_year),
         payroll_month: data.payroll_month,
         payroll_year: data.payroll_year,
         start_date: data.start_date,
@@ -98,12 +104,12 @@ export function RunPayrollDialog({ open, onOpenChange }: RunPayrollDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="w-[95vw] max-w-lg mx-auto">
         <DialogHeader>
           <DialogTitle>Create Payroll Cycle</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Payroll Month *</Label>
               <Select
@@ -138,7 +144,7 @@ export function RunPayrollDialog({ open, onOpenChange }: RunPayrollDialogProps) 
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="start_date">Start Date *</Label>
               <Input id="start_date" type="date" {...register('start_date')} />

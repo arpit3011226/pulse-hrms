@@ -23,35 +23,41 @@ export function DashboardStats({ stats, isLoading }: DashboardStatsProps) {
         title="Total Employees"
         value={isLoading ? '—' : s.totalEmployees}
         icon={Users}
+        color="blue"
         description="Active employees"
       />
       <StatCard
         title="Departments"
         value={isLoading ? '—' : s.totalDepartments}
         icon={Building2}
+        color="purple"
       />
       <StatCard
         title="Pending Leaves"
         value={isLoading ? '—' : s.pendingLeaves}
         icon={CalendarDays}
+        color="amber"
         description="Awaiting approval"
       />
       <StatCard
         title="Present Today"
         value={isLoading ? '—' : s.presentToday}
         icon={Clock}
+        color="emerald"
         description={`${s.totalEmployees > 0 ? Math.round((s.presentToday / s.totalEmployees) * 100) : 0}% attendance`}
       />
       <StatCard
         title="Open Requisitions"
         value={isLoading ? '—' : s.openRequisitions}
         icon={Briefcase}
+        color="rose"
         description="Active job openings"
       />
       <StatCard
         title="Active Courses"
         value={isLoading ? '—' : s.activeCourses}
         icon={GraduationCap}
+        color="cyan"
         description="Published training courses"
       />
     </div>
