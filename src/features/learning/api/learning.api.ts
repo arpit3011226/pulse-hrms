@@ -171,6 +171,8 @@ export async function createEnrollment(payload: {
   course_id: string
   employee_id: string
   enrolled_by?: string
+  enrolled_date?: string
+  status?: string
 }) {
   const { data, error } = await supabase
     .from('training_enrollments')

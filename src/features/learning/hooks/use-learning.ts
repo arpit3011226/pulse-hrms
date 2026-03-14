@@ -26,8 +26,10 @@ export function useCourseCategories() {
 
 export function useCreateCategory() {
   const qc = useQueryClient()
+  const { organization } = useAuth()
   return useMutation({
-    mutationFn: api.createCourseCategory,
+    mutationFn: (data: Parameters<typeof api.createCourseCategory>[0]) =>
+      api.createCourseCategory({ ...data, organization_id: organization!.id }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['course-categories'] }),
   })
 }
@@ -70,8 +72,10 @@ export function useTrainingCourse(id: string | undefined) {
 
 export function useCreateCourse() {
   const qc = useQueryClient()
+  const { organization } = useAuth()
   return useMutation({
-    mutationFn: api.createTrainingCourse,
+    mutationFn: (data: Parameters<typeof api.createTrainingCourse>[0]) =>
+      api.createTrainingCourse({ ...data, organization_id: organization!.id }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['training-courses'] }),
   })
 }
@@ -137,8 +141,15 @@ export function useMyEnrollments(employeeId: string | undefined) {
 
 export function useCreateEnrollment() {
   const qc = useQueryClient()
+  const { organization } = useAuth()
   return useMutation({
-    mutationFn: api.createEnrollment,
+    mutationFn: (data: Parameters<typeof api.createEnrollment>[0]) =>
+      api.createEnrollment({
+        ...data,
+        organization_id: organization!.id,
+        enrolled_date: data.enrolled_date ?? new Date().toISOString().split('T')[0],
+        status: data.status ?? 'enrolled',
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['enrollments'] })
       qc.invalidateQueries({ queryKey: ['course-enrollments'] })
@@ -149,8 +160,12 @@ export function useCreateEnrollment() {
 
 export function useBulkEnroll() {
   const qc = useQueryClient()
+  const { organization } = useAuth()
   return useMutation({
-    mutationFn: api.bulkEnroll,
+    mutationFn: (payloads: Parameters<typeof api.bulkEnroll>[0]) =>
+      api.bulkEnroll(
+        payloads.map((p) => ({ ...p, organization_id: organization!.id }))
+      ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['enrollments'] })
       qc.invalidateQueries({ queryKey: ['course-enrollments'] })
