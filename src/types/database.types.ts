@@ -3,6 +3,11 @@
 
 export type AppRole = 'super_admin' | 'hr_admin' | 'payroll_admin' | 'manager' | 'leadership' | 'employee'
 
+export type PermissionLevel = 'no_access' | 'read' | 'manage'
+
+/** Maps feature keys (e.g. 'employees_directory') to their access level */
+export type RolePermissionLevels = Record<string, PermissionLevel>
+
 export interface OrganizationSettings {
   modules: {
     leave: boolean
@@ -18,6 +23,8 @@ export interface OrganizationSettings {
   default_notice_days: number
   week_start_day: number
   role_permissions?: Record<string, string[]>
+  /** New 3-level permission system (no_access / read / manage) per role per feature */
+  role_permission_levels?: Record<string, RolePermissionLevels>
 }
 
 export interface Organization {
@@ -481,7 +488,7 @@ export interface AppNotification {
   recipient_profile_id: string
   title: string
   message: string
-  type: 'resignation_submitted' | 'resignation_manager_approved' | 'resignation_hr_approved' | 'resignation_rejected' | 'clearance_requested' | 'clearance_updated' | 'general'
+  type: 'resignation_submitted' | 'resignation_manager_approved' | 'resignation_hr_approved' | 'resignation_rejected' | 'clearance_requested' | 'clearance_updated' | 'general' | 'workflow'
   reference_id: string | null
   reference_type: string | null
   is_read: boolean
@@ -1712,6 +1719,170 @@ export interface Database {
       letter_requests: { Row: LetterRequest; Insert: Partial<LetterRequest>; Update: Partial<LetterRequest> }
       reimbursement_requests: { Row: ReimbursementRequest; Insert: Partial<ReimbursementRequest>; Update: Partial<ReimbursementRequest> }
       general_requests: { Row: GeneralRequest; Insert: Partial<GeneralRequest>; Update: Partial<GeneralRequest> }
+      workflows: { Row: Workflow; Insert: Partial<Workflow>; Update: Partial<Workflow> }
+      workflow_runs: { Row: WorkflowRun; Insert: Partial<WorkflowRun>; Update: Partial<WorkflowRun> }
+      surveys: { Row: Survey; Insert: Partial<Survey>; Update: Partial<Survey> }
+      survey_questions: { Row: SurveyQuestion; Insert: Partial<SurveyQuestion>; Update: Partial<SurveyQuestion> }
+      survey_responses: { Row: SurveyResponse; Insert: Partial<SurveyResponse>; Update: Partial<SurveyResponse> }
+      survey_answers: { Row: SurveyAnswer; Insert: Partial<SurveyAnswer>; Update: Partial<SurveyAnswer> }
     }
   }
+}
+
+// ============================================================================
+// Workflows
+// ============================================================================
+
+export type WorkflowTriggerType = 'event' | 'time'
+export type WorkflowRunStatus = 'success' | 'failed' | 'skipped'
+
+export interface WorkflowTriggerConfig {
+  // Event-based
+  event?: string
+  timing?: 'on_event' | 'days_before' | 'days_after'
+  days_offset?: number
+  // Time-based
+  frequency?: 'daily' | 'weekly' | 'monthly'
+  time?: string // HH:MM
+  day_of_week?: number // 0-6
+  day_of_month?: number // 1-28
+}
+
+export interface WorkflowCondition {
+  field: string
+  operator: 'is' | 'is_not'
+  value: string
+}
+
+export interface WorkflowActionConfig {
+  recipients: 'employee' | 'manager' | 'hr_admins' | 'all_org' | 'specific_roles'
+  specific_roles?: string[]
+  title: string
+  message: string
+  // Email-specific
+  subject?: string
+  body?: string
+  include_notification?: boolean
+}
+
+export interface WorkflowAction {
+  type: 'send_notification' | 'send_email'
+  config: WorkflowActionConfig
+}
+
+export interface Workflow {
+  id: string
+  organization_id: string
+  name: string
+  description: string | null
+  trigger_type: WorkflowTriggerType
+  trigger_config: WorkflowTriggerConfig
+  conditions: WorkflowCondition[]
+  actions: WorkflowAction[]
+  is_enabled: boolean
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface WorkflowWithCreator extends Workflow {
+  creator?: { first_name: string | null; last_name: string | null } | null
+}
+
+export interface WorkflowRun {
+  id: string
+  workflow_id: string
+  organization_id: string
+  triggered_at: string
+  status: WorkflowRunStatus
+  affected_employee_ids: string[]
+  result_summary: string | null
+  error_message: string | null
+}
+
+export interface WorkflowRunWithWorkflow extends WorkflowRun {
+  workflow?: Pick<Workflow, 'id' | 'name' | 'trigger_type'> | null
+}
+
+// ============================================================================
+// Surveys (Sentiment Analytics)
+// ============================================================================
+
+export type SurveyStatus = 'draft' | 'active' | 'closed'
+export type SurveyCategory = 'work_life_balance' | 'career_growth' | 'manager_support' | 'compensation' | 'team_culture' | 'custom'
+export type SurveyQuestionType = 'rating' | 'single_select' | 'multi_select' | 'text'
+export type SurveyDisplayAs = 'radio' | 'dropdown' | 'checkbox'
+
+export interface SurveyQuestionOption {
+  label: string
+  value: string
+  score: number // 0-100, maps to sentiment metric
+}
+
+export type SurveyRuleOperator =
+  | 'is' | 'is_not'
+  | 'before' | 'after'
+  | 'less_than_days_ago' | 'more_than_days_ago'
+
+export interface SurveyTargetRule {
+  field: string
+  operator: SurveyRuleOperator
+  value: string | number
+}
+
+export interface Survey {
+  id: string
+  organization_id: string
+  title: string
+  description: string | null
+  status: SurveyStatus
+  target_rules: SurveyTargetRule[]
+  start_date: string
+  end_date: string
+  is_anonymous: boolean
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface SurveyQuestion {
+  id: string
+  survey_id: string
+  organization_id: string
+  question_text: string
+  category: SurveyCategory
+  question_order: number
+  is_required: boolean
+  question_type: SurveyQuestionType
+  options: SurveyQuestionOption[] | null
+  display_as: SurveyDisplayAs | null
+  created_at: string
+}
+
+export interface SurveyResponse {
+  id: string
+  survey_id: string
+  organization_id: string
+  employee_id: string
+  submitted_at: string
+  is_anonymous: boolean
+}
+
+export interface SurveyAnswer {
+  id: string
+  response_id: string
+  question_id: string
+  organization_id: string
+  rating: number | null
+  comment: string | null
+  selected_options: string[] | null
+  text_value: string | null
+}
+
+export interface SurveyWithQuestions extends Survey {
+  survey_questions: SurveyQuestion[]
+}
+
+export interface SurveyWithResponseCount extends Survey {
+  response_count?: number
 }

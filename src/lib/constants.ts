@@ -798,3 +798,423 @@ export const DAYS_OF_WEEK = [
   { value: 5, label: 'Friday', short: 'Fri' },
   { value: 6, label: 'Saturday', short: 'Sat' },
 ] as const
+
+// ============================================================================
+// Workflows
+// ============================================================================
+
+export const WORKFLOW_EVENT_MODULES = [
+  {
+    module: 'Employee',
+    icon: 'Users',
+    events: [
+      { value: 'employee_birthday', label: 'Employee Birthday', description: 'Date of birth matches today', timingOptions: ['on_event', 'days_before'] },
+      { value: 'employee_work_anniversary', label: 'Work Anniversary', description: 'Anniversary of joining date', timingOptions: ['on_event', 'days_before'] },
+      { value: 'employee_joined', label: 'Employee Joined', description: 'New employee is onboarded', timingOptions: ['on_event'] },
+      { value: 'employee_probation_completed', label: 'Probation Completed', description: 'Probation period ends', timingOptions: ['on_event', 'days_before'] },
+      { value: 'employee_department_changed', label: 'Department Changed', description: 'Employee moves to a new department', timingOptions: ['on_event'] },
+      { value: 'employee_designation_changed', label: 'Designation Changed', description: 'Employee title/role changed', timingOptions: ['on_event'] },
+      { value: 'employee_compensation_revised', label: 'Compensation Revised', description: 'Salary or CTC revision', timingOptions: ['on_event'] },
+      { value: 'employee_status_changed', label: 'Status Changed', description: 'Employment status changed (active, on notice, etc.)', timingOptions: ['on_event'] },
+    ],
+  },
+  {
+    module: 'Leave',
+    icon: 'CalendarDays',
+    events: [
+      { value: 'leave_request_submitted', label: 'Leave Requested', description: 'Employee submits a leave request', timingOptions: ['on_event'] },
+      { value: 'leave_request_approved', label: 'Leave Approved', description: 'Manager/HR approves a leave request', timingOptions: ['on_event'] },
+      { value: 'leave_request_rejected', label: 'Leave Rejected', description: 'Leave request is rejected', timingOptions: ['on_event'] },
+      { value: 'leave_balance_low', label: 'Leave Balance Low', description: 'Employee leave balance falls below threshold', timingOptions: ['on_event'] },
+    ],
+  },
+  {
+    module: 'Attendance',
+    icon: 'Clock',
+    events: [
+      { value: 'attendance_clock_in', label: 'Clock In', description: 'Employee clocks in for the day', timingOptions: ['on_event'] },
+      { value: 'attendance_clock_out', label: 'Clock Out', description: 'Employee clocks out', timingOptions: ['on_event'] },
+      { value: 'attendance_absent', label: 'Absent Marked', description: 'Employee marked absent', timingOptions: ['on_event'] },
+      { value: 'attendance_regularization_requested', label: 'Regularization Requested', description: 'Employee requests attendance regularization', timingOptions: ['on_event'] },
+    ],
+  },
+  {
+    module: 'Payroll',
+    icon: 'Wallet',
+    events: [
+      { value: 'payroll_cycle_created', label: 'Payroll Cycle Created', description: 'New payroll cycle is initiated', timingOptions: ['on_event'] },
+      { value: 'payroll_processed', label: 'Payroll Processed', description: 'Payroll run is computed', timingOptions: ['on_event'] },
+      { value: 'payroll_approved', label: 'Payroll Approved', description: 'Payroll cycle is approved', timingOptions: ['on_event'] },
+      { value: 'payslip_available', label: 'Payslip Available', description: 'Payslips are generated and available', timingOptions: ['on_event'] },
+      { value: 'payroll_paid', label: 'Payroll Paid', description: 'Salaries are disbursed', timingOptions: ['on_event'] },
+    ],
+  },
+  {
+    module: 'Performance',
+    icon: 'TrendingUp',
+    events: [
+      { value: 'performance_cycle_started', label: 'Review Cycle Started', description: 'Performance review cycle begins', timingOptions: ['on_event'] },
+      { value: 'performance_self_review_due', label: 'Self Review Due', description: 'Self review submission deadline approaching', timingOptions: ['on_event', 'days_before'] },
+      { value: 'performance_manager_review_due', label: 'Manager Review Due', description: 'Manager review deadline approaching', timingOptions: ['on_event', 'days_before'] },
+      { value: 'performance_review_completed', label: 'Review Completed', description: 'Performance review is finalized', timingOptions: ['on_event'] },
+      { value: 'goal_deadline_approaching', label: 'Goal Deadline Approaching', description: 'Goal target date is near', timingOptions: ['days_before'] },
+    ],
+  },
+  {
+    module: 'Recruitment',
+    icon: 'UserPlus',
+    events: [
+      { value: 'job_posted', label: 'Job Posted', description: 'New job requisition is published', timingOptions: ['on_event'] },
+      { value: 'application_received', label: 'Application Received', description: 'New candidate applies', timingOptions: ['on_event'] },
+      { value: 'interview_scheduled', label: 'Interview Scheduled', description: 'Interview is scheduled', timingOptions: ['on_event'] },
+      { value: 'offer_sent', label: 'Offer Sent', description: 'Offer letter is sent to candidate', timingOptions: ['on_event'] },
+      { value: 'offer_accepted', label: 'Offer Accepted', description: 'Candidate accepts the offer', timingOptions: ['on_event'] },
+      { value: 'candidate_hired', label: 'Candidate Hired', description: 'Candidate completes hiring process', timingOptions: ['on_event'] },
+    ],
+  },
+  {
+    module: 'Separation',
+    icon: 'UserMinus',
+    events: [
+      { value: 'resignation_submitted', label: 'Resignation Submitted', description: 'Employee submits resignation', timingOptions: ['on_event'] },
+      { value: 'resignation_approved', label: 'Resignation Approved', description: 'Resignation is approved', timingOptions: ['on_event'] },
+      { value: 'notice_period_started', label: 'Notice Period Started', description: 'Employee enters notice period', timingOptions: ['on_event'] },
+      { value: 'last_working_day_approaching', label: 'Last Working Day Approaching', description: 'Employee\'s last day is near', timingOptions: ['on_event', 'days_before'] },
+      { value: 'clearance_completed', label: 'Clearance Completed', description: 'Exit clearance is completed', timingOptions: ['on_event'] },
+      { value: 'employee_terminated', label: 'Employee Terminated', description: 'Termination date reached', timingOptions: ['on_event', 'days_before'] },
+    ],
+  },
+  {
+    module: 'Self Service',
+    icon: 'FileText',
+    events: [
+      { value: 'letter_requested', label: 'Letter Requested', description: 'Employee requests a letter', timingOptions: ['on_event'] },
+      { value: 'letter_approved', label: 'Letter Approved', description: 'Letter request is approved', timingOptions: ['on_event'] },
+      { value: 'reimbursement_submitted', label: 'Reimbursement Submitted', description: 'Employee submits reimbursement', timingOptions: ['on_event'] },
+      { value: 'reimbursement_approved', label: 'Reimbursement Approved', description: 'Reimbursement is fully approved', timingOptions: ['on_event'] },
+      { value: 'general_request_submitted', label: 'General Request Submitted', description: 'Employee submits a general request', timingOptions: ['on_event'] },
+    ],
+  },
+  {
+    module: 'Learning',
+    icon: 'GraduationCap',
+    events: [
+      { value: 'course_published', label: 'Course Published', description: 'New training course is published', timingOptions: ['on_event'] },
+      { value: 'enrollment_created', label: 'Employee Enrolled', description: 'Employee is enrolled in a course', timingOptions: ['on_event'] },
+      { value: 'course_completed', label: 'Course Completed', description: 'Employee completes a course', timingOptions: ['on_event'] },
+      { value: 'assessment_passed', label: 'Assessment Passed', description: 'Employee passes an assessment', timingOptions: ['on_event'] },
+    ],
+  },
+] as const
+
+/** Flat list of all events for lookups */
+export const WORKFLOW_EVENTS = WORKFLOW_EVENT_MODULES.flatMap((m) => [...m.events])
+
+export const WORKFLOW_FREQUENCIES = [
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+] as const
+
+export const WORKFLOW_TIMING_OPTIONS = [
+  { value: 'on_event', label: 'When it happens' },
+  { value: 'days_before', label: 'Days before' },
+  { value: 'days_after', label: 'Days after' },
+] as const
+
+export const WORKFLOW_CONDITION_FIELDS = [
+  { value: 'employment_status', label: 'Employment Status', options: ['active', 'on_notice', 'terminated', 'resigned'] },
+  { value: 'department', label: 'Department', options: [] }, // dynamic
+  { value: 'designation', label: 'Designation', options: [] }, // dynamic
+  { value: 'employment_type', label: 'Employment Type', options: ['full_time', 'part_time', 'contract', 'intern', 'freelance'] },
+  { value: 'gender', label: 'Gender', options: ['male', 'female', 'other'] },
+] as const
+
+export const WORKFLOW_CONDITION_OPERATORS = [
+  { value: 'is', label: 'is' },
+  { value: 'is_not', label: 'is not' },
+] as const
+
+export const WORKFLOW_ACTION_TYPES = [
+  { value: 'send_notification', label: 'Send Notification', description: 'Send an in-app notification', icon: 'Bell' },
+  { value: 'send_email', label: 'Send Email', description: 'Send an email via Resend', icon: 'Mail' },
+] as const
+
+export const WORKFLOW_RECIPIENTS = [
+  { value: 'employee', label: 'Employee', description: 'The employee this workflow is about' },
+  { value: 'manager', label: 'Manager', description: 'The employee\'s reporting manager' },
+  { value: 'hr_admins', label: 'HR Admins', description: 'All HR administrators' },
+  { value: 'all_org', label: 'Everyone', description: 'All active members of the organization' },
+  { value: 'specific_roles', label: 'Specific Roles', description: 'Choose specific roles' },
+] as const
+
+export const WORKFLOW_PLACEHOLDERS = [
+  { key: '{{employee_name}}', label: 'Employee Name' },
+  { key: '{{employee_code}}', label: 'Employee Code' },
+  { key: '{{department}}', label: 'Department' },
+  { key: '{{designation}}', label: 'Designation' },
+  { key: '{{date_of_joining}}', label: 'Date of Joining' },
+  { key: '{{manager_name}}', label: 'Manager Name' },
+  { key: '{{company_name}}', label: 'Company Name' },
+] as const
+
+// ============================================================================
+// Granular Roles & Permissions (3-Level Access Control)
+// ============================================================================
+
+import type { PermissionLevel } from '@/types/database.types'
+
+export const PERMISSION_LEVELS = [
+  { value: 'no_access' as const, label: 'No access' },
+  { value: 'read' as const, label: 'Can read' },
+  { value: 'manage' as const, label: 'Can manage' },
+]
+
+export interface PermissionFeature {
+  key: string
+  label: string
+  description: string
+}
+
+export interface PermissionModule {
+  key: string
+  label: string
+  icon: string // lucide icon name
+  features: PermissionFeature[]
+}
+
+// Section 1: App Permissions (grouped by module)
+export const APP_PERMISSION_MODULES: PermissionModule[] = [
+  {
+    key: 'employees',
+    label: 'Employees',
+    icon: 'Users',
+    features: [
+      { key: 'employees_directory', label: 'Employee Directory', description: 'View and manage employee profiles' },
+      { key: 'employees_onboarding', label: 'Onboarding', description: 'Manage employee onboarding' },
+      { key: 'employees_documents', label: 'Documents', description: 'Access employee documents' },
+    ],
+  },
+  {
+    key: 'leave',
+    label: 'Leave',
+    icon: 'CalendarDays',
+    features: [
+      { key: 'leave_requests', label: 'Leave Requests', description: 'View and approve leave requests' },
+      { key: 'leave_types', label: 'Leave Types & Policies', description: 'Configure leave types and policies' },
+      { key: 'leave_reports', label: 'Leave Reports', description: 'Access leave balance reports' },
+    ],
+  },
+  {
+    key: 'attendance',
+    label: 'Attendance',
+    icon: 'Clock',
+    features: [
+      { key: 'attendance_records', label: 'Attendance Records', description: 'View and manage attendance' },
+      { key: 'attendance_shifts', label: 'Shifts', description: 'Create and manage shifts' },
+    ],
+  },
+  {
+    key: 'payroll',
+    label: 'Payroll',
+    icon: 'Wallet',
+    features: [
+      { key: 'payroll_processing', label: 'Payroll Processing', description: 'Run and manage payroll cycles' },
+      { key: 'payroll_compensation', label: 'Compensation', description: 'Manage salary structures' },
+      { key: 'payroll_reports', label: 'Payroll Reports', description: 'Export payroll data' },
+    ],
+  },
+  {
+    key: 'performance',
+    label: 'Performance',
+    icon: 'TrendingUp',
+    features: [
+      { key: 'performance_reviews', label: 'Reviews & Goals', description: 'View and manage performance cycles' },
+      { key: 'performance_competencies', label: 'Competencies', description: 'Manage competency frameworks' },
+    ],
+  },
+  {
+    key: 'recruitment',
+    label: 'Recruitment',
+    icon: 'UserPlus',
+    features: [
+      { key: 'recruitment_jobs', label: 'Job Postings', description: 'Manage recruiting jobs' },
+      { key: 'recruitment_applications', label: 'Applications', description: 'Manage candidate pipeline' },
+    ],
+  },
+  {
+    key: 'learning',
+    label: 'Learning',
+    icon: 'GraduationCap',
+    features: [
+      { key: 'learning_courses', label: 'Courses & Training', description: 'Manage LMS content' },
+      { key: 'learning_enrollments', label: 'Enrollments', description: 'View and manage enrollments' },
+    ],
+  },
+  {
+    key: 'self_service',
+    label: 'Self Service',
+    icon: 'FileText',
+    features: [
+      { key: 'self_service_letters', label: 'Letter Templates', description: 'Manage letter templates' },
+      { key: 'self_service_reimbursements', label: 'Reimbursements', description: 'Approve reimbursement requests' },
+      { key: 'self_service_requests', label: 'General Requests', description: 'Approve general requests' },
+    ],
+  },
+  {
+    key: 'separation',
+    label: 'Separation',
+    icon: 'UserMinus',
+    features: [
+      { key: 'separation_resignations', label: 'Resignations', description: 'Manage resignation workflow' },
+      { key: 'separation_clearances', label: 'Clearances', description: 'Manage exit clearances' },
+    ],
+  },
+  {
+    key: 'workflows',
+    label: 'Workflows',
+    icon: 'Workflow',
+    features: [
+      { key: 'workflows_management', label: 'Workflow Management', description: 'Create, edit, and manage automation workflows' },
+      { key: 'workflows_templates', label: 'Workflow Templates', description: 'Access and use pre-built workflow templates' },
+    ],
+  },
+]
+
+// Section 2: Organization Permissions
+export const ORG_PERMISSIONS: PermissionFeature[] = [
+  { key: 'org_settings', label: 'Organization Settings', description: 'Manage org config, modules, working days' },
+  { key: 'org_departments', label: 'Departments', description: 'Manage department structure' },
+  { key: 'org_designations', label: 'Designations', description: 'Manage designation hierarchy' },
+  { key: 'org_holidays', label: 'Holidays', description: 'Manage holiday calendar' },
+  { key: 'org_announcements', label: 'Announcements', description: 'Create and manage announcements' },
+  { key: 'org_roles', label: 'Roles & Permissions', description: 'Edit permission profiles' },
+]
+
+// Section 3: User Data Permissions
+export const USER_DATA_PERMISSIONS: PermissionFeature[] = [
+  { key: 'data_basic_employment', label: 'Basic Employment', description: 'Employee ID, Work Email, Joining Date, Reporting To, Title, Department' },
+  { key: 'data_nonsensitive_employment', label: 'Non-sensitive Employment', description: 'Entity, Legal Name, Employment Type, Work Location, Level, Team' },
+  { key: 'data_sensitive_employment', label: 'Sensitive Employment', description: 'Status, Probation Status, Notice Status, Termination Date' },
+  { key: 'data_basic_personal', label: 'Basic Personal', description: 'First Name, Last Name, Display Name, Email, Profile Picture' },
+  { key: 'data_nonsensitive_personal', label: 'Non-sensitive Personal', description: 'Gender, Date of Birth, Phone Number, Address' },
+  { key: 'data_sensitive_personal', label: 'Sensitive Personal', description: 'PAN, Aadhaar, Passport' },
+  { key: 'data_compensation', label: 'Compensation', description: 'Salary, CTC, Bank Details' },
+]
+
+/** All feature keys (used for iteration & defaults) */
+export const ALL_PERMISSION_FEATURE_KEYS = [
+  ...APP_PERMISSION_MODULES.flatMap((m) => m.features.map((f) => f.key)),
+  ...ORG_PERMISSIONS.map((f) => f.key),
+  ...USER_DATA_PERMISSIONS.map((f) => f.key),
+]
+
+/** Default 3-level permission map per role */
+export const DEFAULT_ROLE_PERMISSION_LEVELS: Record<string, Record<string, PermissionLevel>> = {
+  super_admin: Object.fromEntries(ALL_PERMISSION_FEATURE_KEYS.map((k) => [k, 'manage'])) as Record<string, PermissionLevel>,
+  hr_admin: {
+    // App
+    employees_directory: 'manage', employees_onboarding: 'manage', employees_documents: 'manage',
+    leave_requests: 'manage', leave_types: 'manage', leave_reports: 'manage',
+    attendance_records: 'manage', attendance_shifts: 'manage',
+    payroll_processing: 'read', payroll_compensation: 'read', payroll_reports: 'read',
+    performance_reviews: 'manage', performance_competencies: 'manage',
+    recruitment_jobs: 'manage', recruitment_applications: 'manage',
+    learning_courses: 'manage', learning_enrollments: 'manage',
+    self_service_letters: 'manage', self_service_reimbursements: 'manage', self_service_requests: 'manage',
+    separation_resignations: 'manage', separation_clearances: 'manage',
+    workflows_management: 'manage', workflows_templates: 'manage',
+    // Org
+    org_settings: 'read', org_departments: 'manage', org_designations: 'manage',
+    org_holidays: 'manage', org_announcements: 'manage', org_roles: 'no_access',
+    // Data
+    data_basic_employment: 'manage', data_nonsensitive_employment: 'manage',
+    data_sensitive_employment: 'manage', data_basic_personal: 'manage',
+    data_nonsensitive_personal: 'manage', data_sensitive_personal: 'read',
+    data_compensation: 'read',
+  },
+  payroll_admin: {
+    // App
+    employees_directory: 'read', employees_onboarding: 'no_access', employees_documents: 'no_access',
+    leave_requests: 'no_access', leave_types: 'no_access', leave_reports: 'no_access',
+    attendance_records: 'read', attendance_shifts: 'no_access',
+    payroll_processing: 'manage', payroll_compensation: 'manage', payroll_reports: 'manage',
+    performance_reviews: 'read', performance_competencies: 'no_access',
+    recruitment_jobs: 'no_access', recruitment_applications: 'no_access',
+    learning_courses: 'no_access', learning_enrollments: 'no_access',
+    self_service_letters: 'no_access', self_service_reimbursements: 'manage', self_service_requests: 'no_access',
+    separation_resignations: 'no_access', separation_clearances: 'no_access',
+    workflows_management: 'no_access', workflows_templates: 'no_access',
+    // Org
+    org_settings: 'no_access', org_departments: 'read', org_designations: 'read',
+    org_holidays: 'no_access', org_announcements: 'no_access', org_roles: 'no_access',
+    // Data
+    data_basic_employment: 'read', data_nonsensitive_employment: 'read',
+    data_sensitive_employment: 'no_access', data_basic_personal: 'read',
+    data_nonsensitive_personal: 'no_access', data_sensitive_personal: 'no_access',
+    data_compensation: 'manage',
+  },
+  manager: {
+    // App
+    employees_directory: 'read', employees_onboarding: 'no_access', employees_documents: 'read',
+    leave_requests: 'manage', leave_types: 'no_access', leave_reports: 'read',
+    attendance_records: 'read', attendance_shifts: 'no_access',
+    payroll_processing: 'no_access', payroll_compensation: 'no_access', payroll_reports: 'no_access',
+    performance_reviews: 'manage', performance_competencies: 'read',
+    recruitment_jobs: 'read', recruitment_applications: 'read',
+    learning_courses: 'read', learning_enrollments: 'read',
+    self_service_letters: 'no_access', self_service_reimbursements: 'manage', self_service_requests: 'manage',
+    separation_resignations: 'manage', separation_clearances: 'no_access',
+    workflows_management: 'no_access', workflows_templates: 'no_access',
+    // Org
+    org_settings: 'no_access', org_departments: 'read', org_designations: 'read',
+    org_holidays: 'read', org_announcements: 'read', org_roles: 'no_access',
+    // Data
+    data_basic_employment: 'read', data_nonsensitive_employment: 'read',
+    data_sensitive_employment: 'no_access', data_basic_personal: 'read',
+    data_nonsensitive_personal: 'read', data_sensitive_personal: 'no_access',
+    data_compensation: 'no_access',
+  },
+  leadership: {
+    // App
+    employees_directory: 'read', employees_onboarding: 'no_access', employees_documents: 'read',
+    leave_requests: 'read', leave_types: 'no_access', leave_reports: 'read',
+    attendance_records: 'read', attendance_shifts: 'no_access',
+    payroll_processing: 'read', payroll_compensation: 'read', payroll_reports: 'read',
+    performance_reviews: 'read', performance_competencies: 'read',
+    recruitment_jobs: 'read', recruitment_applications: 'read',
+    learning_courses: 'read', learning_enrollments: 'read',
+    self_service_letters: 'no_access', self_service_reimbursements: 'read', self_service_requests: 'read',
+    separation_resignations: 'read', separation_clearances: 'no_access',
+    workflows_management: 'read', workflows_templates: 'read',
+    // Org
+    org_settings: 'read', org_departments: 'read', org_designations: 'read',
+    org_holidays: 'read', org_announcements: 'read', org_roles: 'no_access',
+    // Data
+    data_basic_employment: 'read', data_nonsensitive_employment: 'read',
+    data_sensitive_employment: 'read', data_basic_personal: 'read',
+    data_nonsensitive_personal: 'read', data_sensitive_personal: 'no_access',
+    data_compensation: 'read',
+  },
+  employee: {
+    // App — employees only see self-service features
+    employees_directory: 'read', employees_onboarding: 'no_access', employees_documents: 'no_access',
+    leave_requests: 'no_access', leave_types: 'no_access', leave_reports: 'no_access',
+    attendance_records: 'no_access', attendance_shifts: 'no_access',
+    payroll_processing: 'no_access', payroll_compensation: 'no_access', payroll_reports: 'no_access',
+    performance_reviews: 'no_access', performance_competencies: 'no_access',
+    recruitment_jobs: 'no_access', recruitment_applications: 'no_access',
+    learning_courses: 'read', learning_enrollments: 'no_access',
+    self_service_letters: 'no_access', self_service_reimbursements: 'no_access', self_service_requests: 'no_access',
+    separation_resignations: 'no_access', separation_clearances: 'no_access',
+    workflows_management: 'no_access', workflows_templates: 'no_access',
+    // Org
+    org_settings: 'no_access', org_departments: 'read', org_designations: 'read',
+    org_holidays: 'read', org_announcements: 'read', org_roles: 'no_access',
+    // Data — own data only
+    data_basic_employment: 'read', data_nonsensitive_employment: 'read',
+    data_sensitive_employment: 'no_access', data_basic_personal: 'read',
+    data_nonsensitive_personal: 'read', data_sensitive_personal: 'no_access',
+    data_compensation: 'no_access',
+  },
+}

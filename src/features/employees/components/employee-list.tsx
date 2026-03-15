@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { type ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Plus, Eye, Pencil, Trash2, ArrowUpRight, LogOut, Upload } from 'lucide-react'
+import { MoreHorizontal, Plus, Eye, Pencil, Trash2, ArrowUpRight, LogOut, Upload, Network, List } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -17,6 +17,7 @@ import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { useEmployees, useDeleteEmployee } from '../hooks/use-employees'
 import { usePermissions } from '@/hooks/use-permissions'
 import { CsvUploadDialog } from './csv-upload-dialog'
+import { OrgChartView } from './org-chart-view'
 import { getInitials, formatDate } from '@/lib/utils'
 import type { Employee } from '@/types/database.types'
 
@@ -32,6 +33,7 @@ export function EmployeeList() {
   const permissions = usePermissions()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [csvDialogOpen, setCsvDialogOpen] = useState(false)
+  const [view, setView] = useState<'list' | 'chart'>('list')
 
   const columns: ColumnDef<EmployeeRow>[] = [
     {
@@ -144,28 +146,44 @@ export function EmployeeList() {
         title="Employees"
         description="Manage your organization's employees"
         actions={
-          permissions.canManageEmployees ? (
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => setCsvDialogOpen(true)}>
-                <Upload className="mr-2 h-4 w-4" /> CSV Upload
-              </Button>
-              <Button asChild>
-                <Link to="/employees/new">
-                  <Plus className="mr-2 h-4 w-4" /> Add Employee
-                </Link>
-              </Button>
-            </div>
-          ) : undefined
+          <div className="flex items-center gap-2">
+            <Button
+              variant={view === 'chart' ? 'default' : 'outline'}
+              onClick={() => setView(view === 'list' ? 'chart' : 'list')}
+            >
+              {view === 'list' ? (
+                <><Network className="mr-2 h-4 w-4" /> Org Chart</>
+              ) : (
+                <><List className="mr-2 h-4 w-4" /> List View</>
+              )}
+            </Button>
+            {permissions.canManageEmployees && (
+              <>
+                <Button variant="outline" onClick={() => setCsvDialogOpen(true)}>
+                  <Upload className="mr-2 h-4 w-4" /> CSV Upload
+                </Button>
+                <Button asChild>
+                  <Link to="/employees/new">
+                    <Plus className="mr-2 h-4 w-4" /> Add Employee
+                  </Link>
+                </Button>
+              </>
+            )}
+          </div>
         }
       />
 
-      <DataTable
-        columns={columns}
-        data={(employees as EmployeeRow[]) || []}
-        isLoading={isLoading}
-        searchKey="first_name"
-        searchPlaceholder="Search employees..."
-      />
+      {view === 'list' ? (
+        <DataTable
+          columns={columns}
+          data={(employees as EmployeeRow[]) || []}
+          isLoading={isLoading}
+          searchKey="first_name"
+          searchPlaceholder="Search employees..."
+        />
+      ) : (
+        <OrgChartView employees={(employees as EmployeeRow[]) || []} />
+      )}
 
       <CsvUploadDialog open={csvDialogOpen} onOpenChange={setCsvDialogOpen} />
 

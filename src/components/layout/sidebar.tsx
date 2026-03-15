@@ -150,6 +150,18 @@ function ReportsIcon({ className }: { className?: string }) {
   )
 }
 
+function WorkflowsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="3" width="18" height="18" rx="2.5" fill="#FEF3C7" />
+      <circle cx="8" cy="8" r="2" fill="#F59E0B" />
+      <circle cx="16" cy="12" r="2" fill="#D97706" />
+      <circle cx="8" cy="16" r="2" fill="#F59E0B" />
+      <path d="M10 8h4l2 4-2 4H10" stroke="#B45309" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+    </svg>
+  )
+}
+
 function SettingsIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none">
@@ -190,17 +202,21 @@ export function Sidebar() {
   const isModuleEnabled = (key: string) => modules?.[key] !== false
 
   const navItems: NavItem[] = [
+    // Dashboard always first
     { title: 'Dashboard', href: '/dashboard', icon: DashboardIcon, visible: true },
-    { title: 'Employees', href: '/employees', icon: EmployeesIcon, visible: true },
-    { title: 'Departments', href: '/departments', icon: DepartmentsIcon, visible: true },
-    { title: 'Leave', href: '/leave', icon: LeaveIcon, visible: isModuleEnabled('leave') },
+    // Alphabetical order
     { title: 'Attendance', href: '/attendance', icon: AttendanceIcon, visible: isModuleEnabled('attendance') },
-    { title: 'Recruitment', href: '/recruitment', icon: RecruitmentIcon, visible: permissions.canManageRecruitment && isModuleEnabled('recruitment') },
+    { title: 'Departments', href: '/departments', icon: DepartmentsIcon, visible: true },
+    { title: 'Employees', href: '/employees', icon: EmployeesIcon, visible: true },
+    { title: 'Learning', href: '/learning', icon: LearningIcon, visible: isModuleEnabled('learning') },
+    { title: 'Leave', href: '/leave', icon: LeaveIcon, visible: isModuleEnabled('leave') },
     { title: 'Payroll', href: '/payroll', icon: PayrollIcon, visible: permissions.canViewPayroll && isModuleEnabled('payroll') },
     { title: 'Performance', href: '/performance', icon: PerformanceIcon, visible: isModuleEnabled('performance') },
-    { title: 'Learning', href: '/learning', icon: LearningIcon, visible: isModuleEnabled('learning') },
+    { title: 'Recruitment', href: '/recruitment', icon: RecruitmentIcon, visible: permissions.canManageRecruitment && isModuleEnabled('recruitment') },
     { title: 'Self Service', href: '/self-service', icon: SelfServiceIcon, visible: true },
     { title: 'Separation', href: '/separation', icon: SeparationIcon, visible: true },
+    { title: 'Workflows', href: '/workflows', icon: WorkflowsIcon, visible: permissions.canViewWorkflows },
+    // Reports always last
     { title: 'Reports', href: '/reports', icon: ReportsIcon, visible: permissions.canViewReports },
   ]
 

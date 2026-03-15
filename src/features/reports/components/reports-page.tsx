@@ -1,5 +1,6 @@
 import { PageHeader } from '@/components/layout/page-header'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { usePermissions } from '@/hooks/use-permissions'
 import { EmployeeReportsTab } from './employee-reports-tab'
 import { LeaveReportsTab } from './leave-reports-tab'
 import { AttendanceReportsTab } from './attendance-reports-tab'
@@ -8,8 +9,12 @@ import { RecruitmentReportsTab } from './recruitment-reports-tab'
 import { LearningReportsTab } from './learning-reports-tab'
 import { PeopleAnalyticsTab } from './people-analytics-tab'
 import { SentimentAnalyticsTab } from './sentiment-analytics-tab'
+import { SurveyManagement } from './survey-management'
 
 export function ReportsPage() {
+  const { isAdmin, isHR } = usePermissions()
+  const canManageSurveys = isAdmin || isHR
+
   return (
     <div>
       <PageHeader
@@ -21,6 +26,7 @@ export function ReportsPage() {
         <TabsList className="flex-wrap">
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="sentiment">Sentiment</TabsTrigger>
+          {canManageSurveys && <TabsTrigger value="surveys">Surveys</TabsTrigger>}
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="leave">Leave</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
@@ -35,6 +41,11 @@ export function ReportsPage() {
         <TabsContent value="sentiment" className="mt-6">
           <SentimentAnalyticsTab />
         </TabsContent>
+        {canManageSurveys && (
+          <TabsContent value="surveys" className="mt-6">
+            <SurveyManagement />
+          </TabsContent>
+        )}
         <TabsContent value="employees" className="mt-6">
           <EmployeeReportsTab />
         </TabsContent>

@@ -25,6 +25,7 @@ import { ReportsPage } from '@/features/reports/components/reports-page'
 import { ResignationPage } from '@/features/resignation/components/resignation-page'
 import { SelfServicePage } from '@/features/self-service/components/self-service-page'
 import { SettingsPage } from '@/features/settings/components/settings-page'
+import { WorkflowsPage } from '@/features/workflows/components/workflows-page'
 import { DashboardStats } from '@/features/dashboard/components/dashboard-stats'
 import { RecentActivity } from '@/features/dashboard/components/recent-activity'
 import { QuickActions } from '@/features/dashboard/components/quick-actions'
@@ -32,6 +33,7 @@ import { PageHeader } from '@/components/layout/page-header'
 import { AuthBackground } from '@/components/shared/auth-background'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { useDashboardStats, useRecentActivity } from '@/features/dashboard/hooks/use-dashboard'
+import { useWorkflowEvaluator } from '@/features/workflows/hooks/use-workflow-evaluator'
 import { Loader2 } from 'lucide-react'
 
 // Root
@@ -95,6 +97,9 @@ function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
   const { data: activities } = useRecentActivity()
 
+  // Auto-evaluate workflows (birthday, anniversary, time-based triggers)
+  useWorkflowEvaluator()
+
   return (
     <div>
       <PageHeader title="Dashboard" description="Welcome back! Here's an overview of your organization." />
@@ -148,6 +153,7 @@ const learningRoute = createRoute({ getParentRoute: () => appRoute, path: '/lear
 const selfServiceRoute = createRoute({ getParentRoute: () => appRoute, path: '/self-service', component: SelfServicePage })
 const separationRoute = createRoute({ getParentRoute: () => appRoute, path: '/separation', component: ResignationPage })
 const reportsRoute = createRoute({ getParentRoute: () => appRoute, path: '/reports', component: ReportsPage })
+const workflowsRoute = createRoute({ getParentRoute: () => appRoute, path: '/workflows', component: WorkflowsPage })
 const settingsRoute = createRoute({ getParentRoute: () => appRoute, path: '/settings', component: SettingsPage })
 
 const indexRoute = createRoute({
@@ -175,6 +181,7 @@ const routeTree = rootRoute.addChildren([
     selfServiceRoute,
     separationRoute,
     reportsRoute,
+    workflowsRoute,
     settingsRoute,
   ]),
 ])
