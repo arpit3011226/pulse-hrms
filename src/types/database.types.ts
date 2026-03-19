@@ -1391,18 +1391,31 @@ export interface TrainingAssessmentAttemptWithRelations extends TrainingAssessme
   employee?: Pick<Employee, 'id' | 'first_name' | 'last_name' | 'email'> | null
 }
 
+export type AnnouncementPriority = 'low' | 'normal' | 'high' | 'urgent'
+export type AnnouncementAudienceType = 'all' | 'roles' | 'departments'
+
 export interface Announcement {
   id: string
   organization_id: string
   title: string
-  content: string | null
-  priority: string
+  content: string
+  priority: AnnouncementPriority
+  audience_type: AnnouncementAudienceType
+  audience_roles: string[]
+  audience_department_ids: string[]
+  is_pinned: boolean
   target_departments: string[] | null
   published_by: string | null
   is_active: boolean
   published_at: string
   expires_at: string | null
+  created_by: string | null
   created_at: string
+  updated_at: string
+}
+
+export interface AnnouncementWithCreator extends Announcement {
+  creator?: { id: string; first_name: string | null; last_name: string | null; avatar_url: string | null } | null
 }
 
 export interface Notification {

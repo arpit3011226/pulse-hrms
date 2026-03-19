@@ -26,14 +26,10 @@ import { ResignationPage } from '@/features/resignation/components/resignation-p
 import { SelfServicePage } from '@/features/self-service/components/self-service-page'
 import { SettingsPage } from '@/features/settings/components/settings-page'
 import { WorkflowsPage } from '@/features/workflows/components/workflows-page'
-import { DashboardStats } from '@/features/dashboard/components/dashboard-stats'
-import { RecentActivity } from '@/features/dashboard/components/recent-activity'
-import { QuickActions } from '@/features/dashboard/components/quick-actions'
+import { DashboardPage } from '@/features/dashboard/components/dashboard-page'
 import { PageHeader } from '@/components/layout/page-header'
 import { AuthBackground } from '@/components/shared/auth-background'
 import { useAuth } from '@/features/auth/hooks/use-auth'
-import { useDashboardStats, useRecentActivity } from '@/features/dashboard/hooks/use-dashboard'
-import { useWorkflowEvaluator } from '@/features/workflows/hooks/use-workflow-evaluator'
 import { Loader2 } from 'lucide-react'
 
 // Root
@@ -92,25 +88,7 @@ const onboardingRoute = createRoute({ getParentRoute: () => authRoute, path: '/o
 // App layout (protected)
 const appRoute = createRoute({ getParentRoute: () => rootRoute, id: 'app', component: AppLayout })
 
-// Dashboard
-function DashboardPage() {
-  const { data: stats, isLoading: statsLoading } = useDashboardStats()
-  const { data: activities } = useRecentActivity()
-
-  // Auto-evaluate workflows (birthday, anniversary, time-based triggers)
-  useWorkflowEvaluator()
-
-  return (
-    <div>
-      <PageHeader title="Dashboard" description="Welcome back! Here's an overview of your organization." />
-      <DashboardStats stats={stats} isLoading={statsLoading} />
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <RecentActivity activities={activities ?? []} />
-        <QuickActions />
-      </div>
-    </div>
-  )
-}
+// Dashboard (component imported from dashboard feature)
 
 const dashboardRoute = createRoute({ getParentRoute: () => appRoute, path: '/dashboard', component: DashboardPage })
 const employeesRoute = createRoute({ getParentRoute: () => appRoute, path: '/employees', component: EmployeeList })
