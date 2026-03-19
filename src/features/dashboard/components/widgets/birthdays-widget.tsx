@@ -2,7 +2,6 @@ import { Cake, Award } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getInitials } from '@/lib/utils'
 import { useUpcomingBirthdays, useUpcomingAnniversaries } from '../../hooks/use-dashboard'
@@ -48,7 +47,7 @@ function PersonList({ items, type }: { items: UpcomingPerson[]; type: 'birthday'
   }
 
   return (
-    <ScrollArea className="max-h-[220px]">
+    <div className="overflow-y-auto max-h-[200px]">
       <div className="space-y-2">
         {items.map((p) => (
           <div key={p.id} className="flex items-center gap-3 rounded-lg border p-2.5">
@@ -80,6 +79,6 @@ function PersonList({ items, type }: { items: UpcomingPerson[]; type: 'birthday'
           </div>
         ))}
       </div>
-    </ScrollArea>
+    </div>
   )
 }

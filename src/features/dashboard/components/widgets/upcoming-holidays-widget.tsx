@@ -1,7 +1,6 @@
 import { Calendar } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { useHolidays } from '@/features/leave/hooks/use-leave'
 
 export function UpcomingHolidaysWidget() {
@@ -32,7 +31,7 @@ export function UpcomingHolidaysWidget() {
         {upcoming.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">No upcoming holidays</p>
         ) : (
-          <ScrollArea className="max-h-[240px]">
+          <div className="overflow-y-auto max-h-[240px]">
             <div className="space-y-3">
               {upcoming.map((h) => {
                 const hDate = new Date(h.date)
@@ -62,7 +61,7 @@ export function UpcomingHolidaysWidget() {
                 )
               })}
             </div>
-          </ScrollArea>
+          </div>
         )}
       </CardContent>
     </Card>

@@ -1,7 +1,6 @@
 import { CalendarDays } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { useMyLeaveBalances } from '@/features/leave/hooks/use-leave'
 
 interface LeaveBalanceWidgetProps {
@@ -31,7 +30,7 @@ export function LeaveBalanceWidget({ employeeId }: LeaveBalanceWidgetProps) {
         ) : items.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">No leave balances found</p>
         ) : (
-          <ScrollArea className="max-h-[240px]">
+          <div className="overflow-y-auto max-h-[200px]">
             <div className="space-y-3">
               {items.map((b) => {
                 const lt = b.leave_type as any
@@ -52,7 +51,7 @@ export function LeaveBalanceWidget({ employeeId }: LeaveBalanceWidgetProps) {
                 )
               })}
             </div>
-          </ScrollArea>
+          </div>
         )}
       </CardContent>
     </Card>

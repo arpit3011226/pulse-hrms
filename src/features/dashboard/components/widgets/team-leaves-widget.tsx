@@ -2,7 +2,6 @@ import { Users } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { getInitials, formatDate } from '@/lib/utils'
 import { useTeamOnLeave, useOrgOnLeave } from '../../hooks/use-dashboard'
 
@@ -37,7 +36,7 @@ export function TeamLeavesWidget({ employeeId, isOrgWide }: TeamLeavesWidgetProp
         {(leaves ?? []).length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">No one on leave this week</p>
         ) : (
-          <ScrollArea className="max-h-[280px]">
+          <div className="overflow-y-auto max-h-[250px]">
             <div className="space-y-2">
               {onLeaveToday.length > 0 && (
                 <p className="text-xs font-semibold uppercase text-muted-foreground">Today</p>
@@ -52,7 +51,7 @@ export function TeamLeavesWidget({ employeeId, isOrgWide }: TeamLeavesWidgetProp
                 <LeaveRow key={l.id} item={l} />
               ))}
             </div>
-          </ScrollArea>
+          </div>
         )}
       </CardContent>
     </Card>

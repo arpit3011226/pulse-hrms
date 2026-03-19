@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { getInitials, formatDate } from '@/lib/utils'
 import { useAnnouncements, useDeleteAnnouncement } from '../../hooks/use-dashboard'
 import { AnnouncementFormDialog } from './announcement-form-dialog'
@@ -58,7 +57,7 @@ export function AnnouncementsWidget({ canManage, userRole, userDepartmentId }: A
         {announcements.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">No announcements</p>
         ) : (
-          <ScrollArea className="max-h-[350px]">
+          <div className="overflow-y-auto max-h-[300px]">
             <div className="space-y-3">
               {announcements.map((a) => (
                 <AnnouncementCard
@@ -69,7 +68,7 @@ export function AnnouncementsWidget({ canManage, userRole, userDepartmentId }: A
                 />
               ))}
             </div>
-          </ScrollArea>
+          </div>
         )}
       </CardContent>
       {showForm && <AnnouncementFormDialog open={showForm} onClose={() => setShowForm(false)} />}
