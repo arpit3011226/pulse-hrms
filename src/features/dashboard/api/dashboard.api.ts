@@ -134,7 +134,7 @@ export async function fetchRecentActivity(organizationId: string): Promise<Recen
 
   const { data: recentLeaves } = await supabase
     .from('leave_requests')
-    .select('id, status, created_at, employee:employees(first_name, last_name)')
+    .select('id, status, created_at, employee:employees!leave_requests_employee_id_fkey(first_name, last_name)')
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: false })
     .limit(5)

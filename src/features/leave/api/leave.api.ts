@@ -210,7 +210,7 @@ export async function getTeamLeaveRequests(managerId: string, orgId: string) {
 
   const { data, error } = await supabase
     .from('leave_requests')
-    .select('*, leave_type:leave_types(id, name, code), employee:employees(id, first_name, last_name, email, avatar_url, department_id, department:departments(id, name))')
+    .select('*, leave_type:leave_types(id, name, code), employee:employees!leave_requests_employee_id_fkey(id, first_name, last_name, email, avatar_url, department_id, department:departments!department_id(id, name))')
     .in('employee_id', reportIds)
     .eq('organization_id', orgId)
     .order('created_at', { ascending: false })
@@ -221,7 +221,7 @@ export async function getTeamLeaveRequests(managerId: string, orgId: string) {
 export async function getAllLeaveRequests(orgId: string, filters?: LeaveRequestFilters) {
   let query = supabase
     .from('leave_requests')
-    .select('*, leave_type:leave_types(id, name, code), employee:employees(id, first_name, last_name, email, avatar_url, department_id, department:departments(id, name)), approver:employees!leave_requests_approved_by_fkey(id, first_name, last_name)')
+    .select('*, leave_type:leave_types(id, name, code), employee:employees!leave_requests_employee_id_fkey(id, first_name, last_name, email, avatar_url, department_id, department:departments!department_id(id, name)), approver:employees!leave_requests_approved_by_fkey(id, first_name, last_name)')
     .eq('organization_id', orgId)
 
   if (filters?.status) query = query.eq('status', filters.status)
