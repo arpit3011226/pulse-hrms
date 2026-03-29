@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { GOAL_CATEGORIES, GOAL_UNITS } from '@/lib/constants'
 import {
@@ -201,8 +200,10 @@ export function GoalFormDialog({ open, onOpenChange, goal, employeeId, cycleId }
         toast.success('Goal created')
       }
       onOpenChange(false)
-    } catch {
-      toast.error('Failed to save goal')
+    } catch (err: any) {
+      const msg = err?.message || err?.toString() || 'Unknown error'
+      console.error('Failed to save goal:', err)
+      toast.error(`Failed to save goal: ${msg}`)
     }
   }
 
@@ -214,8 +215,8 @@ export function GoalFormDialog({ open, onOpenChange, goal, employeeId, cycleId }
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Goal' : 'Create Goal'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
-          <ScrollArea className="flex-1 pr-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto pr-2">
             <div className="space-y-6 pb-4">
               {/* Goal Title */}
               <div className="space-y-2">
@@ -365,7 +366,7 @@ export function GoalFormDialog({ open, onOpenChange, goal, employeeId, cycleId }
                 ))}
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
           <DialogFooter className="pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
