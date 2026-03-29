@@ -131,7 +131,7 @@ export async function deleteReviewCompetency(id: string) {
 export async function getEmployeeGoals(orgId: string, cycleId?: string) {
   let query = supabase
     .from('employee_goals')
-    .select('*, employee:employees(id, first_name, last_name, email, employee_code), performance_cycle:performance_cycles(id, cycle_name, cycle_code), goal_key_results(*)')
+    .select('*, employee:employees!employee_id(id, first_name, last_name, email, employee_code), performance_cycle:performance_cycles(id, cycle_name, cycle_code), goal_key_results(*)')
     .eq('organization_id', orgId)
 
   if (cycleId) query = query.eq('performance_cycle_id', cycleId)
@@ -144,7 +144,7 @@ export async function getEmployeeGoals(orgId: string, cycleId?: string) {
 export async function getMyGoals(employeeId: string, cycleId?: string) {
   let query = supabase
     .from('employee_goals')
-    .select('*, employee:employees(id, first_name, last_name, email, employee_code), performance_cycle:performance_cycles(id, cycle_name, cycle_code), goal_key_results(*)')
+    .select('*, employee:employees!employee_id(id, first_name, last_name, email, employee_code), performance_cycle:performance_cycles(id, cycle_name, cycle_code), goal_key_results(*)')
     .eq('employee_id', employeeId)
 
   if (cycleId) query = query.eq('performance_cycle_id', cycleId)
@@ -691,7 +691,7 @@ export async function submitSkipLevelReview(data: Partial<SkipLevelReview>) {
 export async function getOrganizationGoals(orgId: string, cycleId?: string) {
   let query = supabase
     .from('employee_goals')
-    .select('*, employee:employees(id, first_name, last_name, email, employee_code), performance_cycle:performance_cycles(id, cycle_name, cycle_code), goal_key_results(*), creator:employees!employee_goals_created_by_fkey(id, first_name, last_name)')
+    .select('*, employee:employees!employee_id(id, first_name, last_name, email, employee_code), performance_cycle:performance_cycles(id, cycle_name, cycle_code), goal_key_results(*), creator:employees!employee_goals_created_by_fkey(id, first_name, last_name)')
     .eq('organization_id', orgId)
     .in('category', ['organizational', 'team'])
 
@@ -705,7 +705,7 @@ export async function getOrganizationGoals(orgId: string, cycleId?: string) {
 export async function getGoalHierarchy(parentGoalId: string) {
   const { data, error } = await supabase
     .from('employee_goals')
-    .select('*, employee:employees(id, first_name, last_name, email, employee_code), goal_key_results(*)')
+    .select('*, employee:employees!employee_id(id, first_name, last_name, email, employee_code), goal_key_results(*)')
     .eq('parent_goal_id', parentGoalId)
     .order('created_at', { ascending: false })
   if (error) throw error
@@ -727,7 +727,7 @@ export async function getTeamGoals(managerId: string, orgId: string, cycleId?: s
 
   let query = supabase
     .from('employee_goals')
-    .select('*, employee:employees(id, first_name, last_name, email, employee_code), performance_cycle:performance_cycles(id, cycle_name, cycle_code), goal_key_results(*)')
+    .select('*, employee:employees!employee_id(id, first_name, last_name, email, employee_code), performance_cycle:performance_cycles(id, cycle_name, cycle_code), goal_key_results(*)')
     .in('employee_id', reportIds)
 
   if (cycleId) query = query.eq('performance_cycle_id', cycleId)
