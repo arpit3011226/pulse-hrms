@@ -57,7 +57,7 @@ export function AnnouncementsWidget({ canManage, userRole, userDepartmentId }: A
         {announcements.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">No announcements</p>
         ) : (
-          <div className="overflow-y-auto max-h-[300px]">
+          <div className="overflow-y-auto max-h-[280px]">
             <div className="space-y-3">
               {announcements.map((a) => (
                 <AnnouncementCard

@@ -23,7 +23,7 @@ export function RecentActivity({ activities }: RecentActivityProps) {
         {activities.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">No recent activity</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto max-h-[280px]">
             {activities.map((activity) => (
               <div key={activity.id} className="flex items-start gap-3">
                 <Avatar className="h-8 w-8">

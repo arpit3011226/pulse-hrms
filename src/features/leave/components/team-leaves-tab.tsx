@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -31,7 +32,13 @@ export function TeamLeavesTab() {
         const emp = row.original.employee
         return emp ? (
           <div>
-            <p className="font-medium">{emp.first_name} {emp.last_name}</p>
+            <Link
+              to="/employees/$employeeId"
+              params={{ employeeId: row.original.employee_id }}
+              className="font-medium text-primary hover:underline"
+            >
+              {emp.first_name} {emp.last_name}
+            </Link>
             <p className="text-xs text-muted-foreground">{emp.department?.name || ''}</p>
           </div>
         ) : '-'

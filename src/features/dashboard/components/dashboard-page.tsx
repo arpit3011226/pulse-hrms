@@ -48,9 +48,9 @@ export function DashboardPage() {
       <DashboardStats stats={stats} isLoading={statsLoading} role={role} />
 
       {/* Main Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-[1fr_380px] items-start">
         {/* Left Column */}
-        <div className="space-y-6">
+        <div className="space-y-6 min-w-0">
           <AnnouncementsWidget
             canManage={canManageAnnouncements}
             userRole={role}
@@ -66,7 +66,7 @@ export function DashboardPage() {
         </div>
 
         {/* Right Column */}
-        <div className="space-y-6">
+        <div className="space-y-6 min-w-0">
           <UpcomingHolidaysWidget />
           {showTeamWidgets && (
             <TeamLeavesWidget employeeId={employeeId} isOrgWide={isAdmin || isLeadership} />
