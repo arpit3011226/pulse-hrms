@@ -17,6 +17,9 @@ import {
   useUpdateEmployeeGoal,
   useUpsertGoalKeyResults,
 } from '../hooks/use-performance'
+import { useAuth } from '@/features/auth/hooks/use-auth'
+import { supabase } from '@/lib/supabase'
+import { useQuery } from '@tanstack/react-query'
 import type { EmployeeGoal, GoalKeyResult } from '@/types/database.types'
 import { toast } from 'sonner'
 
@@ -58,10 +61,30 @@ interface GoalFormDialogProps {
 
 export function GoalFormDialog({ open, onOpenChange, goal, employeeId, cycleId }: GoalFormDialogProps) {
   const isEditing = !!goal
+  const isAdminMode = !employeeId // admin creating goal for someone else
   const createGoal = useCreateEmployeeGoal()
   const updateGoal = useUpdateEmployeeGoal()
   const upsertKRs = useUpsertGoalKeyResults()
   const [keyResults, setKeyResults] = useState<KeyResultRow[]>([])
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('')
+  const { organization } = useAuth()
+
+  // Fetch employees list for admin mode
+  const { data: employees } = useQuery({
+    queryKey: ['employees-list-for-goals', organization?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name, employee_code')
+        .eq('organization_id', organization!.id)
+        .eq('status', 'active')
+        .order('first_name')
+      return data ?? []
+    },
+    enabled: isAdminMode && !!organization?.id && open,
+  })
+
+  const resolvedEmployeeId = isAdminMode ? selectedEmployeeId : employeeId
 
   const {
     register,
@@ -120,6 +143,7 @@ export function GoalFormDialog({ open, onOpenChange, goal, employeeId, cycleId }
         due_date: '',
       })
       setKeyResults([])
+      setSelectedEmployeeId('')
     }
   }, [goal, reset])
 
@@ -138,6 +162,10 @@ export function GoalFormDialog({ open, onOpenChange, goal, employeeId, cycleId }
   const krWeightageTotal = keyResults.reduce((sum, kr) => sum + kr.weightage, 0)
 
   const onSubmit = async (data: GoalFormData) => {
+    if (!resolvedEmployeeId) {
+      toast.error('Please select an employee')
+      return
+    }
     if (keyResults.length > 0 && Math.abs(krWeightageTotal - 100) > 0.01) {
       toast.error('Key result weightages must sum to 100')
       return
@@ -172,7 +200,7 @@ export function GoalFormDialog({ open, onOpenChange, goal, employeeId, cycleId }
         toast.success('Goal updated')
       } else {
         const newGoal = await createGoal.mutateAsync({
-          employee_id: employeeId,
+          employee_id: resolvedEmployeeId,
           performance_cycle_id: cycleId,
           goal_title: data.goal_title,
           goal_description: data.goal_description || null,
@@ -218,6 +246,25 @@ export function GoalFormDialog({ open, onOpenChange, goal, employeeId, cycleId }
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-y-auto pr-2">
             <div className="space-y-6 pb-4">
+              {/* Employee Selector (admin mode only) */}
+              {isAdminMode && !isEditing && (
+                <div className="space-y-2">
+                  <Label>Employee *</Label>
+                  <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select employee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(employees ?? []).map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          {emp.first_name} {emp.last_name} ({emp.employee_code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {/* Goal Title */}
               <div className="space-y-2">
                 <Label htmlFor="goal_title">Goal Title *</Label>
