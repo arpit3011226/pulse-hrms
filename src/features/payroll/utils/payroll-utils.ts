@@ -165,3 +165,47 @@ export function formatCurrency(amount: number): string {
 export function getMonthName(month: number): string {
   return new Date(2000, month - 1).toLocaleString('en', { month: 'long' })
 }
+
+// ============================================
+// CSV Export Utilities
+// ============================================
+
+export interface PayrollCSVRow {
+  employeeName: string
+  employeeCode: string
+  netPay: number
+  bankName: string
+  accountNumber: string
+  ifscCode: string
+}
+
+export function generatePayrollCSV(rows: PayrollCSVRow[], month: number, year: number): string {
+  const header = ['Employee Name', 'Employee Code', 'Net Pay (INR)', 'Bank Name', 'Account Number', 'IFSC Code']
+  const csvRows = [
+    header.join(','),
+    ...rows.map((r) =>
+      [
+        `"${r.employeeName}"`,
+        r.employeeCode,
+        r.netPay.toFixed(2),
+        `"${r.bankName}"`,
+        `"${r.accountNumber}"`,
+        r.ifscCode,
+      ].join(',')
+    ),
+  ]
+  return csvRows.join('\n')
+}
+
+export function downloadCSV(csvContent: string, filename: string) {
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.style.display = 'none'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}

@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 export async function fetchEmployeesByDepartment(organizationId: string) {
   const { data, error } = await supabase
     .from('employees')
-    .select('id, status, employment_type, department:departments(id, name), created_at')
+    .select('id, status, employment_type, department:departments!department_id(id, name), created_at')
     .eq('organization_id', organizationId)
   if (error) throw error
   return data
@@ -28,7 +28,7 @@ export async function fetchLeaveReport(organizationId: string) {
 export async function fetchAttendanceReport(organizationId: string, startDate: string, endDate: string) {
   const { data, error } = await supabase
     .from('attendance_records')
-    .select('id, date, status, employee:employees(first_name, last_name, employee_code, department:departments(name))')
+    .select('id, date, status, employee:employees(first_name, last_name, employee_code, department:departments!department_id(name))')
     .eq('organization_id', organizationId)
     .gte('date', startDate)
     .lte('date', endDate)
@@ -42,7 +42,7 @@ export async function fetchAttendanceReport(organizationId: string, startDate: s
 export async function fetchPayrollReport(organizationId: string) {
   const { data, error } = await supabase
     .from('payslips')
-    .select('id, net_pay, gross_earnings, total_deductions, pay_period_start, pay_period_end, status, employee:employees(first_name, last_name, employee_code, department:departments(name))')
+    .select('id, net_pay, gross_earnings, total_deductions, pay_period_start, pay_period_end, status, employee:employees(first_name, last_name, employee_code, department:departments!department_id(name))')
     .eq('organization_id', organizationId)
     .order('pay_period_start', { ascending: false })
   if (error) throw error

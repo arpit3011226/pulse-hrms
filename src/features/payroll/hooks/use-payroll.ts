@@ -43,6 +43,7 @@ import {
   createPayrollAdjustment,
   deletePayrollAdjustment,
   getPayslipDetail,
+  executePayrollForCycle,
 } from '../api/payroll.api'
 
 // ============================================
@@ -307,6 +308,7 @@ export function useComputePayroll() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payroll-runs'] })
       queryClient.invalidateQueries({ queryKey: ['payroll-run-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['payroll-cycles'] })
     },
   })
 }
@@ -314,11 +316,35 @@ export function useComputePayroll() {
 export function useApprovePayrollRun() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ runId, approvedBy }: { runId: string; approvedBy?: string }) =>
-      updatePayrollRunStatus(runId, { run_status: 'approved', approved_by: approvedBy, approved_at: new Date().toISOString() }),
+    mutationFn: async ({ runId, approvedBy }: { runId: string; approvedBy?: string }) => {
+      // 1. Update the run status
+      const updatedRun = await updatePayrollRunStatus(runId, {
+        run_status: 'approved',
+        approved_by: approvedBy,
+        approved_at: new Date().toISOString(),
+      })
+      // 2. Update parent cycle status to 'approved'
+      if (updatedRun?.payroll_cycle_id) {
+        await updatePayrollCycleStatus(updatedRun.payroll_cycle_id, 'approved')
+      }
+      return updatedRun
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payroll-runs'] })
       queryClient.invalidateQueries({ queryKey: ['payroll-run-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['payroll-cycles'] })
+    },
+  })
+}
+
+export function useExecutePayroll() {
+  const queryClient = useQueryClient()
+  const { organization } = useAuth()
+  return useMutation({
+    mutationFn: (cycleId: string) => executePayrollForCycle(cycleId, organization!.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payroll-cycles'] })
+      queryClient.invalidateQueries({ queryKey: ['payroll-runs'] })
     },
   })
 }

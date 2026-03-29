@@ -44,14 +44,23 @@ export interface PayslipPdfData {
 
 const COMPANY_ADDRESS = '4th Floor, #597, 15th Cross Road, Outer Ring Rd, MG Layout, JP Nagar Phase 6, J. P. Nagar, Bengaluru, Karnataka 560078'
 
-const COLORS = {
-  primary: [50, 50, 55] as [number, number, number],       // Dark charcoal
-  dark: [30, 30, 30] as [number, number, number],
-  muted: [100, 100, 100] as [number, number, number],
-  light: [245, 245, 247] as [number, number, number],
+// Clean professional color palette — August brand
+const C = {
+  black: [20, 20, 20] as [number, number, number],
+  dark: [40, 40, 45] as [number, number, number],
+  text: [55, 55, 60] as [number, number, number],
+  muted: [120, 120, 130] as [number, number, number],
+  light: [245, 245, 248] as [number, number, number],
   white: [255, 255, 255] as [number, number, number],
-  border: [210, 210, 215] as [number, number, number],
-  accent: [180, 40, 100] as [number, number, number],      // August magenta/pink
+  border: [215, 215, 220] as [number, number, number],
+  // August brand magenta/crimson
+  august: [190, 30, 90] as [number, number, number],
+  augustLight: [252, 235, 243] as [number, number, number],
+  // Accent = August brand
+  accent: [190, 30, 90] as [number, number, number],
+  accentBg: [252, 235, 243] as [number, number, number],
+  greenBg: [236, 253, 245] as [number, number, number],
+  green: [16, 185, 129] as [number, number, number],
 }
 
 /** Format number in Indian comma style without currency symbol */
@@ -72,25 +81,31 @@ function formatDateShort(dateStr: string | null): string {
   return new Date(dateStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-/** Draw the August logo — concentric circles target icon */
+/** Draw August logo — concentric circles in brand magenta */
 function drawAugustLogo(doc: jsPDF, x: number, y: number, size: number) {
   const cx = x + size / 2
   const cy = y + size / 2
   const r = size / 2
 
-  // Outer circle
-  doc.setDrawColor(180, 40, 100)
-  doc.setLineWidth(1.2)
-  doc.setFillColor(255, 255, 255)
-  doc.circle(cx, cy, r, 'FD')
+  // Outer filled circle (magenta)
+  doc.setFillColor(...C.august)
+  doc.circle(cx, cy, r, 'F')
 
-  // Middle ring
-  doc.setLineWidth(1.0)
-  doc.circle(cx, cy, r * 0.65, 'D')
+  // White ring
+  doc.setFillColor(...C.white)
+  doc.circle(cx, cy, r * 0.75, 'F')
 
-  // Inner filled circle
-  doc.setFillColor(180, 40, 100)
-  doc.circle(cx, cy, r * 0.3, 'F')
+  // Middle filled circle (magenta)
+  doc.setFillColor(...C.august)
+  doc.circle(cx, cy, r * 0.55, 'F')
+
+  // Inner white ring
+  doc.setFillColor(...C.white)
+  doc.circle(cx, cy, r * 0.35, 'F')
+
+  // Center dot (magenta)
+  doc.setFillColor(...C.august)
+  doc.circle(cx, cy, r * 0.18, 'F')
 }
 
 export function generatePayslipPdf(data: PayslipPdfData, organization: Organization): void {
@@ -98,96 +113,139 @@ export function generatePayslipPdf(data: PayslipPdfData, organization: Organizat
   const pageWidth = 210
   const margin = 16
   const contentWidth = pageWidth - margin * 2
-  let y = margin
+  let y = 0
 
-  // ── Header: Company branding ──
-  doc.setFillColor(...COLORS.primary)
-  doc.rect(0, 0, pageWidth, 38, 'F')
+  // ── Thin accent line at top ──
+  doc.setFillColor(...C.august)
+  doc.rect(0, 0, pageWidth, 2, 'F')
 
-  // Draw August logo
-  drawAugustLogo(doc, margin, 5, 12)
+  y = 8
 
-  // Company name next to logo
-  doc.setTextColor(...COLORS.white)
+  // ── Header: Company branding (white background) ──
+  // August logo (concentric circles)
+  drawAugustLogo(doc, margin, y, 14)
+
+  // Company name
+  doc.setTextColor(...C.black)
   doc.setFontSize(16)
   doc.setFont('helvetica', 'bold')
-  doc.text(organization.name || 'Augustinnovate Pvt. Ltd.', margin + 16, 14)
+  doc.text(organization.name || 'Augustinnovate Pvt. Ltd.', margin + 18, y + 6)
 
   // Company address
-  doc.setFontSize(7.5)
+  doc.setTextColor(...C.muted)
+  doc.setFontSize(7)
   doc.setFont('helvetica', 'normal')
-  doc.text(COMPANY_ADDRESS, margin + 16, 20)
+  const addressLines = doc.splitTextToSize(COMPANY_ADDRESS, 100)
+  doc.text(addressLines, margin + 18, y + 11)
 
-  // Website only (no phone/email)
+  // Website
   if (organization.website) {
-    doc.text(organization.website, margin + 16, 25)
+    doc.setTextColor(...C.accent)
+    doc.setFontSize(7)
+    doc.text(organization.website, margin + 18, y + 11 + addressLines.length * 3.5)
   }
 
-  // Payslip title on right
-  doc.setFontSize(12)
+  // Right side — PAYSLIP badge
+  doc.setFillColor(...C.accentBg)
+  doc.roundedRect(pageWidth - margin - 48, y - 1, 48, 10, 2, 2, 'F')
+  doc.setTextColor(...C.accent)
+  doc.setFontSize(11)
   doc.setFont('helvetica', 'bold')
-  doc.text('PAYSLIP', pageWidth - margin, 14, { align: 'right' })
-  doc.setFontSize(9)
-  doc.setFont('helvetica', 'normal')
-  doc.text(`${getMonthName(data.payroll_month)} ${data.payroll_year}`, pageWidth - margin, 21, { align: 'right' })
-  doc.setFontSize(8)
-  doc.text(data.payslip_number, pageWidth - margin, 27, { align: 'right' })
+  doc.text('PAYSLIP', pageWidth - margin - 24, y + 6, { align: 'center' })
 
-  y = 45
+  // Month/year and payslip number
+  doc.setTextColor(...C.dark)
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'bold')
+  doc.text(`${getMonthName(data.payroll_month)} ${data.payroll_year}`, pageWidth - margin, y + 16, { align: 'right' })
+  doc.setTextColor(...C.muted)
+  doc.setFontSize(7.5)
+  doc.setFont('helvetica', 'normal')
+  doc.text(data.payslip_number, pageWidth - margin, y + 21, { align: 'right' })
+
+  y += 30
+
+  // ── Separator line ──
+  doc.setDrawColor(...C.border)
+  doc.setLineWidth(0.3)
+  doc.line(margin, y, pageWidth - margin, y)
+
+  y += 6
 
   // ── Employee Details Section ──
-  const emp = data.employee
-  doc.setFillColor(...COLORS.light)
-  doc.roundedRect(margin, y, contentWidth, 46, 2, 2, 'F')
+  doc.setFillColor(...C.light)
+  doc.roundedRect(margin, y, contentWidth, 40, 2, 2, 'F')
 
-  doc.setTextColor(...COLORS.muted)
-  doc.setFontSize(7)
+  // Section title
+  doc.setTextColor(...C.accent)
+  doc.setFontSize(7.5)
   doc.setFont('helvetica', 'bold')
-  doc.text('EMPLOYEE DETAILS', margin + 4, y + 5)
+  doc.text('EMPLOYEE DETAILS', margin + 5, y + 6)
 
-  const col1x = margin + 4
+  const emp = data.employee
+  const col1x = margin + 5
   const col2x = margin + contentWidth / 3
   const col3x = margin + (contentWidth / 3) * 2
-  const labelY = y + 11
-  const valueY = y + 15
 
   const drawField = (label: string, value: string, x: number, ly: number, vy: number) => {
-    doc.setTextColor(...COLORS.muted)
+    doc.setTextColor(...C.muted)
     doc.setFontSize(6.5)
     doc.setFont('helvetica', 'normal')
     doc.text(label, x, ly)
-    doc.setTextColor(...COLORS.dark)
+    doc.setTextColor(...C.dark)
     doc.setFontSize(8)
     doc.setFont('helvetica', 'bold')
     doc.text(value || '-', x, vy)
   }
 
   // Row 1
-  drawField('Employee Name', emp ? `${emp.first_name} ${emp.last_name}` : '-', col1x, labelY, valueY)
-  drawField('Employee Code', emp?.employee_code || '-', col2x, labelY, valueY)
-  drawField('Department', emp?.department?.name || '-', col3x, labelY, valueY)
+  const r1ly = y + 12
+  const r1vy = y + 16
+  drawField('Employee Name', emp ? `${emp.first_name} ${emp.last_name}` : '-', col1x, r1ly, r1vy)
+  drawField('Employee Code', emp?.employee_code || '-', col2x, r1ly, r1vy)
+  drawField('Department', emp?.department?.name || '-', col3x, r1ly, r1vy)
 
   // Row 2
-  const r2ly = labelY + 10
-  const r2vy = valueY + 10
+  const r2ly = r1ly + 9
+  const r2vy = r1vy + 9
   drawField('Designation', emp?.designation?.title || '-', col1x, r2ly, r2vy)
   drawField('Date of Joining', formatDateShort(emp?.date_of_joining || null), col2x, r2ly, r2vy)
   drawField('PAN', emp?.pan_number || '-', col3x, r2ly, r2vy)
 
   // Row 3
-  const r3ly = r2ly + 10
-  const r3vy = r2vy + 10
+  const r3ly = r2ly + 9
+  const r3vy = r2vy + 9
   drawField('Bank A/C', maskBankAccount(emp?.bank_details?.account_number), col1x, r3ly, r3vy)
   drawField('UAN', emp?.uan_number || '-', col2x, r3ly, r3vy)
   drawField('Working Days', String(data.working_days ?? '-'), col3x, r3ly, r3vy)
 
-  // Row 4
-  const r4ly = r3ly + 10
-  const r4vy = r3vy + 10
-  drawField('LOP Days', String(data.lop_days ?? '0'), col1x, r4ly, r4vy)
-  drawField('Present Days', String(data.present_days ?? '-'), col2x, r4ly, r4vy)
+  y += 46
 
-  y += 52
+  // ── Attendance Summary (small row) ──
+  const attendRow = [
+    { label: 'Present Days', value: String(data.present_days ?? '-') },
+    { label: 'LOP Days', value: String(data.lop_days ?? '0') },
+    { label: 'Pay Period', value: `${getMonthName(data.payroll_month)} ${data.payroll_year}` },
+  ]
+
+  doc.setDrawColor(...C.border)
+  doc.setLineWidth(0.2)
+  const attColWidth = contentWidth / attendRow.length
+  for (let i = 0; i < attendRow.length; i++) {
+    const ax = margin + i * attColWidth
+    doc.setFillColor(...C.white)
+    doc.rect(ax, y, attColWidth, 10, 'FD')
+    doc.setTextColor(...C.muted)
+    doc.setFontSize(6.5)
+    doc.setFont('helvetica', 'normal')
+    doc.text(attendRow[i].label, ax + 4, y + 4)
+    doc.setTextColor(...C.dark)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'bold')
+    doc.text(attendRow[i].value, ax + 4, y + 8.5)
+  }
+
+  y += 15
 
   // ── Earnings & Deductions Table ──
   const tableWidth = contentWidth
@@ -196,18 +254,19 @@ export function generatePayslipPdf(data: PayslipPdfData, organization: Organizat
   const deductionsX = margin + halfWidth
 
   // Table header
-  doc.setFillColor(...COLORS.primary)
-  doc.rect(earningsX, y, halfWidth, 7, 'F')
-  doc.rect(deductionsX, y, halfWidth, 7, 'F')
+  doc.setFillColor(...C.accent)
+  doc.roundedRect(earningsX, y, halfWidth - 0.5, 8, 1.5, 1.5, 'F')
+  doc.setFillColor(...C.accent)
+  doc.roundedRect(deductionsX + 0.5, y, halfWidth - 0.5, 8, 1.5, 1.5, 'F')
 
-  doc.setTextColor(...COLORS.white)
-  doc.setFontSize(8)
+  doc.setTextColor(...C.white)
+  doc.setFontSize(7.5)
   doc.setFont('helvetica', 'bold')
-  doc.text('EARNINGS', earningsX + 4, y + 5)
-  doc.text('Amount (INR)', earningsX + halfWidth - 6, y + 5, { align: 'right' })
-  doc.text('DEDUCTIONS', deductionsX + 4, y + 5)
-  doc.text('Amount (INR)', deductionsX + halfWidth - 6, y + 5, { align: 'right' })
-  y += 7
+  doc.text('EARNINGS', earningsX + 5, y + 5.5)
+  doc.text('Amount', earningsX + halfWidth - 7, y + 5.5, { align: 'right' })
+  doc.text('DEDUCTIONS', deductionsX + 5, y + 5.5)
+  doc.text('Amount', deductionsX + halfWidth - 7, y + 5.5, { align: 'right' })
+  y += 8
 
   // Table rows
   const sortedEarnings = [...data.earnings].sort((a, b) =>
@@ -216,17 +275,17 @@ export function generatePayslipPdf(data: PayslipPdfData, organization: Organizat
     (a.salary_component?.component_name || '').localeCompare(b.salary_component?.component_name || ''))
 
   const maxRows = Math.max(sortedEarnings.length, sortedDeductions.length, 1)
-  const rowHeight = 6
+  const rowHeight = 7
 
   for (let i = 0; i < maxRows; i++) {
     const rowY = y + i * rowHeight
-    const bgColor = i % 2 === 0 ? COLORS.white : COLORS.light
+    const bgColor = i % 2 === 0 ? C.white : C.light
     doc.setFillColor(...bgColor)
     doc.rect(earningsX, rowY, halfWidth, rowHeight, 'F')
     doc.rect(deductionsX, rowY, halfWidth, rowHeight, 'F')
 
-    // Border between left and right
-    doc.setDrawColor(...COLORS.border)
+    // Vertical divider
+    doc.setDrawColor(...C.border)
     doc.setLineWidth(0.3)
     doc.line(deductionsX, rowY, deductionsX, rowY + rowHeight)
 
@@ -235,92 +294,106 @@ export function generatePayslipPdf(data: PayslipPdfData, organization: Organizat
     // Earning row
     if (i < sortedEarnings.length) {
       const e = sortedEarnings[i]
-      doc.setTextColor(...COLORS.dark)
+      doc.setTextColor(...C.text)
       doc.setFont('helvetica', 'normal')
-      doc.text(e.salary_component?.component_name || '-', earningsX + 4, rowY + 4)
+      doc.text(e.salary_component?.component_name || '-', earningsX + 5, rowY + 4.5)
+      doc.setTextColor(...C.dark)
       doc.setFont('helvetica', 'bold')
-      doc.text(formatAmount(e.amount), earningsX + halfWidth - 6, rowY + 4, { align: 'right' })
+      doc.text(formatAmount(e.amount), earningsX + halfWidth - 7, rowY + 4.5, { align: 'right' })
     }
 
     // Deduction row
     if (i < sortedDeductions.length) {
       const d = sortedDeductions[i]
-      doc.setTextColor(...COLORS.dark)
+      doc.setTextColor(...C.text)
       doc.setFont('helvetica', 'normal')
-      doc.text(d.salary_component?.component_name || '-', deductionsX + 4, rowY + 4)
+      doc.text(d.salary_component?.component_name || '-', deductionsX + 5, rowY + 4.5)
+      doc.setTextColor(...C.dark)
       doc.setFont('helvetica', 'bold')
-      doc.text(formatAmount(d.amount), deductionsX + halfWidth - 6, rowY + 4, { align: 'right' })
+      doc.text(formatAmount(d.amount), deductionsX + halfWidth - 7, rowY + 4.5, { align: 'right' })
     }
   }
 
   y += maxRows * rowHeight
 
-  // Table border
-  doc.setDrawColor(...COLORS.border)
+  // Table outer border
+  doc.setDrawColor(...C.border)
   doc.setLineWidth(0.3)
   doc.rect(earningsX, y - maxRows * rowHeight, tableWidth, maxRows * rowHeight)
 
-  // Totals row
-  doc.setFillColor(...COLORS.light)
-  doc.rect(earningsX, y, halfWidth, 7, 'F')
-  doc.rect(deductionsX, y, halfWidth, 7, 'F')
-  doc.setDrawColor(...COLORS.primary)
+  // ── Totals row ──
+  doc.setFillColor(...C.light)
+  doc.rect(earningsX, y, halfWidth, 8, 'F')
+  doc.rect(deductionsX, y, halfWidth, 8, 'F')
+  doc.setDrawColor(...C.accent)
   doc.setLineWidth(0.5)
   doc.line(earningsX, y, earningsX + tableWidth, y)
 
   doc.setFontSize(8)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...COLORS.dark)
-  doc.text('Total Earnings', earningsX + 4, y + 5)
-  doc.text(formatAmount(data.gross_earnings), earningsX + halfWidth - 6, y + 5, { align: 'right' })
-  doc.text('Total Deductions', deductionsX + 4, y + 5)
-  doc.text(formatAmount(data.total_deductions), deductionsX + halfWidth - 6, y + 5, { align: 'right' })
+  doc.setTextColor(...C.dark)
+  doc.text('Total Earnings', earningsX + 5, y + 5.5)
+  doc.setTextColor(...C.accent)
+  doc.text(formatAmount(data.gross_earnings), earningsX + halfWidth - 7, y + 5.5, { align: 'right' })
+  doc.setTextColor(...C.dark)
+  doc.text('Total Deductions', deductionsX + 5, y + 5.5)
+  doc.setTextColor(220, 50, 50)
+  doc.text(formatAmount(data.total_deductions), deductionsX + halfWidth - 7, y + 5.5, { align: 'right' })
 
-  y += 12
+  y += 14
 
   // ── Net Pay Box ──
-  doc.setFillColor(...COLORS.primary)
-  doc.roundedRect(margin, y, contentWidth, 16, 2, 2, 'F')
+  doc.setFillColor(...C.greenBg)
+  doc.setDrawColor(...C.green)
+  doc.setLineWidth(0.5)
+  doc.roundedRect(margin, y, contentWidth, 18, 3, 3, 'FD')
 
-  doc.setTextColor(...COLORS.white)
-  doc.setFontSize(10)
+  doc.setTextColor(...C.text)
+  doc.setFontSize(9)
   doc.setFont('helvetica', 'bold')
-  doc.text('NET PAY', margin + 4, y + 7)
-  doc.setFontSize(14)
-  doc.text(formatAmount(data.net_pay), pageWidth - margin - 6, y + 8, { align: 'right' })
+  doc.text('NET PAY', margin + 6, y + 7)
+
+  // Currency symbol + amount
+  doc.setTextColor(16, 150, 110)
+  doc.setFontSize(16)
+  doc.setFont('helvetica', 'bold')
+  doc.text(`INR ${formatAmount(data.net_pay)}`, pageWidth - margin - 6, y + 8, { align: 'right' })
 
   // Amount in words
+  doc.setTextColor(...C.muted)
   doc.setFontSize(7)
-  doc.setFont('helvetica', 'normal')
-  doc.text(numberToWords(data.net_pay), margin + 4, y + 13)
+  doc.setFont('helvetica', 'italic')
+  doc.text(numberToWords(data.net_pay), margin + 6, y + 14)
 
-  y += 22
+  y += 24
 
   // ── Footer ──
-  const footerY = 270
+  const footerY = 268
 
-  // Separator line
-  doc.setDrawColor(...COLORS.border)
-  doc.setLineWidth(0.3)
-  doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5)
+  // Thin August accent line above footer
+  doc.setDrawColor(...C.august)
+  doc.setLineWidth(0.5)
+  doc.line(margin, footerY - 8, pageWidth - margin, footerY - 8)
 
-  doc.setTextColor(...COLORS.muted)
+  doc.setTextColor(...C.muted)
   doc.setFontSize(6.5)
   doc.setFont('helvetica', 'italic')
   doc.text(
     'This is a computer-generated payslip and does not require a signature.',
-    pageWidth / 2, footerY, { align: 'center' }
+    pageWidth / 2, footerY - 2, { align: 'center' }
   )
 
   doc.setFont('helvetica', 'normal')
+  doc.setFontSize(6.5)
   doc.text(
     `Generated on: ${formatDateShort(data.generated_on)}  |  ${organization.name || 'Augustinnovate Pvt. Ltd.'}  |  Confidential`,
-    pageWidth / 2, footerY + 4, { align: 'center' }
+    pageWidth / 2, footerY + 2, { align: 'center' }
   )
 
+  doc.setFontSize(6)
   doc.text(
     COMPANY_ADDRESS,
-    pageWidth / 2, footerY + 8, { align: 'center' }
+    pageWidth / 2, footerY + 6, { align: 'center' }
   )
 
   // Download

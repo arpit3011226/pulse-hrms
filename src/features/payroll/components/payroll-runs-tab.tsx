@@ -13,6 +13,8 @@ import {
   ShieldCheck,
   XCircle,
   Clock,
+  Banknote,
+  Download,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -37,10 +39,10 @@ import {
   usePayrollRunDetail,
   useCreatePayrollRun,
   useComputePayroll,
-  useApprovePayrollRun,
   useGeneratePayslips,
   usePublishPayslips,
   useCurrentEmployee,
+  useExecutePayroll,
 } from '../hooks/use-payroll'
 import {
   usePayrollApprovals,
@@ -158,12 +160,12 @@ export function PayrollRunsTab() {
   // Mutations
   const createRun = useCreatePayrollRun()
   const computePayroll = useComputePayroll()
-  const approveRun = useApprovePayrollRun()
   const generatePayslips = useGeneratePayslips()
   const publishPayslips = usePublishPayslips()
   const submitForApproval = useSubmitForApproval()
   const approveCycle = useApprovePayrollCycle()
   const rejectCycle = useRejectPayrollCycle()
+  const executePayroll = useExecutePayroll()
 
   // Year options (current year +/- 2)
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i)
@@ -206,17 +208,10 @@ export function PayrollRunsTab() {
     try {
       await computePayroll.mutateAsync(runId)
       toast.success('Payroll computed successfully')
-    } catch {
-      toast.error('Failed to compute payroll')
-    }
-  }
-
-  const handleApprove = async (runId: string) => {
-    try {
-      await approveRun.mutateAsync({ runId, approvedBy: profile?.id })
-      toast.success('Payroll run approved')
-    } catch {
-      toast.error('Failed to approve payroll run')
+    } catch (err: any) {
+      const msg = err?.message || err?.toString() || 'Unknown error'
+      console.error('Failed to compute payroll:', err)
+      toast.error(`Failed to compute payroll: ${msg}`)
     }
   }
 
@@ -235,6 +230,17 @@ export function PayrollRunsTab() {
       toast.success('Payslips published to employees')
     } catch {
       toast.error('Failed to publish payslips')
+    }
+  }
+
+  const handleExecutePayroll = async (cycleId: string) => {
+    try {
+      await executePayroll.mutateAsync(cycleId)
+      toast.success('Payroll executed — CSV downloaded')
+    } catch (err: any) {
+      const msg = err?.message || err?.toString() || 'Unknown error'
+      console.error('Failed to execute payroll:', err)
+      toast.error(`Failed to execute payroll: ${msg}`)
     }
   }
 
@@ -422,6 +428,23 @@ export function PayrollRunsTab() {
                 </Button>
               </>
             )}
+
+            {/* Execute Payroll / Mark as Paid - shown when approved and not yet paid */}
+            {approvalStatus === 'approved' && cycle.processing_status !== 'paid' && canManagePayroll && (
+              <Button
+                size="sm"
+                onClick={() => handleExecutePayroll(cycle.id)}
+                disabled={executePayroll.isPending}
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                {executePayroll.isPending ? (
+                  <Download className="mr-1 h-3 w-3 animate-spin" />
+                ) : (
+                  <Banknote className="mr-1 h-3 w-3" />
+                )}
+                Execute Payroll
+              </Button>
+            )}
           </div>
         )
       },
@@ -488,7 +511,7 @@ export function PayrollRunsTab() {
                 Compute
               </Button>
             )}
-            {run.run_status === 'completed' && (
+            {(run.run_status === 'completed' || run.run_status === 'approved') && (
               <>
                 <Button
                   variant="outline"
@@ -502,38 +525,27 @@ export function PayrollRunsTab() {
                   Details
                 </Button>
                 {canManagePayroll && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleApprove(run.id)}
-                    disabled={approveRun.isPending}
-                  >
-                    <CheckCircle className="mr-1 h-3 w-3" />
-                    Approve
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleGeneratePayslips(run.id)}
+                      disabled={generatePayslips.isPending}
+                    >
+                      <FileText className="mr-1 h-3 w-3" />
+                      Payslips
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePublish(run.id)}
+                      disabled={publishPayslips.isPending}
+                    >
+                      <Send className="mr-1 h-3 w-3" />
+                      Publish
+                    </Button>
+                  </>
                 )}
-              </>
-            )}
-            {run.run_status === 'approved' && canManagePayroll && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleGeneratePayslips(run.id)}
-                  disabled={generatePayslips.isPending}
-                >
-                  <FileText className="mr-1 h-3 w-3" />
-                  Payslips
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePublish(run.id)}
-                  disabled={publishPayslips.isPending}
-                >
-                  <Send className="mr-1 h-3 w-3" />
-                  Publish
-                </Button>
               </>
             )}
           </div>

@@ -235,7 +235,7 @@ export async function createGoalCheckin(data: Partial<GoalCheckin>) {
 // Performance Reviews
 // ============================================
 
-const REVIEW_SELECT = '*, employee:employees!performance_reviews_employee_id_fkey(id, first_name, last_name, email, employee_code, department_id, department:departments(id, name)), performance_cycle:performance_cycles(id, cycle_name, cycle_code), self_review:self_reviews(*), manager_review:manager_reviews(*), peer_reviews(*, peer:employees!peer_reviews_peer_id_fkey(id, first_name, last_name, email, employee_code)), skip_level_review:skip_level_reviews(*, skip_level_manager:employees!skip_level_reviews_skip_level_manager_id_fkey(id, first_name, last_name, email, employee_code)), review_participants(*, reviewer:employees!review_participants_reviewer_id_fkey(id, first_name, last_name, email, employee_code))'
+const REVIEW_SELECT = '*, employee:employees!performance_reviews_employee_id_fkey(id, first_name, last_name, email, employee_code, department_id, department:departments!department_id(id, name)), performance_cycle:performance_cycles(id, cycle_name, cycle_code), self_review:self_reviews(*), manager_review:manager_reviews(*), peer_reviews(*, peer:employees!peer_reviews_peer_id_fkey(id, first_name, last_name, email, employee_code)), skip_level_review:skip_level_reviews(*, skip_level_manager:employees!skip_level_reviews_skip_level_manager_id_fkey(id, first_name, last_name, email, employee_code)), review_participants(*, reviewer:employees!review_participants_reviewer_id_fkey(id, first_name, last_name, email, employee_code))'
 
 export async function getPerformanceReviews(orgId: string, cycleId?: string) {
   let query = supabase
@@ -472,7 +472,7 @@ export async function getSkippedEmployees(cycleId: string, orgId: string) {
   // Get all active employees
   const { data: employees, error: empError } = await supabase
     .from('employees')
-    .select('id, first_name, last_name, employee_code, date_of_joining, employment_type, department:departments(id, name)')
+    .select('id, first_name, last_name, employee_code, date_of_joining, employment_type, department:departments!department_id(id, name)')
     .eq('organization_id', orgId)
     .eq('status', 'active')
   if (empError) throw empError
@@ -755,7 +755,7 @@ export async function getPerformanceAnalytics(orgId: string, cycleId: string, te
   // Get all reviews for this cycle
   let query = supabase
     .from('performance_reviews')
-    .select('id, employee_id, final_rating, status, employee:employees!performance_reviews_employee_id_fkey(id, department_id, department:departments(id, name))')
+    .select('id, employee_id, final_rating, status, employee:employees!performance_reviews_employee_id_fkey(id, department_id, department:departments!department_id(id, name))')
     .eq('organization_id', orgId)
     .eq('performance_cycle_id', cycleId)
 

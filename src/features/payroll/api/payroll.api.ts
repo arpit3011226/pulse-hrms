@@ -14,7 +14,8 @@ import type {
   Payslip,
   PayrollAdjustment,
 } from '@/types/database.types'
-import { computeEmployeePayroll, generatePayslipNumber } from '../utils/payroll-utils'
+import { computeEmployeePayroll, generatePayslipNumber, generatePayrollCSV, downloadCSV, getMonthName } from '../utils/payroll-utils'
+import type { PayrollCSVRow } from '../utils/payroll-utils'
 
 // ============================================
 // Salary Components
@@ -148,7 +149,7 @@ export async function upsertStructureComponents(
 export async function getEmployeeCompensations(orgId: string) {
   const { data, error } = await supabase
     .from('employee_compensation')
-    .select('*, employee:employees(id, first_name, last_name, email, employee_code, department_id, department:departments(id, name)), salary_structure:salary_structures(id, structure_name, structure_code), employee_compensation_components(*, salary_component:salary_components(id, component_name, component_code, component_type))')
+    .select('*, employee:employees!employee_id(id, first_name, last_name, email, employee_code, department_id, department:departments!department_id(id, name)), salary_structure:salary_structures(id, structure_name, structure_code), employee_compensation_components(*, salary_component:salary_components(id, component_name, component_code, component_type))')
     .eq('is_current', true)
     .eq('organization_id', orgId)
     .order('created_at', { ascending: false })
@@ -159,7 +160,7 @@ export async function getEmployeeCompensations(orgId: string) {
 export async function getEmployeeCompensation(employeeId: string) {
   const { data, error } = await supabase
     .from('employee_compensation')
-    .select('*, employee:employees(id, first_name, last_name, email, employee_code, department_id, department:departments(id, name)), salary_structure:salary_structures(id, structure_name, structure_code), employee_compensation_components(*, salary_component:salary_components(id, component_name, component_code, component_type))')
+    .select('*, employee:employees!employee_id(id, first_name, last_name, email, employee_code, department_id, department:departments!department_id(id, name)), salary_structure:salary_structures(id, structure_name, structure_code), employee_compensation_components(*, salary_component:salary_components(id, component_name, component_code, component_type))')
     .eq('employee_id', employeeId)
     .eq('is_current', true)
     .maybeSingle()
@@ -273,9 +274,9 @@ export async function updatePayrollRunStatus(id: string, updates: Partial<Payrol
 export async function getPayrollRunDetail(runId: string) {
   const { data, error } = await supabase
     .from('payroll_run_employees')
-    .select('*, employee:employees(id, first_name, last_name, email, employee_code, department_id, department:departments(id, name)), payroll_earnings(*, salary_component:salary_components(id, component_name, component_code)), payroll_deductions(*, salary_component:salary_components(id, component_name, component_code))')
+    .select('*, employee:employees!employee_id(id, first_name, last_name, email, employee_code, department_id, department:departments!department_id(id, name)), payroll_earnings(*, salary_component:salary_components(id, component_name, component_code)), payroll_deductions(*, salary_component:salary_components(id, component_name, component_code))')
     .eq('payroll_run_id', runId)
-    .order('employee(first_name)')
+    .order('created_at')
   if (error) throw error
   return data
 }
@@ -304,7 +305,7 @@ export async function computePayrollForRun(runId: string, orgId: string) {
   // 3. Get all active employees with is_current compensation and components
   const { data: compensations, error: compError } = await supabase
     .from('employee_compensation')
-    .select('*, employee:employees(id, first_name, last_name, email, employee_code, status), employee_compensation_components(*, salary_component:salary_components(id, component_name, component_code, component_type, is_statutory, statutory_type))')
+    .select('*, employee:employees!employee_id(id, first_name, last_name, email, employee_code, status), employee_compensation_components(*, salary_component:salary_components(id, component_name, component_code, component_type, is_statutory, statutory_type))')
     .eq('organization_id', orgId)
     .eq('is_current', true)
   if (compError) throw compError
@@ -520,7 +521,96 @@ export async function computePayrollForRun(runId: string, orgId: string) {
     if (adjUpdateError) throw adjUpdateError
   }
 
+  // 10. Update parent cycle status to 'computed'
+  const { error: cycleUpdateError } = await supabase
+    .from('payroll_cycles')
+    .update({ processing_status: 'computed' })
+    .eq('id', run.payroll_cycle_id)
+  if (cycleUpdateError) throw cycleUpdateError
+
   return insertedEmployees
+}
+
+// ============================================
+// Execute Payroll (CSV Export + Mark Paid)
+// ============================================
+
+export async function executePayrollForCycle(cycleId: string, orgId: string) {
+  // 1. Get the cycle for month/year
+  const { data: cycle, error: cycleError } = await supabase
+    .from('payroll_cycles')
+    .select('*')
+    .eq('id', cycleId)
+    .single()
+  if (cycleError) throw cycleError
+
+  // 2. Get all runs for this cycle
+  const { data: runs, error: runsError } = await supabase
+    .from('payroll_runs')
+    .select('id')
+    .eq('payroll_cycle_id', cycleId)
+  if (runsError) throw runsError
+
+  if (!runs || runs.length === 0) throw new Error('No payroll runs found for this cycle')
+
+  const runIds = runs.map((r) => r.id)
+
+  // 3. Get all payroll_run_employees with employee details
+  const { data: runEmployees, error: reError } = await supabase
+    .from('payroll_run_employees')
+    .select('*, employee:employees!employee_id(id, first_name, last_name, employee_code)')
+    .in('payroll_run_id', runIds)
+  if (reError) throw reError
+
+  if (!runEmployees || runEmployees.length === 0) throw new Error('No employees found in payroll runs')
+
+  // 4. Get bank accounts for all employees (salary accounts)
+  const employeeIds = runEmployees.map((re) => (re.employee as { id: string })?.id).filter(Boolean)
+  const { data: bankAccounts, error: bankError } = await supabase
+    .from('employee_bank_accounts')
+    .select('employee_id, bank_name, account_number, ifsc_code, is_salary_account')
+    .in('employee_id', employeeIds)
+    .eq('is_salary_account', true)
+  if (bankError) throw bankError
+
+  // Build a lookup map: employee_id -> bank account
+  const bankMap = new Map<string, { bank_name: string; account_number: string; ifsc_code: string }>()
+  for (const ba of bankAccounts || []) {
+    bankMap.set(ba.employee_id, {
+      bank_name: ba.bank_name,
+      account_number: ba.account_number,
+      ifsc_code: ba.ifsc_code,
+    })
+  }
+
+  // 5. Build CSV rows
+  const csvRows: PayrollCSVRow[] = runEmployees.map((re) => {
+    const emp = re.employee as { id: string; first_name: string; last_name: string; employee_code: string }
+    const bank = bankMap.get(emp?.id || '') || { bank_name: '', account_number: '', ifsc_code: '' }
+    return {
+      employeeName: `${emp?.first_name || ''} ${emp?.last_name || ''}`.trim(),
+      employeeCode: emp?.employee_code || '',
+      netPay: re.net_pay || 0,
+      bankName: bank.bank_name,
+      accountNumber: bank.account_number,
+      ifscCode: bank.ifsc_code,
+    }
+  })
+
+  // 6. Generate and download CSV
+  const csvContent = generatePayrollCSV(csvRows, cycle.payroll_month, cycle.payroll_year)
+  const monthName = getMonthName(cycle.payroll_month)
+  const filename = `Payroll_${monthName}_${cycle.payroll_year}_BankTransfer.csv`
+  downloadCSV(csvContent, filename)
+
+  // 7. Update cycle status to 'paid'
+  const { error: updateError } = await supabase
+    .from('payroll_cycles')
+    .update({ processing_status: 'paid' })
+    .eq('id', cycleId)
+  if (updateError) throw updateError
+
+  return csvRows
 }
 
 // ============================================
@@ -654,7 +744,7 @@ export async function publishPayslips(runId: string) {
 export async function getPayrollAdjustments(orgId: string, month?: number, year?: number) {
   let query = supabase
     .from('payroll_adjustments')
-    .select('*, employee:employees(id, first_name, last_name)')
+    .select('*, employee:employees!employee_id(id, first_name, last_name)')
     .eq('organization_id', orgId)
 
   if (month) query = query.eq('adjustment_month', month)

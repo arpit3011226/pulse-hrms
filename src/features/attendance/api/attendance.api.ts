@@ -46,7 +46,7 @@ export async function getTeamAttendance(managerId: string, orgId: string, date?:
 
   let query = supabase
     .from('attendance_records')
-    .select('*, employee:employees(id, first_name, last_name, email, avatar_url, department_id, department:departments(id, name)), shift:shifts(id, name, start_time, end_time)')
+    .select('*, employee:employees(id, first_name, last_name, email, avatar_url, department_id, department:departments!department_id(id, name)), shift:shifts(id, name, start_time, end_time)')
     .in('employee_id', reportIds)
     .eq('organization_id', orgId)
 
@@ -60,7 +60,7 @@ export async function getTeamAttendance(managerId: string, orgId: string, date?:
 export async function getAllAttendance(orgId: string, filters?: AttendanceFilters) {
   let query = supabase
     .from('attendance_records')
-    .select('*, employee:employees(id, first_name, last_name, email, avatar_url, department_id, department:departments(id, name)), shift:shifts(id, name, start_time, end_time)')
+    .select('*, employee:employees(id, first_name, last_name, email, avatar_url, department_id, department:departments!department_id(id, name)), shift:shifts(id, name, start_time, end_time)')
     .eq('organization_id', orgId)
 
   if (filters?.status) query = query.eq('status', filters.status)
