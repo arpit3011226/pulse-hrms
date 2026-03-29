@@ -191,10 +191,11 @@ export async function upsertGoalKeyResults(goalId: string, keyResults: Partial<G
     .eq('employee_goal_id', goalId)
   if (deleteError) throw deleteError
 
-  // Bulk insert new ones
+  // Bulk insert new ones with goal reference
+  const withGoalId = keyResults.map((kr) => ({ ...kr, employee_goal_id: goalId }))
   const { data, error } = await supabase
     .from('goal_key_results')
-    .insert(keyResults)
+    .insert(withGoalId)
     .select()
   if (error) throw error
   return data
