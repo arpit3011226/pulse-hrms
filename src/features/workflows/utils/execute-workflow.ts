@@ -52,10 +52,10 @@ async function executeAction(
   if (employee.designation_id) {
     const { data: desig } = await supabase
       .from('designations')
-      .select('name')
+      .select('title')
       .eq('id', employee.designation_id)
       .single()
-    designationName = desig?.name ?? ''
+    designationName = desig?.title ?? ''
   }
 
   const placeholderContext = {

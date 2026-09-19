@@ -198,7 +198,7 @@ export async function deleteShift(id: string) {
 export async function getShiftRosters(orgId: string) {
   const { data, error } = await supabase
     .from('shift_rosters')
-    .select('*, employee:employees(id, first_name, last_name, email), shift:shifts(id, name, start_time, end_time)')
+    .select('*, employee:employees!shift_rosters_employee_id_fkey(id, first_name, last_name, email), shift:shifts(id, name, start_time, end_time)')
     .eq('organization_id', orgId)
     .eq('is_active', true)
     .order('start_date', { ascending: false })
@@ -286,7 +286,7 @@ export async function getTeamRegularizations(managerId: string, orgId: string) {
 
   const { data, error } = await supabase
     .from('attendance_regularization_requests')
-    .select('*, employee:employees(id, first_name, last_name, email, avatar_url)')
+    .select('*, employee:employees!attendance_regularization_requests_employee_id_fkey(id, first_name, last_name, email, avatar_url)')
     .in('employee_id', reportIds)
     .eq('organization_id', orgId)
     .order('created_at', { ascending: false })
@@ -297,7 +297,7 @@ export async function getTeamRegularizations(managerId: string, orgId: string) {
 export async function getAllRegularizations(orgId: string) {
   const { data, error } = await supabase
     .from('attendance_regularization_requests')
-    .select('*, employee:employees(id, first_name, last_name, email, avatar_url), reviewer:employees!attendance_regularization_requests_reviewed_by_fkey(id, first_name, last_name)')
+    .select('*, employee:employees!attendance_regularization_requests_employee_id_fkey(id, first_name, last_name, email, avatar_url), reviewer:employees!attendance_regularization_requests_reviewed_by_fkey(id, first_name, last_name)')
     .eq('organization_id', orgId)
     .order('created_at', { ascending: false })
   if (error) throw error

@@ -16,7 +16,7 @@ export async function fetchEmployeesByDepartment(organizationId: string) {
 export async function fetchLeaveReport(organizationId: string) {
   const { data, error } = await supabase
     .from('leave_requests')
-    .select('id, status, leave_type:leave_types(name), start_date, end_date, total_days, employee:employees(first_name, last_name, employee_code)')
+    .select('id, status, leave_type:leave_types(name), start_date, end_date, total_days, employee:employees!leave_requests_employee_id_fkey(first_name, last_name, employee_code)')
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: false })
   if (error) throw error
@@ -42,9 +42,10 @@ export async function fetchAttendanceReport(organizationId: string, startDate: s
 export async function fetchPayrollReport(organizationId: string) {
   const { data, error } = await supabase
     .from('payslips')
-    .select('id, net_pay, gross_earnings, total_deductions, pay_period_start, pay_period_end, status, employee:employees(first_name, last_name, employee_code, department:departments!department_id(name))')
+    .select('id, net_pay, gross_earnings, total_deductions, payroll_month, payroll_year, published_flag, employee:employees!payslips_employee_id_fkey(first_name, last_name, employee_code, department:departments!department_id(name))')
     .eq('organization_id', organizationId)
-    .order('pay_period_start', { ascending: false })
+    .order('payroll_year', { ascending: false })
+    .order('payroll_month', { ascending: false })
   if (error) throw error
   return data
 }
@@ -64,7 +65,7 @@ export async function fetchRecruitmentReport(organizationId: string) {
 export async function fetchApplicationsReport(organizationId: string) {
   const { data, error } = await supabase
     .from('candidate_applications')
-    .select('id, status, applied_date, candidate:candidates(full_name), requisition:job_requisitions(title)')
+    .select('id, status, applied_date, candidate:candidates(first_name, last_name), requisition:job_requisitions(title)')
     .eq('organization_id', organizationId)
     .order('applied_date', { ascending: false })
   if (error) throw error
@@ -76,7 +77,7 @@ export async function fetchApplicationsReport(organizationId: string) {
 export async function fetchLearningReport(organizationId: string) {
   const { data, error } = await supabase
     .from('training_enrollments')
-    .select('id, status, progress_percent, enrolled_date, completion_date, course:training_courses(course_name, course_code), employee:employees(first_name, last_name, employee_code)')
+    .select('id, status, progress_percent, enrolled_date, completion_date, course:training_courses(course_name, course_code), employee:employees!training_enrollments_employee_id_fkey(first_name, last_name, employee_code)')
     .eq('organization_id', organizationId)
     .order('enrolled_date', { ascending: false })
   if (error) throw error

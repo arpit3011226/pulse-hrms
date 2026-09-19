@@ -139,7 +139,7 @@ export async function deleteTrainingCourse(id: string) {
 export async function fetchEnrollments(organizationId: string) {
   const { data, error } = await supabase
     .from('training_enrollments')
-    .select('*, course:training_courses(id, course_code, course_name), employee:employees(id, first_name, last_name, employee_code)')
+    .select('*, course:training_courses(id, course_code, course_name), employee:employees!training_enrollments_employee_id_fkey(id, first_name, last_name, employee_code)')
     .eq('organization_id', organizationId)
     .order('enrolled_date', { ascending: false })
   if (error) throw error
@@ -149,7 +149,7 @@ export async function fetchEnrollments(organizationId: string) {
 export async function fetchCourseEnrollments(courseId: string) {
   const { data, error } = await supabase
     .from('training_enrollments')
-    .select('*, employee:employees(id, first_name, last_name, employee_code)')
+    .select('*, employee:employees!training_enrollments_employee_id_fkey(id, first_name, last_name, employee_code)')
     .eq('course_id', courseId)
     .order('enrolled_date', { ascending: false })
   if (error) throw error

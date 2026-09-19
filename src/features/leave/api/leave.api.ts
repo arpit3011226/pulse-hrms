@@ -136,7 +136,7 @@ export async function deleteLeavePolicyDetails(policyId: string) {
 export async function getEmployeeLeavePolicyMap(orgId: string) {
   const { data, error } = await supabase
     .from('employee_leave_policy_map')
-    .select('*, employee:employees(id, first_name, last_name, email), leave_policy:leave_policies(id, policy_name, policy_code)')
+    .select('*, employee:employees!employee_leave_policy_map_employee_id_fkey(id, first_name, last_name, email), leave_policy:leave_policies(id, policy_name, policy_code)')
     .eq('organization_id', orgId)
     .order('created_at', { ascending: false })
   if (error) throw error
@@ -483,7 +483,7 @@ export async function getHolidayDates(orgId: string, startDate: string, endDate:
 export async function getEncashmentRequests(orgId: string) {
   const { data, error } = await supabase
     .from('leave_encashment_requests')
-    .select('*, leave_type:leave_types(id, name), employee:employees(id, first_name, last_name, email)')
+    .select('*, leave_type:leave_types(id, name), employee:employees!leave_encashment_requests_employee_id_fkey(id, first_name, last_name, email)')
     .eq('organization_id', orgId)
     .order('created_at', { ascending: false })
   if (error) throw error

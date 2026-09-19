@@ -64,12 +64,12 @@ export function PayrollReportsTab() {
                   { header: 'Employee', accessor: (r: any) => `${r.employee?.first_name} ${r.employee?.last_name}` },
                   { header: 'Code', accessor: (r: any) => r.employee?.employee_code },
                   { header: 'Department', accessor: (r: any) => r.employee?.department?.name },
-                  { header: 'Period Start', accessor: (r: any) => r.pay_period_start },
-                  { header: 'Period End', accessor: (r: any) => r.pay_period_end },
+                  { header: 'Month', accessor: (r: any) => r.payroll_month },
+                  { header: 'Year', accessor: (r: any) => r.payroll_year },
                   { header: 'Gross', accessor: (r: any) => r.gross_earnings },
                   { header: 'Deductions', accessor: (r: any) => r.total_deductions },
                   { header: 'Net Pay', accessor: (r: any) => r.net_pay },
-                  { header: 'Status', accessor: (r: any) => r.status },
+                  { header: 'Status', accessor: (r: any) => (r.published_flag ? 'Published' : 'Draft') },
                 ],
                 'payroll-report'
               )

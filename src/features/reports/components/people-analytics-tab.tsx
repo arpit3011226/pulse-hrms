@@ -109,14 +109,26 @@ export function PeopleAnalyticsTab() {
     queryFn: async () => {
       let query = supabase
         .from('employees')
-        .select('id, department_id, status, date_of_joining, termination_date, department:departments!department_id(name)')
+        .select(
+          'id, department_id, status, date_of_joining, department:departments!department_id(name), exit:employee_exit_records!employee_exit_records_employee_id_fkey(last_working_date, hr_override_last_working_date, status)'
+        )
         .eq('organization_id', orgId)
       if (selectedDept !== 'all') {
         query = query.eq('department_id', selectedDept)
       }
       const { data, error } = await query
       if (error) throw error
-      return data ?? []
+      // Exit details live in employee_exit_records, not on employees.
+      // Flatten the latest non-withdrawn exit into termination_date.
+      return (data ?? []).map((e: any) => {
+        const exit = (e.exit ?? [])
+          .filter((x: any) => x.status !== 'withdrawn')
+          .map((x: any) => x.hr_override_last_working_date ?? x.last_working_date)
+          .filter(Boolean)
+          .sort()
+          .pop()
+        return { ...e, termination_date: exit ?? null }
+      })
     },
     enabled: !!orgId,
   })
@@ -208,9 +220,10 @@ export function PeopleAnalyticsTab() {
       try {
         const { data: latestPayslip } = await supabase
           .from('payslips')
-          .select('pay_period_start, pay_period_end')
+          .select('payroll_month, payroll_year')
           .eq('organization_id', orgId)
-          .order('pay_period_end', { ascending: false })
+          .order('payroll_year', { ascending: false })
+          .order('payroll_month', { ascending: false })
           .limit(1)
           .single()
         if (!latestPayslip) return 0
@@ -218,7 +231,8 @@ export function PeopleAnalyticsTab() {
           .from('payslips')
           .select('net_pay')
           .eq('organization_id', orgId)
-          .eq('pay_period_end', latestPayslip.pay_period_end)
+          .eq('payroll_year', latestPayslip.payroll_year)
+          .eq('payroll_month', latestPayslip.payroll_month)
         if (!payslips) return 0
         return payslips.reduce((sum, p) => sum + (p.net_pay || 0), 0)
       } catch {

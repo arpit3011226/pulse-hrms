@@ -17,7 +17,7 @@ export async function getTaxDeclarations(orgId: string, financialYear?: string) 
   let query = supabase
     .from('employee_tax_declarations')
     .select(
-      '*, employee:employees(id, first_name, last_name, email, employee_code, department_id, employment_type, department:departments!department_id(id, name)), verifier:employees!employee_tax_declarations_verified_by_fkey(id, first_name, last_name)'
+      '*, employee:employees!employee_tax_declarations_employee_id_fkey(id, first_name, last_name, email, employee_code, department_id, employment_type, department:departments!department_id(id, name)), verifier:employees!employee_tax_declarations_verified_by_fkey(id, first_name, last_name)'
     )
     .eq('organization_id', orgId)
 
