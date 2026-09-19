@@ -1,0 +1,74 @@
+/* ── Org Chart Connector Lines ─────────────────────────────────────── */
+
+/*
+ * Structure:
+ *   .org-tree-children          ← flex row of branches, has vertical stem from parent
+ *     .org-tree-branch          ← each child column, has vertical drop + horizontal bar
+ *       (recursive subtree)
+ */
+
+/* Container for child nodes — adds vertical stem down from parent */
+.org-tree-children {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  padding-top: 40px; /* space for connector lines */
+}
+
+/* Vertical stem: parent ↓ to horizontal bar */
+.org-tree-children::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 20px;
+  border-left: 2px solid #d1d5db;
+}
+
+/* Each branch (child wrapper) */
+.org-tree-branch {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 20px;
+}
+
+/* Vertical drop: horizontal bar ↓ to child node */
+.org-tree-branch::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  width: 0;
+  height: 20px;
+  border-left: 2px solid #d1d5db;
+}
+
+/* Horizontal bar connecting siblings */
+.org-tree-branch::after {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 2px solid #d1d5db;
+}
+
+/* First child: bar starts from center (right half only) */
+.org-tree-branch:first-child::after {
+  left: 50%;
+}
+
+/* Last child: bar ends at center (left half only) */
+.org-tree-branch:last-child::after {
+  right: 50%;
+}
+
+/* Only child: no horizontal bar needed, just the vertical drop */
+.org-tree-branch:only-child::after {
+  display: none;
+}

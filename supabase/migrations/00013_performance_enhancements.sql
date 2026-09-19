@@ -94,10 +94,9 @@ CREATE POLICY peer_reviews_manage_own ON peer_reviews FOR ALL USING (
 
 CREATE POLICY peer_reviews_admin ON peer_reviews FOR ALL USING (
   EXISTS (
-    SELECT 1 FROM employee_roles er
-    JOIN roles r ON r.id = er.role_id
-    WHERE er.employee_id = auth.uid()
-    AND r.role_key IN ('super_admin', 'hr_admin')
+    SELECT 1 FROM profiles
+    WHERE id = auth.uid()
+    AND role IN ('super_admin', 'hr_admin')
   )
 );
 
@@ -114,10 +113,9 @@ CREATE POLICY skip_level_reviews_manage_own ON skip_level_reviews FOR ALL USING 
 
 CREATE POLICY skip_level_reviews_admin ON skip_level_reviews FOR ALL USING (
   EXISTS (
-    SELECT 1 FROM employee_roles er
-    JOIN roles r ON r.id = er.role_id
-    WHERE er.employee_id = auth.uid()
-    AND r.role_key IN ('super_admin', 'hr_admin')
+    SELECT 1 FROM profiles
+    WHERE id = auth.uid()
+    AND role IN ('super_admin', 'hr_admin')
   )
 );
 
@@ -130,9 +128,8 @@ CREATE POLICY review_participants_read ON review_participants FOR SELECT USING (
 
 CREATE POLICY review_participants_admin ON review_participants FOR ALL USING (
   EXISTS (
-    SELECT 1 FROM employee_roles er
-    JOIN roles r ON r.id = er.role_id
-    WHERE er.employee_id = auth.uid()
-    AND r.role_key IN ('super_admin', 'hr_admin', 'manager')
+    SELECT 1 FROM profiles
+    WHERE id = auth.uid()
+    AND role IN ('super_admin', 'hr_admin', 'manager')
   )
 );

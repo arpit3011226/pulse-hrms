@@ -12,6 +12,7 @@ Track feedback, bugs, and improvements for regular build releases.
 |---|------|--------|-------------|----------|----------|
 | 20 | bug | performance | Add competency not working | high | 2026-03-15 |
 | 21 | enhancement | employees | Simplify employee details — combine all sections (bank, docs, family, compliance, etc.) into one unified screen with expandable sections, permission-gated editing | high | 2026-03-15 |
+| 22 | enhancement | workflows | Add file/attachment support in workflow actions — allow attaching documents (e.g. offer letters, policy docs) to notification and email actions | medium | 2026-03-15 |
 
 ## In Progress
 
