@@ -76,7 +76,7 @@ F43 blocks F17 and all of Phase 5.
 
 | ID | Feature | Module | Effort | Status |
 |----|---------|--------|--------|--------|
-| F43 | Unified identity — candidate to employee to alumnus on personal email | auth | M | todo |
+| F43 | Unified identity — candidate to employee to alumnus on personal email | auth | M | **done** |
 | F44 | Approval delegation when approver is away | global | S | todo |
 | F45 | Global search | global | S | todo |
 

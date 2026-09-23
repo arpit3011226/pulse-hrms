@@ -16,6 +16,7 @@ import { useDepartments, useDesignations } from '@/features/departments/hooks/us
 import { useEmployees, useCreateEmployee } from '@/features/employees/hooks/use-employees'
 import { generateNextEmployeeCode } from '@/features/employees/api/employees.api'
 import { useCreateCandidateConversion } from '../hooks/use-recruitment'
+import { findProfileByPersonalEmail } from '@/features/auth/api/identity.api'
 import { toast } from 'sonner'
 
 interface OfferRow {
@@ -61,7 +62,7 @@ export function ConvertToEmployeeDialog({ open, onOpenChange, offer }: Props) {
     queryKey: ['convert-prefill', candidate?.id, requisitionId],
     queryFn: async () => {
       const [cand, req] = await Promise.all([
-        supabase.from('candidates').select('phone').eq('id', candidate!.id).maybeSingle(),
+        supabase.from('candidates').select('phone, profile_id').eq('id', candidate!.id).maybeSingle(),
         requisitionId
           ? supabase
               .from('job_requisitions')
@@ -70,7 +71,11 @@ export function ConvertToEmployeeDialog({ open, onOpenChange, offer }: Props) {
               .maybeSingle()
           : Promise.resolve({ data: null }),
       ])
-      return { phone: cand.data?.phone ?? null, req: req.data ?? null }
+      return {
+        phone: cand.data?.phone ?? null,
+        candidateProfileId: cand.data?.profile_id ?? null,
+        req: req.data ?? null,
+      }
     },
     enabled: open && !!candidate?.id,
   })
@@ -106,11 +111,17 @@ export function ConvertToEmployeeDialog({ open, onOpenChange, offer }: Props) {
     if (!candidate || !offer) return
     setSaving(true)
     try {
+      // F43 — reuse the identity this person already has, if any. A candidate
+      // who signed up keeps the same login when they become an employee.
+      const existingProfileId =
+        extra?.candidateProfileId ?? (await findProfileByPersonalEmail(candidate.email))
+
       const employee = await createEmployee.mutateAsync({
         first_name: candidate.first_name,
         last_name: candidate.last_name,
         email: workEmail.trim(),
         personal_email: candidate.email,
+        profile_id: existingProfileId ?? null,
         phone: extra?.phone ?? null,
         employee_code: employeeCode || undefined,
         department_id: departmentId || null,
@@ -127,6 +138,10 @@ export function ConvertToEmployeeDialog({ open, onOpenChange, offer }: Props) {
         conversion_date: joiningDate,
         notes: `Converted from offer ${offer.id}`,
       })
+
+      if (existingProfileId && !extra?.candidateProfileId) {
+        await supabase.from('candidates').update({ profile_id: existingProfileId }).eq('id', candidate.id)
+      }
 
       toast.success(`${candidate.first_name} added as ${employeeCode || 'an employee'}`)
       onOpenChange(false)
