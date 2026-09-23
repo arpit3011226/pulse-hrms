@@ -17,6 +17,8 @@ import { EmployeeLifecycleHub } from '@/features/employees/components/lifecycle-
 import { OnboardingPage } from '@/features/onboarding/components/onboarding-page'
 import { AssetsPage } from '@/features/assets/components/assets-page'
 import { CandidatePortalPage } from '@/features/recruitment/components/candidate-portal-page'
+import { AlumniPage } from '@/features/alumni/components/alumni-page'
+import { MyRecordsPage } from '@/features/alumni/components/my-records-page'
 import { EmployeeFormPage } from '@/features/employees/components/employee-form-page'
 import { DepartmentList } from '@/features/departments/components/department-list'
 import { LeavePage } from '@/features/leave/components/leave-page'
@@ -145,6 +147,12 @@ const assetsRoute = createRoute({ getParentRoute: () => appRoute, path: '/assets
 // application. RLS on candidates, applications, interviews and offers enforces it.
 const myApplicationRoute = createRoute({ getParentRoute: () => appRoute, path: '/my-application', component: CandidatePortalPage })
 
+const alumniRoute = createRoute({ getParentRoute: () => appRoute, path: '/alumni', component: AlumniPage })
+
+// F39 — an ex-employee signs in on their personal email and fetches their own
+// payslips, letters and settlement. Nothing else.
+const myRecordsRoute = createRoute({ getParentRoute: () => appRoute, path: '/my-records', component: MyRecordsPage })
+
 const departmentsRoute = createRoute({ getParentRoute: () => appRoute, path: '/departments', component: DepartmentList })
 
 
@@ -178,6 +186,8 @@ const routeTree = rootRoute.addChildren([
     newJoinersRoute,
     assetsRoute,
     myApplicationRoute,
+    alumniRoute,
+    myRecordsRoute,
     departmentsRoute,
     leaveRoute,
     attendanceRoute,

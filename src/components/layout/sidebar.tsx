@@ -31,6 +31,17 @@ function AssetsIcon({ className }: { className?: string }) {
   )
 }
 
+function AlumniIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none">
+      <circle cx="9" cy="8" r="3.5" fill="#C084FC" opacity="0.5" />
+      <circle cx="16" cy="9" r="2.8" fill="#A78BFA" opacity="0.45" />
+      <path d="M3 19c0-3 2.7-5 6-5s6 2 6 5" stroke="#7C3AED" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M16.5 14.5c2.2.4 3.8 2.1 3.8 4.5" stroke="#8B5CF6" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 function DashboardIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none">
@@ -233,6 +244,7 @@ export function Sidebar() {
     { title: 'Recruitment', href: '/recruitment', icon: RecruitmentIcon, visible: permissions.canManageRecruitment && isModuleEnabled('recruitment') },
     { title: 'Self Service', href: '/self-service', icon: SelfServiceIcon, visible: true },
     { title: 'Separation', href: '/separation', icon: SeparationIcon, visible: true },
+    { title: 'Alumni', href: '/alumni', icon: AlumniIcon, visible: permissions.isAdmin || permissions.isHR || permissions.isPayrollAdmin },
     { title: 'Workflows', href: '/workflows', icon: WorkflowsIcon, visible: permissions.canViewWorkflows },
     // Reports always last
     { title: 'Reports', href: '/reports', icon: ReportsIcon, visible: permissions.canViewReports },

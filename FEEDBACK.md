@@ -156,11 +156,11 @@ Needs F43.
 
 | ID | Feature | Module | Effort | Status |
 |----|---------|--------|--------|--------|
-| F38 | Full and final settlement — statement and workflow | separation | M | todo |
-| F39 | Alumni document access — payslips, Form 16, relieving, experience letters | alumni | M | todo |
-| F40 | Alumni directory, rehire eligibility, boomerang hiring | alumni | M | todo |
-| F41 | Payroll data export for outsourced agency | payroll | S | todo |
-| F42 | Structured exit interview with trend analysis | separation | S | todo |
+| F38 | Full and final settlement — statement and workflow | separation | M | **done** |
+| F39 | Alumni document access — payslips, Form 16, relieving, experience letters | alumni | M | **done** |
+| F40 | Alumni directory, rehire eligibility, boomerang hiring | alumni | M | **done** |
+| F41 | Payroll data export for outsourced agency | payroll | S | **done** |
+| F42 | Structured exit interview with trend analysis | separation | S | **done** |
 
 ## Phase 6 — Lifecycle fills (1.5 weeks)
 

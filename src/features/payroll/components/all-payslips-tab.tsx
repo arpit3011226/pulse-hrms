@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Eye, FileText } from 'lucide-react'
+import { Eye, FileText, FileDown, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -10,6 +10,9 @@ import {
 import { DataTable } from '@/components/shared/data-table'
 import { PayslipViewDialog } from './payslip-view-dialog'
 import { useAllPayslips } from '../hooks/use-payroll'
+import { useAuth } from '@/features/auth/hooks/use-auth'
+import { exportPayrollForAgency } from '../utils/agency-export'
+import { toast } from 'sonner'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Payslip } from '@/types/database.types'
 
@@ -33,6 +36,8 @@ export function AllPayslipsTab() {
   const [month, setMonth] = useState<number>(now.getMonth() + 1)
   const [year, setYear] = useState<number>(now.getFullYear())
   const [viewPayslip, setViewPayslip] = useState<Payslip | null>(null)
+  const [exporting, setExporting] = useState(false)
+  const { organization } = useAuth()
 
   const { data: payslips, isLoading } = useAllPayslips(month, year)
   const rows = (payslips ?? []) as PayslipRow[]
@@ -125,6 +130,28 @@ export function AllPayslipsTab() {
             ))}
           </SelectContent>
         </Select>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={exporting}
+          onClick={async () => {
+            setExporting(true)
+            try {
+              const r = await exportPayrollForAgency(organization!.id, month, year)
+              toast.success(
+                `Exported ${r.rowCount} payslip${r.rowCount === 1 ? '' : 's'}, ${r.joiners} joiner${r.joiners === 1 ? '' : 's'}, ${r.leavers} leaver${r.leavers === 1 ? '' : 's'}`
+              )
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : 'Could not build the export')
+            } finally {
+              setExporting(false)
+            }
+          }}
+        >
+          {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+          Export for agency
+        </Button>
+
         {rows.length > 0 && (
           <div className="ml-auto flex gap-6 text-sm">
             <span className="text-muted-foreground">
