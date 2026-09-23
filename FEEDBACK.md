@@ -64,9 +64,23 @@ policy while building alumni access. Fixed in migrations 00035, 00036, 00037.
 | S11 | `peer_reviews`, `review_participants`, `skip_level_reviews`: RLS on with NO policy — nobody could read or write them at all | functional |
 | S12 | 00035 dropped a policy by the wrong name, leaving the permissive original live alongside the fix | high |
 
-**Open decision**: managers deliberately do NOT get sight of their team's
-salaries. Add 'manager' to the role lists in 00035 if that is the intended
-policy.
+**Compensation visibility — decided 23 Sep 2026** (migration 00038):
+
+| Role | Sees |
+|------|------|
+| Employee | Own only |
+| Manager | Own + direct reports |
+| HR admin | Everyone **except leadership** |
+| Payroll admin | Everyone, including leadership — needed to actually run payroll |
+| Leadership | Everyone |
+| Super admin | Everyone |
+
+Two assumptions: "team" means DIRECT reports, not the whole reporting tree;
+and payroll_admin keeps leadership visibility because otherwise only
+super_admin could process leadership salaries and payroll would silently skip
+them. Managers can see salary structures (grade bands) but NOT tax
+declarations — those list investments, rent and loans, which a manager has no
+need for.
 
 **Not re-checked**: these fixes are verified as SQL applied to the database and
 the app still builds with all 133 queries passing. They have NOT been tested
