@@ -1,3 +1,4 @@
+import { useApprovalScope } from '@/features/settings/hooks/use-delegation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import type {
@@ -255,10 +256,12 @@ export function useMyLeaveRequests(employeeId: string) {
 
 export function useTeamLeaveRequests(managerId: string) {
   const { organization } = useAuth()
+  // F44 — include anyone currently delegating their approvals to this user
+  const { approverIds } = useApprovalScope(managerId || undefined)
   return useQuery({
-    queryKey: ['leave-requests', 'team', managerId],
-    queryFn: () => getTeamLeaveRequests(managerId, organization!.id),
-    enabled: !!managerId && !!organization?.id,
+    queryKey: ['leave-requests', 'team', approverIds],
+    queryFn: () => getTeamLeaveRequests(approverIds, organization!.id),
+    enabled: approverIds.length > 0 && !!organization?.id,
   })
 }
 

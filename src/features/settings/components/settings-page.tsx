@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/page-header'
 import { usePermissions } from '@/hooks/use-permissions'
 import { ProfileSettings } from './profile-settings'
+import { DelegationSettings } from './delegation-settings'
 import { OrganizationSettings } from './organization-settings'
 import { AdminSettings } from './admin-settings'
 import { RolesDefinitions } from './roles-definitions'
@@ -19,6 +20,7 @@ export function SettingsPage() {
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="organization">Organization</TabsTrigger>
+          <TabsTrigger value="delegation">Delegation</TabsTrigger>
           {showAdmin && (
             <TabsTrigger value="admin">Admin Settings</TabsTrigger>
           )}
@@ -36,6 +38,10 @@ export function SettingsPage() {
 
         <TabsContent value="organization" className="mt-6">
           <OrganizationSettings />
+        </TabsContent>
+
+        <TabsContent value="delegation" className="mt-6">
+          <DelegationSettings />
         </TabsContent>
 
         {showAdmin && (

@@ -196,13 +196,13 @@ export async function getMyLeaveRequests(employeeId: string) {
   return data
 }
 
-export async function getTeamLeaveRequests(managerId: string, orgId: string) {
+export async function getTeamLeaveRequests(managerId: string | string[], orgId: string) {
   // Get direct reports' IDs first
   const { data: reports, error: reportsError } = await supabase
     .from('employees')
     .select('id')
     .eq('organization_id', orgId)
-    .eq('reporting_manager_id', managerId)
+    .in('reporting_manager_id', Array.isArray(managerId) ? managerId : [managerId])
   if (reportsError) throw reportsError
 
   const reportIds = (reports || []).map((r) => r.id)

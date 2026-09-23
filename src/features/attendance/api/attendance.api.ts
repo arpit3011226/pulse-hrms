@@ -33,12 +33,12 @@ export async function getMyAttendance(employeeId: string, startDate?: string, en
   return data
 }
 
-export async function getTeamAttendance(managerId: string, orgId: string, date?: string) {
+export async function getTeamAttendance(managerId: string | string[], orgId: string, date?: string) {
   const { data: reports, error: reportsError } = await supabase
     .from('employees')
     .select('id')
     .eq('organization_id', orgId)
-    .eq('reporting_manager_id', managerId)
+    .in('reporting_manager_id', Array.isArray(managerId) ? managerId : [managerId])
   if (reportsError) throw reportsError
 
   const reportIds = (reports || []).map((r) => r.id)
@@ -273,12 +273,12 @@ export async function getMyRegularizations(employeeId: string) {
   return data
 }
 
-export async function getTeamRegularizations(managerId: string, orgId: string) {
+export async function getTeamRegularizations(managerId: string | string[], orgId: string) {
   const { data: reports, error: reportsError } = await supabase
     .from('employees')
     .select('id')
     .eq('organization_id', orgId)
-    .eq('reporting_manager_id', managerId)
+    .in('reporting_manager_id', Array.isArray(managerId) ? managerId : [managerId])
   if (reportsError) throw reportsError
 
   const reportIds = (reports || []).map((r) => r.id)

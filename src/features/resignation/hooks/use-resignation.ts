@@ -1,3 +1,4 @@
+import { useApprovalScope } from '@/features/settings/hooks/use-delegation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import {
@@ -45,10 +46,12 @@ export function useResignationRequests(filters?: ResignationFilters) {
 // ============================================================================
 
 export function usePendingManagerApprovals(managerId: string) {
+  // F44 — include anyone currently delegating their approvals to this user
+  const { approverIds } = useApprovalScope(managerId || undefined)
   return useQuery({
-    queryKey: ['pending-manager-approvals', managerId],
-    queryFn: () => getPendingManagerApprovals(managerId),
-    enabled: !!managerId,
+    queryKey: ['pending-manager-approvals', approverIds],
+    queryFn: () => getPendingManagerApprovals(approverIds),
+    enabled: approverIds.length > 0,
   })
 }
 

@@ -156,12 +156,12 @@ export async function getMyResignation(employeeId: string) {
 // GET PENDING MANAGER APPROVALS
 // ============================================================================
 
-export async function getPendingManagerApprovals(managerId: string) {
+export async function getPendingManagerApprovals(managerId: string | string[]) {
   // First get employees who report to this manager
   const { data: directReports, error: empError } = await supabase
     .from('employees')
     .select('id')
-    .eq('reporting_manager_id', managerId)
+    .in('reporting_manager_id', Array.isArray(managerId) ? managerId : [managerId])
   if (empError) throw empError
 
   if (!directReports || directReports.length === 0) return []

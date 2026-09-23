@@ -1,3 +1,4 @@
+import { useApprovalScope } from '@/features/settings/hooks/use-delegation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import type { AttendanceRecord, Shift, ShiftRoster, AttendanceRegularizationRequest } from '@/types/database.types'
@@ -58,10 +59,12 @@ export function useMyAttendance(employeeId: string, startDate?: string, endDate?
 
 export function useTeamAttendance(managerId: string, date?: string) {
   const { organization } = useAuth()
+  // F44 — include anyone currently delegating their approvals to this user
+  const { approverIds } = useApprovalScope(managerId || undefined)
   return useQuery({
-    queryKey: ['attendance', 'team', managerId, date],
-    queryFn: () => getTeamAttendance(managerId, organization!.id, date),
-    enabled: !!managerId && !!organization?.id,
+    queryKey: ['attendance', 'team', approverIds, date],
+    queryFn: () => getTeamAttendance(approverIds, organization!.id, date),
+    enabled: approverIds.length > 0 && !!organization?.id,
   })
 }
 
@@ -252,10 +255,12 @@ export function useMyRegularizations(employeeId: string) {
 
 export function useTeamRegularizations(managerId: string) {
   const { organization } = useAuth()
+  // F44 — include anyone currently delegating their approvals to this user
+  const { approverIds } = useApprovalScope(managerId || undefined)
   return useQuery({
-    queryKey: ['regularizations', 'team', managerId],
-    queryFn: () => getTeamRegularizations(managerId, organization!.id),
-    enabled: !!managerId && !!organization?.id,
+    queryKey: ['regularizations', 'team', approverIds],
+    queryFn: () => getTeamRegularizations(approverIds, organization!.id),
+    enabled: approverIds.length > 0 && !!organization?.id,
   })
 }
 
