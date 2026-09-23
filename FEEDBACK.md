@@ -43,6 +43,36 @@ Track feedback, bugs, and improvements for regular build releases.
 | 18 | bug | performance | Assign Goal button not refreshing — added team-goals cache invalidation | 2026-03-15 |
 | 19 | ui-fix | performance | Cycle form dialog still overlapping — rebuilt with calc-based ScrollArea + border-separated footer | 2026-03-15 |
 
+
+## Security — RLS audit (23 Sep 2026)
+
+Full review of all 102 tables and ~256 policies, prompted by finding one bad
+policy while building alumni access. Fixed in migrations 00035, 00036, 00037.
+
+| # | Finding | Severity |
+|---|---------|----------|
+| S1 | `payslips`, `employee_compensation` + components: any employee could read every salary and payslip in the company | critical |
+| S2 | `employee_tax_declarations`, `employee_tds_records`: no FOR clause, so FOR ALL — any employee could read AND WRITE anyone's tax declaration | critical |
+| S3 | Storage buckets `employee-documents` and `reimbursement-receipts`: any signed-in user could read, overwrite and delete every employee's PAN, Aadhaar and certificates | critical |
+| S4 | `payroll_approvals`, `payroll_config`: no FOR clause — any employee could approve payroll or change pay dates | high |
+| S5 | `payroll_run_employees`, `payroll_earnings`, `payroll_deductions`: every payroll line readable org-wide | high |
+| S6 | `performance_reviews`, `self_reviews`, `manager_reviews`, `performance_improvement_plans`: everyone could read everyone's reviews and PIPs | high |
+| S7 | `offer_letters`: offered salaries readable by every employee | high |
+| S8 | `interview_feedback`: candidate feedback readable org-wide | medium |
+| S9 | `salary_structures`: grade bands readable org-wide | medium |
+| S10 | `employee_previous_experience`, `documents`: personal records readable org-wide | medium |
+| S11 | `peer_reviews`, `review_participants`, `skip_level_reviews`: RLS on with NO policy — nobody could read or write them at all | functional |
+| S12 | 00035 dropped a policy by the wrong name, leaving the permissive original live alongside the fix | high |
+
+**Open decision**: managers deliberately do NOT get sight of their team's
+salaries. Add 'manager' to the role lists in 00035 if that is the intended
+policy.
+
+**Not re-checked**: these fixes are verified as SQL applied to the database and
+the app still builds with all 133 queries passing. They have NOT been tested
+with real logins of each role — that belongs in Phase 7/8.
+
+
 ---
 
 # Feature Roadmap — 4 Journeys
