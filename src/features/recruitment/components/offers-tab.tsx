@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Plus, Pencil, Send, CheckCircle, XCircle, Ban, UserPlus } from 'lucide-react'
+import { MoreHorizontal, Plus, Pencil, Send, CheckCircle, XCircle, Ban, UserPlus, Download, MessageSquareReply, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -14,6 +14,9 @@ import { StatusBadge } from '@/components/shared/status-badge'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { OfferFormDialog } from './offer-form-dialog'
 import { ConvertToEmployeeDialog } from './convert-to-employee-dialog'
+import { OfferResponseDialog } from './offer-response-dialog'
+import { generateOfferPdf } from '../utils/generate-offer-pdf'
+import { useAuth } from '@/features/auth/hooks/use-auth'
 import {
   useOfferLetters,
   useUpdateOfferStatus,
@@ -24,6 +27,7 @@ import type { OfferLetterWithRelations } from '@/types/database.types'
 import { toast } from 'sonner'
 
 export function OffersTab() {
+  const { organization } = useAuth()
   const { canManageRecruitment, isAdmin, isHR } = usePermissions()
   const canManage = canManageRecruitment || isAdmin || isHR
 
@@ -32,6 +36,7 @@ export function OffersTab() {
 
   const [formOpen, setFormOpen] = useState(false)
   const [convertOffer, setConvertOffer] = useState<OfferLetterWithRelations | null>(null)
+  const [responseOffer, setResponseOffer] = useState<{ offer: OfferLetterWithRelations; mode: 'respond' | 'revise' } | null>(null)
   const [editingOffer, setEditingOffer] = useState<OfferLetterWithRelations | undefined>()
   const [statusChange, setStatusChange] = useState<{
     id: string
@@ -135,6 +140,38 @@ export function OffersTab() {
                   <Pencil className="mr-2 h-4 w-4" /> Edit
                 </DropdownMenuItem>
               )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  const c = offer.candidate_application?.candidate
+                  generateOfferPdf(
+                    {
+                      candidateName: c ? `${c.first_name} ${c.last_name}` : 'Candidate',
+                      candidateEmail: c?.email ?? null,
+                      designation: offer.offered_designation ?? 'the role',
+                      ctc: offer.offered_ctc ?? 0,
+                      joiningDate: offer.joining_date ?? new Date().toISOString(),
+                      validUntil: offer.valid_until ?? null,
+                      requisitionTitle: offer.candidate_application?.job_requisition?.title ?? null,
+                      version: (offer as { version?: number | null }).version ?? 1,
+                      offerNotes: offer.offer_notes ?? null,
+                    },
+                    organization!
+                  )
+                }}
+              >
+                <Download className="mr-2 h-4 w-4" /> Download PDF
+              </DropdownMenuItem>
+              {offer.offer_status === 'sent' && (
+                <DropdownMenuItem onClick={() => setResponseOffer({ offer, mode: 'respond' })}>
+                  <MessageSquareReply className="mr-2 h-4 w-4" /> Record Response
+                </DropdownMenuItem>
+              )}
+              {(offer.offer_status === 'sent' || offer.offer_status === 'rejected') && (
+                <DropdownMenuItem onClick={() => setResponseOffer({ offer, mode: 'revise' })}>
+                  <RefreshCw className="mr-2 h-4 w-4" /> Revise Offer
+                </DropdownMenuItem>
+              )}
               {offer.offer_status === 'accepted' && (
                 <>
                   {canEdit && <DropdownMenuSeparator />}
@@ -216,6 +253,13 @@ export function OffersTab() {
           if (!open) setEditingOffer(undefined)
         }}
         offer={editingOffer}
+      />
+
+      <OfferResponseDialog
+        open={!!responseOffer}
+        onOpenChange={(open) => !open && setResponseOffer(null)}
+        offer={responseOffer?.offer ?? null}
+        mode={responseOffer?.mode ?? 'respond'}
       />
 
       <ConvertToEmployeeDialog

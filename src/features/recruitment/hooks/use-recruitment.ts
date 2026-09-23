@@ -39,6 +39,22 @@ import {
   updateOfferLetter,
   updateOfferStatus,
   createCandidateConversion,
+  submitRequisitionForApproval,
+  decideRequisition,
+  markOfferSent,
+  recordOfferResponse,
+  reviseOffer,
+  getInterviewCompetencies,
+  createInterviewCompetency,
+  addScorecardItems,
+  getScorecardForFeedback,
+  getTalentPool,
+  updateCandidatePool,
+  getBackgroundChecks,
+  createBackgroundCheck,
+  updateBackgroundCheck,
+  rescheduleInterview,
+  getMyCandidateView,
 } from '../api/recruitment.api'
 
 // ============================================
@@ -373,5 +389,154 @@ export function useCreateCandidateConversion() {
       queryClient.invalidateQueries({ queryKey: ['candidate-applications'] })
       queryClient.invalidateQueries({ queryKey: ['offer-letters'] })
     },
+  })
+}
+
+// ============================================
+// Phase 4 — hiring enhancements
+// ============================================
+
+export function useSubmitRequisitionForApproval() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: submitRequisitionForApproval,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['job-requisitions'] }),
+  })
+}
+
+export function useDecideRequisition() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: decideRequisition,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['job-requisitions'] }),
+  })
+}
+
+export function useMarkOfferSent() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: markOfferSent,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['offer-letters'] }),
+  })
+}
+
+export function useRecordOfferResponse() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: recordOfferResponse,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['offer-letters'] })
+      queryClient.invalidateQueries({ queryKey: ['candidate-applications'] })
+    },
+  })
+}
+
+export function useReviseOffer() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: reviseOffer,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['offer-letters'] }),
+  })
+}
+
+export function useInterviewCompetencies() {
+  const { organization } = useAuth()
+  return useQuery({
+    queryKey: ['interview-competencies', organization?.id],
+    queryFn: () => getInterviewCompetencies(organization!.id),
+    enabled: !!organization?.id,
+  })
+}
+
+export function useCreateInterviewCompetency() {
+  const queryClient = useQueryClient()
+  const { organization } = useAuth()
+  return useMutation({
+    mutationFn: (payload: Record<string, unknown>) =>
+      createInterviewCompetency({ ...payload, organization_id: organization!.id }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['interview-competencies'] }),
+  })
+}
+
+export function useAddScorecardItems() {
+  const queryClient = useQueryClient()
+  const { organization } = useAuth()
+  return useMutation({
+    mutationFn: (items: Record<string, unknown>[]) =>
+      addScorecardItems(items.map((i) => ({ ...i, organization_id: organization!.id }))),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['interview-feedback'] }),
+  })
+}
+
+export function useScorecard(feedbackId: string | undefined) {
+  return useQuery({
+    queryKey: ['scorecard', feedbackId],
+    queryFn: () => getScorecardForFeedback(feedbackId!),
+    enabled: !!feedbackId,
+  })
+}
+
+export function useTalentPool() {
+  const { organization } = useAuth()
+  return useQuery({
+    queryKey: ['talent-pool', organization?.id],
+    queryFn: () => getTalentPool(organization!.id),
+    enabled: !!organization?.id,
+  })
+}
+
+export function useUpdateCandidatePool() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateCandidatePool,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['talent-pool'] })
+      queryClient.invalidateQueries({ queryKey: ['candidates'] })
+    },
+  })
+}
+
+export function useBackgroundChecks() {
+  const { organization } = useAuth()
+  return useQuery({
+    queryKey: ['background-checks', organization?.id],
+    queryFn: () => getBackgroundChecks(organization!.id),
+    enabled: !!organization?.id,
+  })
+}
+
+export function useCreateBackgroundCheck() {
+  const queryClient = useQueryClient()
+  const { organization } = useAuth()
+  return useMutation({
+    mutationFn: (payload: Record<string, unknown>) =>
+      createBackgroundCheck({ ...payload, organization_id: organization!.id }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['background-checks'] }),
+  })
+}
+
+export function useUpdateBackgroundCheck() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...updates }: Record<string, unknown> & { id: string }) =>
+      updateBackgroundCheck(id, updates),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['background-checks'] }),
+  })
+}
+
+export function useRescheduleInterview() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: rescheduleInterview,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['interviews'] }),
+  })
+}
+
+/** F17 — the candidate's own view of where they stand. */
+export function useMyCandidateView(profileId: string | undefined) {
+  return useQuery({
+    queryKey: ['my-candidate-view', profileId],
+    queryFn: () => getMyCandidateView(profileId!),
+    enabled: !!profileId,
   })
 }

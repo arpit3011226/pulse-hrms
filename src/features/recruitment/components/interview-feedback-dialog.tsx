@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { INTERVIEW_RECOMMENDATIONS } from '@/lib/constants'
-import { useSubmitInterviewFeedback } from '../hooks/use-recruitment'
+import { useSubmitInterviewFeedback, useInterviewCompetencies, useAddScorecardItems } from '../hooks/use-recruitment'
 import type { InterviewWithRelations } from '@/types/database.types'
 import { toast } from 'sonner'
 
@@ -32,6 +32,11 @@ interface InterviewFeedbackDialogProps {
 
 export function InterviewFeedbackDialog({ open, onOpenChange, interview }: InterviewFeedbackDialogProps) {
   const submitFeedback = useSubmitInterviewFeedback()
+  // F15 — per-competency ratings, so a panel can be compared rather than
+  // producing five unrelated paragraphs
+  const { data: competencies } = useInterviewCompetencies()
+  const addScorecard = useAddScorecardItems()
+  const [scores, setScores] = useState<Record<string, number>>({})
 
   const existingFeedback = interview?.interview_feedback
 
@@ -75,10 +80,14 @@ export function InterviewFeedbackDialog({ open, onOpenChange, interview }: Inter
     }
   }, [existingFeedback, reset, open])
 
+  useEffect(() => {
+    if (open) setScores({})
+  }, [open])
+
   const onSubmit = async (data: FeedbackFormData) => {
     if (!interview) return
     try {
-      await submitFeedback.mutateAsync({
+      const feedback = await submitFeedback.mutateAsync({
         interview_id: interview.id,
         interviewer_id: interview.interviewer_id || '',
         rating: data.rating,
@@ -87,6 +96,18 @@ export function InterviewFeedbackDialog({ open, onOpenChange, interview }: Inter
         areas_for_improvement: data.areas_for_improvement || undefined,
         comments: data.comments || undefined,
       })
+
+      const rated = Object.entries(scores).filter(([, v]) => v > 0)
+      if (rated.length > 0 && feedback?.id) {
+        await addScorecard.mutateAsync(
+          rated.map(([competency, rating]) => ({
+            interview_feedback_id: feedback.id,
+            competency,
+            rating,
+          }))
+        )
+      }
+
       toast.success('Feedback submitted successfully')
       onOpenChange(false)
     } catch {
@@ -135,6 +156,44 @@ export function InterviewFeedbackDialog({ open, onOpenChange, interview }: Inter
               )}
             </div>
           </div>
+
+          {(competencies ?? []).length > 0 && (
+            <div className="space-y-2 rounded-md border p-3">
+              <Label>Scorecard</Label>
+              <p className="text-xs text-muted-foreground">
+                Rate each area from 1 to 5. This is what makes a panel comparable.
+              </p>
+              <div className="mt-2 space-y-2">
+                {(competencies ?? []).map((c) => {
+                  const comp = c as { id: string; name: string }
+                  const current = scores[comp.name] ?? 0
+                  return (
+                    <div key={comp.id} className="flex items-center justify-between gap-3">
+                      <span className="text-sm">{comp.name}</span>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() =>
+                              setScores((prev) => ({ ...prev, [comp.name]: n }))
+                            }
+                            className={`h-7 w-7 rounded border text-xs transition-colors ${
+                              current === n
+                                ? 'border-primary bg-primary text-primary-foreground'
+                                : 'hover:bg-muted'
+                            }`}
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="strengths">Strengths</Label>

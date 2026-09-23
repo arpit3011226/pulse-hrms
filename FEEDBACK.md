@@ -97,14 +97,14 @@ F43 blocks F17 and all of Phase 5.
 
 | ID | Feature | Module | Effort | Status |
 |----|---------|--------|--------|--------|
-| F12 | Requisition approval — approver, status, budget check | recruitment | M | todo |
-| F13 | Offer letter as PDF with accept/decline and revisions | recruitment | M | todo |
-| F14 | Interview scheduling — invites, availability, reschedule, reminders | recruitment | M | todo |
-| F15 | Structured interview scorecards | recruitment | S | todo |
-| F16 | Candidate pool — rejection reasons, tags, revisit, search | recruitment | M | todo |
-| F19 | Hiring analytics — time to hire, acceptance rate, funnel | recruitment | M | todo |
-| F17 | Candidate portal — login, status, documents, offer acceptance (needs F43) | recruitment | L | todo |
-| F18 | Background verification tracking | recruitment | M | todo |
+| F12 | Requisition approval — approver, status, budget check | recruitment | M | **done** |
+| F13 | Offer letter as PDF with accept/decline and revisions | recruitment | M | **done** |
+| F14 | Interview scheduling — invites, availability, reschedule, reminders | recruitment | M | **done** |
+| F15 | Structured interview scorecards | recruitment | S | **done** |
+| F16 | Candidate pool — rejection reasons, tags, revisit, search | recruitment | M | **done** |
+| F19 | Hiring analytics — time to hire, acceptance rate, funnel | recruitment | M | **done** |
+| F17 | Candidate portal — login, status, documents, offer acceptance (needs F43) | recruitment | L | **done** |
+| F18 | Background verification tracking | recruitment | M | **done** |
 
 ## Phase 5 — Retire / Alumni (1 week)
 

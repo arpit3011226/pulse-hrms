@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Plus, Pencil, Trash2, Eye, Play, Pause, XCircle, CheckCircle } from 'lucide-react'
+import { MoreHorizontal, Plus, Pencil, Trash2, Eye, Play, Pause, XCircle, CheckCircle, Send, Gavel } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -15,6 +15,7 @@ import { StatusBadge } from '@/components/shared/status-badge'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { RequisitionFormDialog } from './requisition-form-dialog'
 import { RequisitionDetailDialog } from './requisition-detail-dialog'
+import { RequisitionApprovalDialog, ApprovalBadge } from './requisition-approval-dialog'
 import {
   useJobRequisitions,
   useUpdateJobRequisitionStatus,
@@ -38,6 +39,7 @@ export function RequisitionsTab() {
   const [detailRequisition, setDetailRequisition] = useState<JobRequisitionWithRelations | undefined>()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [statusChange, setStatusChange] = useState<{ id: string; status: string; label: string } | null>(null)
+  const [approval, setApproval] = useState<{ req: JobRequisitionWithRelations; mode: 'submit' | 'decide' } | null>(null)
 
   const getStatusActions = (currentStatus: string) => {
     const actions: { status: string; label: string; icon: typeof Play }[] = []
@@ -107,6 +109,13 @@ export function RequisitionsTab() {
       header: 'Status',
       cell: ({ row }) => <StatusBadge status={row.original.status} />,
     },
+    {
+      id: 'approval',
+      header: 'Approval',
+      cell: ({ row }) => (
+        <ApprovalBadge status={(row.original as { approval_status?: string | null }).approval_status} />
+      ),
+    },
   ]
 
   if (canManage) {
@@ -130,6 +139,25 @@ export function RequisitionsTab() {
               <DropdownMenuItem onClick={() => { setEditingRequisition(req); setFormOpen(true) }}>
                 <Pencil className="mr-2 h-4 w-4" /> Edit
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {(() => {
+                const a = (req as { approval_status?: string | null }).approval_status
+                if (a === 'pending') {
+                  return (
+                    <DropdownMenuItem onClick={() => setApproval({ req, mode: 'decide' })}>
+                      <Gavel className="mr-2 h-4 w-4" /> Approve or Reject
+                    </DropdownMenuItem>
+                  )
+                }
+                if (a !== 'approved') {
+                  return (
+                    <DropdownMenuItem onClick={() => setApproval({ req, mode: 'submit' })}>
+                      <Send className="mr-2 h-4 w-4" /> Send for Approval
+                    </DropdownMenuItem>
+                  )
+                }
+                return null
+              })()}
               {statusActions.length > 0 && <DropdownMenuSeparator />}
               {statusActions.map((action) => (
                 <DropdownMenuItem
@@ -175,6 +203,14 @@ export function RequisitionsTab() {
         open={formOpen}
         onOpenChange={(open) => { setFormOpen(open); if (!open) setEditingRequisition(undefined) }}
         requisition={editingRequisition}
+      />
+
+
+      <RequisitionApprovalDialog
+        open={!!approval}
+        onOpenChange={(open) => !open && setApproval(null)}
+        requisition={approval?.req ?? null}
+        mode={approval?.mode ?? 'submit'}
       />
 
       <RequisitionDetailDialog

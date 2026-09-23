@@ -16,6 +16,7 @@ import { EmployeeUnifiedView } from '@/features/employees/components/employee-un
 import { EmployeeLifecycleHub } from '@/features/employees/components/lifecycle-hub/employee-lifecycle-hub'
 import { OnboardingPage } from '@/features/onboarding/components/onboarding-page'
 import { AssetsPage } from '@/features/assets/components/assets-page'
+import { CandidatePortalPage } from '@/features/recruitment/components/candidate-portal-page'
 import { EmployeeFormPage } from '@/features/employees/components/employee-form-page'
 import { DepartmentList } from '@/features/departments/components/department-list'
 import { LeavePage } from '@/features/leave/components/leave-page'
@@ -140,6 +141,10 @@ const newJoinersRoute = createRoute({
 
 const assetsRoute = createRoute({ getParentRoute: () => appRoute, path: '/assets', component: AssetsPage })
 
+// F17 — a candidate signs in with their personal email and sees only their own
+// application. RLS on candidates, applications, interviews and offers enforces it.
+const myApplicationRoute = createRoute({ getParentRoute: () => appRoute, path: '/my-application', component: CandidatePortalPage })
+
 const departmentsRoute = createRoute({ getParentRoute: () => appRoute, path: '/departments', component: DepartmentList })
 
 
@@ -172,6 +177,7 @@ const routeTree = rootRoute.addChildren([
     employeeEditRoute,
     newJoinersRoute,
     assetsRoute,
+    myApplicationRoute,
     departmentsRoute,
     leaveRoute,
     attendanceRoute,

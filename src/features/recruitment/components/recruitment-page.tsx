@@ -7,6 +7,9 @@ import { CandidatesTab } from './candidates-tab'
 import { ApplicationsTab } from './applications-tab'
 import { InterviewsTab } from './interviews-tab'
 import { OffersTab } from './offers-tab'
+import { TalentPoolTab } from './talent-pool-tab'
+import { BackgroundChecksTab } from './background-checks-tab'
+import { HiringAnalyticsTab } from './hiring-analytics-tab'
 
 export function RecruitmentPage() {
   const { canManageRecruitment, canViewCandidates, isAdmin, isHR } = usePermissions()
@@ -36,6 +39,9 @@ export function RecruitmentPage() {
             <TabsTrigger value="interviews">Interviews</TabsTrigger>
           )}
           {showAdminTabs && <TabsTrigger value="offers">Offers</TabsTrigger>}
+          {showAdminTabs && <TabsTrigger value="pool">Talent Pool</TabsTrigger>}
+          {showAdminTabs && <TabsTrigger value="bgv">Background Checks</TabsTrigger>}
+          {showAdminTabs && <TabsTrigger value="analytics">Analytics</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="requisitions" className="mt-6">
@@ -69,6 +75,24 @@ export function RecruitmentPage() {
         {showAdminTabs && (
           <TabsContent value="offers" className="mt-6">
             <OffersTab />
+          </TabsContent>
+        )}
+
+        {showAdminTabs && (
+          <TabsContent value="pool" className="mt-6">
+            <TalentPoolTab canManage={showAdminTabs} />
+          </TabsContent>
+        )}
+
+        {showAdminTabs && (
+          <TabsContent value="bgv" className="mt-6">
+            <BackgroundChecksTab canManage={showAdminTabs} />
+          </TabsContent>
+        )}
+
+        {showAdminTabs && (
+          <TabsContent value="analytics" className="mt-6">
+            <HiringAnalyticsTab />
           </TabsContent>
         )}
       </Tabs>
