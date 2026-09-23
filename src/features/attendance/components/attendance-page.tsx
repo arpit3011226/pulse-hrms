@@ -5,6 +5,7 @@ import { MyAttendanceTab } from './my-attendance-tab'
 import { TeamAttendanceTab } from './team-attendance-tab'
 import { AllAttendanceTab } from './all-attendance-tab'
 import { ShiftsTab } from './shifts-tab'
+import { AllRegularizationsTab } from './all-regularizations-tab'
 
 export function AttendancePage() {
   const {
@@ -32,6 +33,7 @@ export function AttendancePage() {
           <TabsTrigger value="my-attendance">My Attendance</TabsTrigger>
           {showTeamTab && <TabsTrigger value="team">Team</TabsTrigger>}
           {showAllTab && <TabsTrigger value="all">All Attendance</TabsTrigger>}
+          {showAllTab && <TabsTrigger value="regularizations">Regularisations</TabsTrigger>}
           {showShiftsTab && <TabsTrigger value="shifts">Shifts</TabsTrigger>}
         </TabsList>
 
@@ -48,6 +50,12 @@ export function AttendancePage() {
         {showAllTab && (
           <TabsContent value="all" className="mt-6">
             <AllAttendanceTab />
+          </TabsContent>
+        )}
+
+        {showAllTab && (
+          <TabsContent value="regularizations" className="mt-6">
+            <AllRegularizationsTab />
           </TabsContent>
         )}
 

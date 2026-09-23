@@ -64,8 +64,8 @@ Working code that no screen reaches today. Highest return per day.
 | F4 | Leave encashment request and approval | leave | S | **done** |
 | F5 | Leave policy assignment to employees (single + bulk) | leave | S | **done** |
 | F6 | Leave blackout periods and carry-forward processing | leave | S | **done** |
-| F7 | Attendance regularisation approval screen | attendance | S | todo |
-| F8 | Shift roster assignment (single + bulk) | attendance | S | todo |
+| F7 | Attendance regularisation approval screen | attendance | S | **done** |
+| F8 | Shift roster assignment (single + bulk) | attendance | S | **done** |
 | F9 | Payroll adjustments, payslip detail, run approval | payroll | M | todo |
 | F10 | TDS record storage and view | payroll | M | todo |
 | F11 | Skip-level reviews and goal hierarchy view | performance | M | todo |

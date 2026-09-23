@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Plus, Pencil, Trash2, Calendar } from 'lucide-react'
+import { Plus, Pencil, Trash2, Calendar, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/shared/data-table'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { ShiftFormDialog } from './shift-form-dialog'
 import { ShiftRosterDialog } from './shift-roster-dialog'
+import { BulkShiftRosterDialog } from './bulk-shift-roster-dialog'
 import { useShifts, useDeleteShift, useShiftRosters, useDeleteShiftRoster } from '../hooks/use-attendance'
 import { formatDate } from '@/lib/utils'
 import type { Shift, ShiftRosterWithRelations } from '@/types/database.types'
@@ -22,6 +23,8 @@ export function ShiftsTab() {
   const [editShift, setEditShift] = useState<Shift | null>(null)
   const [deleteShiftId, setDeleteShiftId] = useState<string | null>(null)
   const [rosterOpen, setRosterOpen] = useState(false)
+  const [bulkRosterOpen, setBulkRosterOpen] = useState(false)
+  const [editRoster, setEditRoster] = useState<ShiftRosterWithRelations | null>(null)
   const [deleteRosterId, setDeleteRosterId] = useState<string | null>(null)
 
   const shiftColumns: ColumnDef<Shift>[] = [
@@ -71,9 +74,14 @@ export function ShiftsTab() {
     {
       id: 'actions',
       cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" onClick={() => { setEditRoster(row.original); setRosterOpen(true) }}>
+          <Pencil className="h-4 w-4" />
+        </Button>
         <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteRosterId(row.original.id)}>
           <Trash2 className="h-4 w-4" />
         </Button>
+        </div>
       ),
     },
   ]
@@ -106,9 +114,14 @@ export function ShiftsTab() {
           searchKey="employee"
           searchPlaceholder="Search assignments..."
           toolbarActions={
-            <Button onClick={() => setRosterOpen(true)}>
-              <Calendar className="mr-2 h-4 w-4" /> Assign Shift
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setBulkRosterOpen(true)}>
+                <Users className="mr-2 h-4 w-4" /> Bulk Assign
+              </Button>
+              <Button onClick={() => { setEditRoster(null); setRosterOpen(true) }}>
+                <Calendar className="mr-2 h-4 w-4" /> Assign Shift
+              </Button>
+            </div>
           }
         />
       </div>
@@ -119,7 +132,13 @@ export function ShiftsTab() {
         shift={editShift}
       />
 
-      <ShiftRosterDialog open={rosterOpen} onOpenChange={setRosterOpen} />
+      <ShiftRosterDialog
+        open={rosterOpen}
+        onOpenChange={(open) => { setRosterOpen(open); if (!open) setEditRoster(null) }}
+        roster={editRoster}
+      />
+
+      <BulkShiftRosterDialog open={bulkRosterOpen} onOpenChange={setBulkRosterOpen} />
 
       <ConfirmDialog
         open={!!deleteShiftId}

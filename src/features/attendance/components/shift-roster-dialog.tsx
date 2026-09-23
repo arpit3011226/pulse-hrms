@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useAssignShiftRoster, useShifts } from '../hooks/use-attendance'
+import { useAssignShiftRoster, useUpdateShiftRoster, useShifts } from '../hooks/use-attendance'
 import { useEmployees } from '@/features/employees/hooks/use-employees'
 import { toast } from 'sonner'
 
@@ -22,30 +23,56 @@ type FormData = z.infer<typeof schema>
 interface ShiftRosterDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Pass a roster row to edit it; omit to assign a new one */
+  roster?: {
+    id: string
+    employee_id: string
+    shift_id: string
+    start_date: string
+    end_date: string | null
+  } | null
 }
 
-export function ShiftRosterDialog({ open, onOpenChange }: ShiftRosterDialogProps) {
+export function ShiftRosterDialog({ open, onOpenChange, roster }: ShiftRosterDialogProps) {
   const assignRoster = useAssignShiftRoster()
+  const updateRoster = useUpdateShiftRoster()
+  const isEdit = !!roster?.id
   const { data: shifts } = useShifts()
   const { data: employees } = useEmployees()
 
-  const { register, handleSubmit, setValue, formState: { errors }, reset } = useForm<FormData>({
+  const { register, handleSubmit, setValue, watch, formState: { errors }, reset } = useForm<FormData>({
     resolver: zodResolver(schema),
   })
 
+  useEffect(() => {
+    if (!open) return
+    reset({
+      employee_id: roster?.employee_id ?? '',
+      shift_id: roster?.shift_id ?? '',
+      start_date: roster?.start_date ?? '',
+      end_date: roster?.end_date ?? '',
+    })
+  }, [open, roster, reset])
+
   const onSubmit = async (data: FormData) => {
     try {
-      await assignRoster.mutateAsync({
+      const payload = {
         employee_id: data.employee_id,
         shift_id: data.shift_id,
         start_date: data.start_date,
         end_date: data.end_date || null,
-      })
-      toast.success('Shift assigned')
+      }
+      if (isEdit) {
+        await updateRoster.mutateAsync({ id: roster!.id, ...payload })
+        toast.success('Roster updated')
+      } else {
+        await assignRoster.mutateAsync(payload)
+        toast.success('Shift assigned')
+      }
       reset()
       onOpenChange(false)
-    } catch {
-      toast.error('Failed to assign shift')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save the roster')
     }
   }
 
@@ -53,13 +80,15 @@ export function ShiftRosterDialog({ open, onOpenChange }: ShiftRosterDialogProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Assign Shift</DialogTitle>
-          <DialogDescription>Assign an employee to a shift schedule.</DialogDescription>
+          <DialogTitle>{isEdit ? 'Edit Roster' : 'Assign Shift'}</DialogTitle>
+          <DialogDescription>
+            {isEdit ? 'Change the shift or dates for this assignment.' : 'Assign an employee to a shift schedule.'}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label>Employee</Label>
-            <Select onValueChange={(v) => setValue('employee_id', v)}>
+            <Select value={watch('employee_id') || ''} onValueChange={(v) => setValue('employee_id', v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select employee" />
               </SelectTrigger>
@@ -76,7 +105,7 @@ export function ShiftRosterDialog({ open, onOpenChange }: ShiftRosterDialogProps
 
           <div>
             <Label>Shift</Label>
-            <Select onValueChange={(v) => setValue('shift_id', v)}>
+            <Select value={watch('shift_id') || ''} onValueChange={(v) => setValue('shift_id', v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select shift" />
               </SelectTrigger>
@@ -105,8 +134,10 @@ export function ShiftRosterDialog({ open, onOpenChange }: ShiftRosterDialogProps
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={assignRoster.isPending}>
-              {assignRoster.isPending ? 'Assigning...' : 'Assign'}
+            <Button type="submit" disabled={assignRoster.isPending || updateRoster.isPending}>
+              {assignRoster.isPending || updateRoster.isPending
+                ? 'Saving...'
+                : isEdit ? 'Save changes' : 'Assign'}
             </Button>
           </div>
         </form>
