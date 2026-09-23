@@ -17,6 +17,7 @@ import { BirthdaysAnniversariesWidget } from './widgets/birthdays-widget'
 import { PendingApprovalsWidget } from './widgets/pending-approvals-widget'
 import { MyAttendanceWidget } from './widgets/my-attendance-widget'
 import { AnnouncementsWidget } from './widgets/announcements-widget'
+import { ThingsToDoWidget } from './widgets/things-to-do-widget'
 
 export function DashboardPage() {
   const { profile } = useAuth()
@@ -51,6 +52,7 @@ export function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_380px] items-start">
         {/* Left Column */}
         <div className="space-y-6 min-w-0">
+          <ThingsToDoWidget employeeId={employeeId} />
           <AnnouncementsWidget
             canManage={canManageAnnouncements}
             userRole={role}

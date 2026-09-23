@@ -111,10 +111,14 @@ const employeeNewRoute = createRoute({
 const employeeDetailRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/employees/$employeeId',
-  // ?view=details shows the full master-data record; default is the lifecycle hub
-  validateSearch: (search: Record<string, unknown>): { view?: 'details' } => ({
-    view: search.view === 'details' ? 'details' : undefined,
-  }),
+  // ?view=details shows the full master-data record; default is the lifecycle hub.
+  //
+  // Return an EMPTY object when the param is absent, never { view: undefined }.
+  // The router deep-compares the validated search against the current one, and
+  // a key present-but-undefined never compares equal to a missing key — so it
+  // re-commits the location on every render and blows the update depth.
+  validateSearch: (search: Record<string, unknown>): { view?: 'details' } =>
+    search.view === 'details' ? { view: 'details' } : {},
   component: function EmployeeDetailPage() {
     const { employeeId } = employeeDetailRoute.useParams()
     const { view } = employeeDetailRoute.useSearch()

@@ -276,7 +276,7 @@ async function fetchOnLeave(organizationId: string, employeeIds?: string[]): Pro
     .select(`
       id, employee_id, start_date, end_date, is_half_day, status,
       leave_type:leave_types(name),
-      employee:employees(first_name, last_name, avatar_url, department:departments!department_id(name))
+      employee:employees!leave_requests_employee_id_fkey(first_name, last_name, avatar_url, department:departments!department_id(name))
     `)
     .eq('organization_id', organizationId)
     .in('status', ['approved', 'pending'])

@@ -238,6 +238,56 @@ interface NavItem {
   visible?: boolean
 }
 
+// Home sits on its own above a divider. Everything else is sorted
+// alphabetically at render time, so adding a module later cannot put it in the
+// wrong place by accident. Defined at module scope so it is not rebuilt on
+// every render.
+/**
+ * Defined at module scope rather than inside Sidebar: a component created
+ * during render is a new type on every pass, which remounts its subtree and
+ * is what the react-hooks rule warns about.
+ */
+function NavLink({
+  item, sidebarOpen, matchRoute,
+}: {
+  item: NavItem
+  sidebarOpen: boolean
+  matchRoute: ReturnType<typeof useMatchRoute>
+}) {
+  const isActive = matchRoute({ to: item.href, fuzzy: true })
+
+  const link = (
+    <Link
+      to={item.href}
+      className={cn(
+        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+        isActive
+          ? 'bg-primary/10 text-primary font-semibold'
+          : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+        !sidebarOpen && 'justify-center px-2'
+      )}
+    >
+      <item.icon className="h-5 w-5 shrink-0" />
+      {sidebarOpen && <span>{item.title}</span>}
+    </Link>
+  )
+
+  if (!sidebarOpen) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{link}</TooltipTrigger>
+        <TooltipContent side="right">{item.title}</TooltipContent>
+      </Tooltip>
+    )
+  }
+
+  return link
+}
+
+const HOME_ITEM: NavItem = {
+  title: 'Home', href: '/dashboard', icon: DashboardIcon, visible: true,
+}
+
 export function Sidebar() {
   const { sidebarOpen, toggleSidebar } = useUIStore()
   const { signOut } = useAuth()
@@ -249,63 +299,31 @@ export function Sidebar() {
   const isModuleEnabled = (key: string) => modules?.[key] !== false
 
   const navItems: NavItem[] = [
-    // Dashboard always first
-    { title: 'Dashboard', href: '/dashboard', icon: DashboardIcon, visible: true },
-    // Alphabetical order
+    { title: 'Alumni', href: '/alumni', icon: AlumniIcon, visible: permissions.isAdmin || permissions.isHR || permissions.isPayrollAdmin },
+    { title: 'Assets', href: '/assets', icon: AssetsIcon, visible: true },
     { title: 'Attendance', href: '/attendance', icon: AttendanceIcon, visible: isModuleEnabled('attendance') },
     { title: 'Departments', href: '/departments', icon: DepartmentsIcon, visible: true },
     { title: 'Employees', href: '/employees', icon: EmployeesIcon, visible: true },
-    { title: 'Onboarding', href: '/new-joiners', icon: OnboardingIcon, visible: true },
-    { title: 'Assets', href: '/assets', icon: AssetsIcon, visible: true },
+    { title: 'Helpdesk', href: '/helpdesk', icon: HelpdeskIcon, visible: true },
     { title: 'Learning', href: '/learning', icon: LearningIcon, visible: isModuleEnabled('learning') },
     { title: 'Leave', href: '/leave', icon: LeaveIcon, visible: isModuleEnabled('leave') },
+    { title: 'Onboarding', href: '/new-joiners', icon: OnboardingIcon, visible: true },
     { title: 'Payroll', href: '/payroll', icon: PayrollIcon, visible: permissions.canViewPayroll && isModuleEnabled('payroll') },
     { title: 'Performance', href: '/performance', icon: PerformanceIcon, visible: isModuleEnabled('performance') },
-    { title: 'Recruitment', href: '/recruitment', icon: RecruitmentIcon, visible: permissions.canManageRecruitment && isModuleEnabled('recruitment') },
-    { title: 'Self Service', href: '/self-service', icon: SelfServiceIcon, visible: true },
-    { title: 'Helpdesk', href: '/helpdesk', icon: HelpdeskIcon, visible: true },
     { title: 'Recognition', href: '/recognition', icon: RecognitionIcon, visible: true },
-    { title: 'Separation', href: '/separation', icon: SeparationIcon, visible: true },
-    { title: 'Alumni', href: '/alumni', icon: AlumniIcon, visible: permissions.isAdmin || permissions.isHR || permissions.isPayrollAdmin },
-    { title: 'Workflows', href: '/workflows', icon: WorkflowsIcon, visible: permissions.canViewWorkflows },
-    // Reports always last
+    { title: 'Recruitment', href: '/recruitment', icon: RecruitmentIcon, visible: permissions.canManageRecruitment && isModuleEnabled('recruitment') },
     { title: 'Reports', href: '/reports', icon: ReportsIcon, visible: permissions.canViewReports },
+    { title: 'Self Service', href: '/self-service', icon: SelfServiceIcon, visible: true },
+    { title: 'Separation', href: '/separation', icon: SeparationIcon, visible: true },
+    { title: 'Workflows', href: '/workflows', icon: WorkflowsIcon, visible: permissions.canViewWorkflows },
   ]
+    .filter((item) => item.visible)
+    .sort((a, b) => a.title.localeCompare(b.title, 'en'))
 
   const bottomItems: NavItem[] = [
     { title: 'Settings', href: '/settings', icon: SettingsIcon, visible: true },
   ]
 
-  const NavLink = ({ item }: { item: NavItem }) => {
-    const isActive = matchRoute({ to: item.href, fuzzy: true })
-
-    const link = (
-      <Link
-        to={item.href}
-        className={cn(
-          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-          isActive
-            ? 'bg-primary/10 text-primary font-semibold'
-            : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
-          !sidebarOpen && 'justify-center px-2'
-        )}
-      >
-        <item.icon className="h-5 w-5 shrink-0" />
-        {sidebarOpen && <span>{item.title}</span>}
-      </Link>
-    )
-
-    if (!sidebarOpen) {
-      return (
-        <Tooltip>
-          <TooltipTrigger asChild>{link}</TooltipTrigger>
-          <TooltipContent side="right">{item.title}</TooltipContent>
-        </Tooltip>
-      )
-    }
-
-    return link
-  }
 
   return (
     <aside
@@ -326,11 +344,15 @@ export function Sidebar() {
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="space-y-1">
-          {navItems
-            .filter((item) => item.visible)
-            .map((item) => (
-              <NavLink key={item.href} item={item} />
-            ))}
+          <NavLink item={HOME_ITEM} sidebarOpen={sidebarOpen} matchRoute={matchRoute} />
+        </nav>
+
+        <Separator className="my-3" />
+
+        <nav className="space-y-1">
+          {navItems.map((item) => (
+            <NavLink key={item.href} item={item} sidebarOpen={sidebarOpen} matchRoute={matchRoute} />
+          ))}
         </nav>
       </ScrollArea>
 
@@ -340,7 +362,7 @@ export function Sidebar() {
           {bottomItems
             .filter((item) => item.visible)
             .map((item) => (
-              <NavLink key={item.href} item={item} />
+              <NavLink key={item.href} item={item} sidebarOpen={sidebarOpen} matchRoute={matchRoute} />
             ))}
         </nav>
         <Separator className="my-2" />
