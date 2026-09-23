@@ -78,7 +78,7 @@ F43 blocks F17 and all of Phase 5.
 |----|---------|--------|--------|--------|
 | F43 | Unified identity — candidate to employee to alumnus on personal email | auth | M | **done** |
 | F44 | Approval delegation when approver is away | global | S | **done** |
-| F45 | Global search | global | S | todo |
+| F45 | Global search | global | S | **done** |
 
 ## Phase 3 — Onboard (2 weeks)
 

@@ -1,6 +1,4 @@
-import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -13,6 +11,7 @@ import {
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { getInitials } from '@/lib/utils'
 import { NotificationPopover } from '@/components/layout/notification-popover'
+import { GlobalSearch } from '@/components/layout/global-search'
 import { Link } from '@tanstack/react-router'
 
 export function Topbar() {
@@ -24,14 +23,10 @@ export function Topbar() {
 
   return (
     <header className="flex h-16 items-center justify-between border-b bg-background px-6">
-      {/* Search */}
+      {/* F45 — global search (was a dead input that did nothing) */}
       <div className="flex items-center gap-4">
-        <div className="relative w-72">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search employees, departments..."
-            className="pl-9"
-          />
+        <div className="w-72">
+          <GlobalSearch />
         </div>
       </div>
 
