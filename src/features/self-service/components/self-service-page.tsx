@@ -19,6 +19,7 @@ import { ReimbursementApprovalsTab } from './reimbursement-approvals-tab'
 import { AllReimbursementsTab } from './all-reimbursements-tab'
 import { MyGeneralRequestsTab } from './my-general-requests-tab'
 import { GeneralRequestApprovalsTab } from './general-request-approvals-tab'
+import { MySurveysTab } from './my-surveys-tab'
 
 export function SelfServicePage() {
   const { profile } = useAuth()
@@ -82,6 +83,7 @@ export function SelfServicePage() {
           <TabsTrigger value="my-letters">My Letters</TabsTrigger>
           <TabsTrigger value="my-reimbursements">Reimbursements</TabsTrigger>
           <TabsTrigger value="my-requests">Requests</TabsTrigger>
+          <TabsTrigger value="my-surveys">Surveys</TabsTrigger>
           {showTemplatesTab && <TabsTrigger value="templates">Templates</TabsTrigger>}
           {showApprovalsTab && <TabsTrigger value="approvals">Approvals</TabsTrigger>}
           {showAllTab && <TabsTrigger value="all-requests">All Requests</TabsTrigger>}
@@ -110,6 +112,16 @@ export function SelfServicePage() {
         <TabsContent value="my-requests" className="mt-6">
           {employeeId ? (
             <MyGeneralRequestsTab employeeId={employeeId} />
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              No employee profile found for your account.
+            </p>
+          )}
+        </TabsContent>
+
+        <TabsContent value="my-surveys" className="mt-6">
+          {currentEmployee ? (
+            <MySurveysTab employee={currentEmployee} />
           ) : (
             <p className="text-sm text-muted-foreground text-center py-8">
               No employee profile found for your account.

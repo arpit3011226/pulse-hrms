@@ -59,7 +59,7 @@ Working code that no screen reaches today. Highest return per day.
 | ID | Feature | Module | Effort | Status |
 |----|---------|--------|--------|--------|
 | F1 | Employee 360 hub — profile, attendance, time-off, reviews, goals, documents, payroll, offboarding in one screen (was #21) | employees | S | **done** |
-| F2 | Employee survey response — staff can answer surveys | reports | S | todo |
+| F2 | Employee survey response — staff can answer surveys | reports | S | **done** |
 | F3 | Candidate to employee conversion | recruitment | S | todo |
 | F4 | Leave encashment request and approval | leave | S | todo |
 | F5 | Leave policy assignment to employees (single + bulk) | leave | S | todo |
