@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Plus, Pencil, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
+import { MoreHorizontal, Plus, Pencil, Trash2, ChevronDown, ChevronRight, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { DataTable } from '@/components/shared/data-table'
+import { AssignLeavePolicyDialog } from './assign-leave-policy-dialog'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { LeaveTypeFormDialog } from './leave-type-form-dialog'
@@ -197,6 +198,7 @@ function PoliciesSection({ canManage }: { canManage: boolean }) {
   const [editingPolicy, setEditingPolicy] = useState<LeavePolicyWithDetails | undefined>()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [assignPolicy, setAssignPolicy] = useState<LeavePolicyWithDetails | null>(null)
 
   const columns: ColumnDef<LeavePolicyWithDetails>[] = [
     {
@@ -257,6 +259,9 @@ function PoliciesSection({ canManage }: { canManage: boolean }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setAssignPolicy(row.original)}>
+              <Users className="mr-2 h-4 w-4" /> Assign to Employees
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => { setEditingPolicy(row.original); setFormOpen(true) }}>
               <Pencil className="mr-2 h-4 w-4" /> Edit
             </DropdownMenuItem>
@@ -284,6 +289,12 @@ function PoliciesSection({ canManage }: { canManage: boolean }) {
             </Button>
           )
         }
+      />
+
+      <AssignLeavePolicyDialog
+        open={!!assignPolicy}
+        onOpenChange={(open) => !open && setAssignPolicy(null)}
+        policy={assignPolicy}
       />
 
       {/* Expanded policy details */}

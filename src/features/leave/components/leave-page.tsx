@@ -7,6 +7,8 @@ import { AllLeavesTab } from './all-leaves-tab'
 import { LeavePoliciesTab } from './leave-policies-tab'
 import { HolidaysTab } from './holidays-tab'
 import { LeaveBalancesTab } from './leave-balances-tab'
+import { LeaveEncashmentTab } from './leave-encashment-tab'
+import { LeaveRulesTab } from './leave-rules-tab'
 
 export function LeavePage() {
   const {
@@ -34,15 +36,21 @@ export function LeavePage() {
       <Tabs defaultValue="my-leaves">
         <TabsList>
           <TabsTrigger value="my-leaves">My Leaves</TabsTrigger>
+          <TabsTrigger value="encashment">Encashment</TabsTrigger>
           {showTeamTab && <TabsTrigger value="team-leaves">Team Leaves</TabsTrigger>}
           {showAllTab && <TabsTrigger value="all-leaves">All Leaves</TabsTrigger>}
           {showPoliciesTab && <TabsTrigger value="policies">Policies</TabsTrigger>}
+          {showPoliciesTab && <TabsTrigger value="rules">Rules</TabsTrigger>}
           {showHolidaysTab && <TabsTrigger value="holidays">Holidays</TabsTrigger>}
           {showBalancesTab && <TabsTrigger value="balances">Balances</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="my-leaves" className="mt-6">
           <MyLeavesTab />
+        </TabsContent>
+
+        <TabsContent value="encashment" className="mt-6">
+          <LeaveEncashmentTab />
         </TabsContent>
 
         {showTeamTab && (
@@ -60,6 +68,12 @@ export function LeavePage() {
         {showPoliciesTab && (
           <TabsContent value="policies" className="mt-6">
             <LeavePoliciesTab />
+          </TabsContent>
+        )}
+
+        {showPoliciesTab && (
+          <TabsContent value="rules" className="mt-6">
+            <LeaveRulesTab />
           </TabsContent>
         )}
 
