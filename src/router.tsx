@@ -13,6 +13,7 @@ import { ForgotPasswordForm } from '@/features/auth/components/forgot-password-f
 import { OnboardingForm } from '@/features/auth/components/onboarding-form'
 import { EmployeeList } from '@/features/employees/components/employee-list'
 import { EmployeeUnifiedView } from '@/features/employees/components/employee-unified-view'
+import { EmployeeLifecycleHub } from '@/features/employees/components/lifecycle-hub/employee-lifecycle-hub'
 import { EmployeeFormPage } from '@/features/employees/components/employee-form-page'
 import { DepartmentList } from '@/features/departments/components/department-list'
 import { LeavePage } from '@/features/leave/components/leave-page'
@@ -104,9 +105,18 @@ const employeeNewRoute = createRoute({
 const employeeDetailRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/employees/$employeeId',
+  // ?view=details shows the full master-data record; default is the lifecycle hub
+  validateSearch: (search: Record<string, unknown>): { view?: 'details' } => ({
+    view: search.view === 'details' ? 'details' : undefined,
+  }),
   component: function EmployeeDetailPage() {
     const { employeeId } = employeeDetailRoute.useParams()
-    return <EmployeeUnifiedView employeeId={employeeId} />
+    const { view } = employeeDetailRoute.useSearch()
+    return view === 'details' ? (
+      <EmployeeUnifiedView employeeId={employeeId} />
+    ) : (
+      <EmployeeLifecycleHub employeeId={employeeId} />
+    )
   },
 })
 
