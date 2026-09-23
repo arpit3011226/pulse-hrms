@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/features/auth/hooks/use-auth'
+import { useFlagAssetsForReturn } from '@/features/assets/hooks/use-assets'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useEmployees } from '@/features/employees/hooks/use-employees'
 import { useSubmitResignation } from '../hooks/use-resignation'
@@ -35,6 +36,9 @@ export function InitiateSeparationDialog({ open, onOpenChange }: InitiateSeparat
   const { profile, organization } = useAuth()
   const { isManager, isHR, isAdmin } = usePermissions()
   const submitResignation = useSubmitResignation()
+  // F29 — mark everything they hold as awaiting return, so exit clearance can
+  // see it rather than discovering a missing laptop on the last day.
+  const flagAssets = useFlagAssetsForReturn()
   const { data: allEmployees } = useEmployees()
 
   const noticeDays = (organization?.settings as { default_notice_days?: number } | undefined)?.default_notice_days ?? 30
@@ -110,6 +114,13 @@ export function InitiateSeparationDialog({ open, onOpenChange }: InitiateSeparat
         initiated_by: profile.id,
         exit_type: data.exit_type as any,
       })
+      try {
+        await flagAssets.mutateAsync(data.employee_id)
+      } catch {
+        // Not fatal — the separation is recorded either way, and assets can be
+        // flagged by hand from the Assets screen.
+      }
+
       toast.success('Separation initiated successfully')
       reset()
       onOpenChange(false)

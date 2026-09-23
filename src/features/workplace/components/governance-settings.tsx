@@ -23,7 +23,7 @@ import { getCurrentEmployee } from '@/features/attendance/api/attendance.api'
 import {
   usePolicies, useCreatePolicy, useMyAcknowledgements, useAcknowledgePolicy,
   useNotificationPreferences, useSaveNotificationPreference,
-  useDataRequests, useCreateDataRequest, useAuditLog,
+  useDataRequests, useCreateDataRequest, useUpdateDataRequest, useAllAcknowledgements, useAuditLog,
 } from '../hooks/use-workplace'
 import { NOTIFICATION_CATEGORIES, exportEmployeeData } from '../api/workplace.api'
 import { formatDate } from '@/lib/utils'
@@ -45,6 +45,7 @@ export function PolicySettings() {
 
   const { data: policies, isLoading } = usePolicies()
   const { data: acks } = useMyAcknowledgements(myId)
+  const { data: allAcks } = useAllAcknowledgements()
   const acknowledge = useAcknowledgePolicy()
   const createPolicy = useCreatePolicy()
 
@@ -105,6 +106,15 @@ export function PolicySettings() {
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       Effective {formatDate(p.effective_from as string)}
+                      {canManage && p.requires_acknowledgement ? (
+                        <>
+                          {' · '}
+                          {((allAcks ?? []) as Array<Record<string, unknown>>).filter(
+                            (a) => a.policy_id === p.id
+                          ).length}{' '}
+                          acknowledged
+                        </>
+                      ) : null}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
@@ -303,6 +313,7 @@ export function PrivacySettings() {
 
   const { data: requests } = useDataRequests()
   const create = useCreateDataRequest()
+  const updateRequest = useUpdateDataRequest()
   const [exporting, setExporting] = useState(false)
 
   async function downloadMyData() {
@@ -410,9 +421,50 @@ export function PrivacySettings() {
                           {formatDate(r.created_at as string)}
                         </p>
                       </div>
-                      <Badge variant={r.status === 'completed' ? 'secondary' : 'default'}>
-                        {String(r.status).replace('_', ' ')}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={r.status === 'completed' ? 'secondary' : 'default'}>
+                          {String(r.status).replace('_', ' ')}
+                        </Badge>
+                        {r.status !== 'completed' && r.status !== 'rejected' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                try {
+                                  await updateRequest.mutateAsync({
+                                    id: r.id as string,
+                                    status: 'completed',
+                                    completed_at: new Date().toISOString(),
+                                  })
+                                  toast.success('Marked complete')
+                                } catch {
+                                  toast.error('Could not update it')
+                                }
+                              }}
+                            >
+                              Complete
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive"
+                              onClick={async () => {
+                                try {
+                                  await updateRequest.mutateAsync({
+                                    id: r.id as string, status: 'rejected',
+                                  })
+                                  toast.success('Rejected')
+                                } catch {
+                                  toast.error('Could not update it')
+                                }
+                              }}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   )
                 })}

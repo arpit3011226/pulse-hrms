@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Plus, Pencil, CheckCircle, XCircle, MessageSquare, Star } from 'lucide-react'
+import { MoreHorizontal, Plus, Pencil, CheckCircle, XCircle, MessageSquare, Star , CalendarClock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { DataTable } from '@/components/shared/data-table'
+import { RescheduleInterviewDialog } from './reschedule-interview-dialog'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { InterviewFormDialog } from './interview-form-dialog'
@@ -31,6 +32,7 @@ function formatTime(dateStr: string) {
 }
 
 export function InterviewsTab() {
+  const [rescheduleTarget, setRescheduleTarget] = useState<InterviewWithRelations | null>(null)
   const { canManageRecruitment, isAdmin, isHR } = usePermissions()
   const canManage = canManageRecruitment || isAdmin || isHR
 
@@ -150,6 +152,11 @@ export function InterviewsTab() {
                 </DropdownMenuItem>
               )}
               {isScheduled && (
+                <DropdownMenuItem onClick={() => setRescheduleTarget(interview)}>
+                  <CalendarClock className="mr-2 h-4 w-4" /> Reschedule
+                </DropdownMenuItem>
+              )}
+              {isScheduled && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -202,6 +209,13 @@ export function InterviewsTab() {
           )
         }
       />
+
+      <RescheduleInterviewDialog
+        open={!!rescheduleTarget}
+        onOpenChange={(o) => !o && setRescheduleTarget(null)}
+        interview={rescheduleTarget}
+      />
+
 
       <InterviewFormDialog
         open={formOpen}

@@ -20,6 +20,7 @@ import { useAuth } from '@/features/auth/hooks/use-auth'
 import {
   useOfferLetters,
   useUpdateOfferStatus,
+  useMarkOfferSent,
 } from '../hooks/use-recruitment'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate, formatCurrency } from '@/lib/utils'
@@ -33,6 +34,7 @@ export function OffersTab() {
 
   const { data: offers, isLoading } = useOfferLetters()
   const updateStatus = useUpdateOfferStatus()
+  const markSent = useMarkOfferSent()
 
   const [formOpen, setFormOpen] = useState(false)
   const [convertOffer, setConvertOffer] = useState<OfferLetterWithRelations | null>(null)

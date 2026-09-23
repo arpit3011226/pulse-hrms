@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Loader2, ShieldCheck, User } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { OutstandingAssets } from '@/features/assets/components/outstanding-assets'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { StatusBadge } from '@/components/shared/status-badge'
@@ -14,6 +15,7 @@ type ClearanceWithRelations = ExitClearance & { exit_record?: any }
 
 interface GroupedClearances {
   exitRecordId: string
+  employeeId: string | null
   employeeName: string
   department: string
   resignationDate: string | null
@@ -30,6 +32,7 @@ function groupClearances(clearances: ClearanceWithRelations[]): GroupedClearance
       const emp = c.exit_record?.employee
       map.set(exitId, {
         exitRecordId: exitId,
+        employeeId: emp?.id ?? null,
         employeeName: emp ? `${emp.first_name} ${emp.last_name}` : 'Unknown',
         department: emp?.department?.name || '-',
         resignationDate: c.exit_record?.resignation_date || null,
@@ -109,7 +112,8 @@ export function ClearanceTab({ approverEmployeeId }: ClearanceTabProps) {
                 )}
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <OutstandingAssets employeeId={group.employeeId ?? undefined} />
+                <div className="mt-3 space-y-2">
                   {group.clearances.map((c) => (
                     <div key={c.id} className="flex items-center justify-between rounded-lg border p-3">
                       <div className="flex items-center gap-3">

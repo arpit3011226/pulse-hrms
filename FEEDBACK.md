@@ -87,6 +87,39 @@ the app still builds with all 133 queries passing. They have NOT been tested
 with real logins of each role — that belongs in Phase 7/8.
 
 
+
+## Completion pass (23 Sep 2026)
+
+After marking all phases done, I audited my own output the same way I audited
+the original codebase. 36 hooks were unreachable — several belonged to features
+I had marked complete on the strength of schema and API alone.
+
+| Feature | What was actually missing | Fixed |
+|---------|---------------------------|-------|
+| F42 Exit interviews | **No UI at all** — table, API and hooks existed, no screen | Questions manager, record-an-interview form, and a trend view of average rating per question |
+| F15 Scorecards | No way to create competencies, so the scorecard section never rendered on the feedback form | Competency manager in Pipeline Stages |
+| F14 Interview scheduling | Reschedule API built, no button | Reschedule dialog on the interviews tab |
+| F22/F25 Onboarding | A joiner could not see their own tasks; no ad-hoc tasks | My Onboarding tab, plus add and remove task in the detail view |
+| F29 Assets | "Recovery on exit" was claimed but not wired | Outstanding assets shown in exit clearance; assets flagged for return when a separation is initiated |
+| F49 DPDP | HR could not action requests | Complete and Reject actions |
+| F46 Policies | HR could not see who had acknowledged | Acknowledgement count per policy |
+| F44 Delegation | HR could not see or remove org-wide cover | All-cover view with remove |
+| F29 Assets | Status could not be changed (repair, retired, lost) | Inline status change for unassigned assets |
+
+Remaining unreachable hooks: 22, down from 36. Zero orphaned components.
+Of those 22, most are pre-existing or deliberate:
+  * useApprovePayrollRun, useUpdatePayrollCycleStatus — deliberately NOT wired.
+    They are a second approval path alongside the cycle approval flow, and two
+    ways to approve payroll is worse than one.
+  * useAttempts, useCreateEnrollment, useUpdateAttempt, useOverlappingLeaves,
+    useCreatePerformanceReview, useManuallyExcludeEmployee,
+    useCandidateStageHistory, useAllGeneralRequests, useLogWorkflowRun —
+    pre-existing gaps in the original codebase, not introduced here.
+  * usePersonContext — needed when candidate and alumni logins get their own
+    layout, which is not built.
+  * useScorecard — submitted scorecards can be saved but not yet read back.
+
+
 ---
 
 # Feature Roadmap — 4 Journeys

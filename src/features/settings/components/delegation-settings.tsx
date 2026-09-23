@@ -17,8 +17,10 @@ import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { getCurrentEmployee } from '@/features/attendance/api/attendance.api'
 import { useEmployees } from '@/features/employees/hooks/use-employees'
+import { usePermissions } from '@/hooks/use-permissions'
 import {
   useMyDelegations, useCreateDelegation, useRevokeDelegation, useApprovalScope,
+  useAllDelegations, useDeleteDelegation,
 } from '../hooks/use-delegation'
 import { formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -41,7 +43,11 @@ export function DelegationSettings() {
   })
   const myId = me?.id as string | undefined
 
+  const { isAdmin, isHR } = usePermissions()
+  const canSeeAll = isAdmin || isHR
   const { data: delegations, isLoading } = useMyDelegations(myId)
+  const { data: orgDelegations } = useAllDelegations()
+  const deleteDelegation = useDeleteDelegation()
   const { delegatedIds, isCovering } = useApprovalScope(myId)
   const createDelegation = useCreateDelegation()
   const revokeDelegation = useRevokeDelegation()
@@ -187,6 +193,68 @@ export function DelegationSettings() {
           )}
         </CardContent>
       </Card>
+
+      {canSeeAll && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">All cover across the company</CardTitle>
+            <CardDescription>
+              Useful when somebody is away unexpectedly and approvals are piling up behind them.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {((orgDelegations ?? []) as ApprovalDelegation[]).length === 0 ? (
+              <p className="py-3 text-sm text-muted-foreground">Nobody has arranged cover.</p>
+            ) : (
+              <div className="divide-y">
+                {((orgDelegations ?? []) as ApprovalDelegation[]).map((d) => (
+                  <div key={d.id} className="flex items-center justify-between gap-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="text-sm">
+                        <span className="font-medium">
+                          {d.delegator ? `${d.delegator.first_name} ${d.delegator.last_name}` : '—'}
+                        </span>
+                        {' → '}
+                        <span className="font-medium">
+                          {d.delegate ? `${d.delegate.first_name} ${d.delegate.last_name}` : '—'}
+                        </span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(d.start_date)} – {formatDate(d.end_date)}
+                        {d.reason ? ` · ${d.reason}` : ''}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {isCurrentlyActive(d) ? (
+                        <Badge className="bg-emerald-100 text-emerald-800">Active</Badge>
+                      ) : d.is_active ? (
+                        <Badge variant="outline">Scheduled</Badge>
+                      ) : (
+                        <Badge variant="secondary">Withdrawn</Badge>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        onClick={async () => {
+                          try {
+                            await deleteDelegation.mutateAsync(d.id)
+                            toast.success('Removed')
+                          } catch {
+                            toast.error('Could not remove it')
+                          }
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Arrange cover */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>

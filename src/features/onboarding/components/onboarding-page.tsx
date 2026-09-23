@@ -7,6 +7,7 @@ import { useAuth } from '@/features/auth/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
 import { getCurrentEmployee } from '@/features/attendance/api/attendance.api'
 import { JoinersTab } from './joiners-tab'
+import { MyOnboardingTab } from './my-onboarding-tab'
 import { ProbationTab } from './probation-tab'
 import { TemplatesTab } from './templates-tab'
 import { useOnboardingRuns, useProbationDue } from '../hooks/use-onboarding'
@@ -97,12 +98,17 @@ export function OnboardingPage() {
         />
       </div>
 
-      <Tabs defaultValue="joiners">
+      <Tabs defaultValue="mine">
         <TabsList>
+          <TabsTrigger value="mine">My Onboarding</TabsTrigger>
           <TabsTrigger value="joiners">Joiners</TabsTrigger>
           <TabsTrigger value="probation">Probation</TabsTrigger>
           {canManage && <TabsTrigger value="templates">Templates</TabsTrigger>}
         </TabsList>
+
+        <TabsContent value="mine" className="mt-6">
+          <MyOnboardingTab />
+        </TabsContent>
 
         <TabsContent value="joiners" className="mt-6">
           <JoinersTab canManage={canManage} currentEmployeeId={me?.id} />

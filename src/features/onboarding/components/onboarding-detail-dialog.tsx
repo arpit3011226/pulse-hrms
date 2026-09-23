@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  CalendarCheck, Check, CircleDashed, Clock, Flag, Loader2, SkipForward, X,
+  CalendarCheck, Check, CircleDashed, Clock, Flag, Loader2, Plus, SkipForward, Trash2, X,
 } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
@@ -10,8 +10,9 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useUpdateTaskStatus, useUpdateJourney } from '../hooks/use-onboarding'
+import { useUpdateTaskStatus, useUpdateJourney, useAddOnboardingTask, useDeleteOnboardingTask } from '../hooks/use-onboarding'
 import {
   CATEGORY_LABELS, CATEGORY_ORDER, OWNER_LABELS, taskProgress,
   type EmployeeOnboarding, type OnboardingCategory, type OnboardingTask,
@@ -29,11 +30,12 @@ interface Props {
 const today = () => new Date().toISOString().split('T')[0]
 
 function TaskRow({
-  task, onSetStatus, busy,
+  task, onSetStatus, busy, onDelete,
 }: {
   task: OnboardingTask
   onSetStatus: (status: OnboardingTask['status']) => void
   busy: boolean
+  onDelete?: () => void
 }) {
   const done = task.status === 'completed'
   const skipped = task.status === 'skipped'
@@ -84,18 +86,32 @@ function TaskRow({
         </div>
       </div>
 
-      {!done && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 shrink-0"
-          disabled={busy}
-          title={skipped ? 'Bring back' : 'Skip'}
-          onClick={() => onSetStatus(skipped ? 'pending' : 'skipped')}
-        >
-          {skipped ? <X className="h-3.5 w-3.5" /> : <SkipForward className="h-3.5 w-3.5" />}
-        </Button>
-      )}
+      <div className="flex shrink-0 items-center gap-0.5">
+        {!done && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            disabled={busy}
+            title={skipped ? 'Bring back' : 'Skip'}
+            onClick={() => onSetStatus(skipped ? 'pending' : 'skipped')}
+          >
+            {skipped ? <X className="h-3.5 w-3.5" /> : <SkipForward className="h-3.5 w-3.5" />}
+          </Button>
+        )}
+        {onDelete && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-destructive"
+            disabled={busy}
+            title="Remove this task"
+            onClick={onDelete}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
     </div>
   )
 }
@@ -103,7 +119,10 @@ function TaskRow({
 export function OnboardingDetailDialog({ open, onOpenChange, run, currentEmployeeId }: Props) {
   const updateTask = useUpdateTaskStatus()
   const updateJourney = useUpdateJourney()
+  const addTask = useAddOnboardingTask()
+  const deleteTask = useDeleteOnboardingTask()
   const [journeyNotes, setJourneyNotes] = useState<Record<string, string>>({})
+  const [newTask, setNewTask] = useState('')
 
   if (!run) return null
 
@@ -195,6 +214,14 @@ export function OnboardingDetailDialog({ open, onOpenChange, run, currentEmploye
                           task={t}
                           busy={updateTask.isPending}
                           onSetStatus={(s) => setStatus(t, s)}
+                          onDelete={async () => {
+                            try {
+                              await deleteTask.mutateAsync(t.id)
+                              toast.success('Task removed')
+                            } catch {
+                              toast.error('Could not remove it')
+                            }
+                          }}
                         />
                       ))}
                     </div>
@@ -202,6 +229,38 @@ export function OnboardingDetailDialog({ open, onOpenChange, run, currentEmploye
                 })
               )}
             </ScrollArea>
+
+            {/* Ad-hoc task — not everything fits a template */}
+            <div className="mt-3 flex gap-2 border-t pt-3">
+              <Input
+                placeholder="Add a one-off task for this joiner"
+                value={newTask}
+                onChange={(e) => setNewTask(e.target.value)}
+              />
+              <Button
+                size="sm"
+                disabled={!newTask.trim() || addTask.isPending}
+                onClick={async () => {
+                  try {
+                    await addTask.mutateAsync({
+                      employee_onboarding_id: run!.id,
+                      title: newTask.trim(),
+                      category: 'ongoing',
+                      owner_role: 'hr',
+                      status: 'pending',
+                      is_mandatory: false,
+                      sort_order: tasks.length + 1,
+                    })
+                    setNewTask('')
+                    toast.success('Task added')
+                  } catch {
+                    toast.error('Could not add it')
+                  }
+                }}
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5" /> Add
+              </Button>
+            </div>
           </TabsContent>
 
           <TabsContent value="journey" className="mt-4 min-h-0 flex-1">

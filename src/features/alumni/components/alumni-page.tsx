@@ -21,6 +21,7 @@ import { useAuth } from '@/features/auth/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
 import { getCurrentEmployee } from '@/features/attendance/api/attendance.api'
 import { SettlementDialog } from './settlement-dialog'
+import { ExitInterviewTab } from './exit-interview-tab'
 import {
   useSettlements, useSetSettlementStatus, useAlumni, useExitRecords,
   useSetRehireEligibility, useMarkAsAlumni,
@@ -305,6 +306,7 @@ export function AlumniPage() {
         <TabsList>
           <TabsTrigger value="settlements">Settlements</TabsTrigger>
           <TabsTrigger value="directory">Directory</TabsTrigger>
+          <TabsTrigger value="exit-interviews">Exit Interviews</TabsTrigger>
         </TabsList>
 
         <TabsContent value="settlements" className="mt-6">
@@ -368,6 +370,9 @@ export function AlumniPage() {
           ) : (
             <DataTable columns={alumniColumns} data={alumniRows} isLoading={aLoading} />
           )}
+        </TabsContent>
+        <TabsContent value="exit-interviews" className="mt-6">
+          <ExitInterviewTab canManage={canManage} />
         </TabsContent>
       </Tabs>
 

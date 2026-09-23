@@ -26,7 +26,7 @@ import { getCurrentEmployee } from '@/features/attendance/api/attendance.api'
 import { useEmployees } from '@/features/employees/hooks/use-employees'
 import {
   useAssets, useAssetAssignments, useCreateAsset, useDeleteAsset,
-  useAssignAsset, useReturnAsset,
+  useAssignAsset, useReturnAsset, useUpdateAsset,
 } from '../hooks/use-assets'
 import {
   ASSET_TYPES, ASSET_TYPE_LABELS,
@@ -64,6 +64,7 @@ export function AssetsPage() {
   const deleteAsset = useDeleteAsset()
   const assignAsset = useAssignAsset()
   const returnAsset = useReturnAsset()
+  const updateAsset = useUpdateAsset()
 
   const [assetFormOpen, setAssetFormOpen] = useState(false)
   const [assignTarget, setAssignTarget] = useState<Asset | null>(null)
@@ -218,11 +219,40 @@ export function AssetsPage() {
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ row }) => (
-        <Badge className={STATUS_STYLES[row.original.status] ?? ''}>
-          {row.original.status.replace('_', ' ')}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const a = row.original
+        const held = openAssignments.some((x) => x.asset_id === a.id)
+        // Only a free asset can be moved to repair, retired or lost — an asset
+        // someone is holding has to come back first.
+        if (!canManage || held) {
+          return (
+            <Badge className={STATUS_STYLES[a.status] ?? ''}>
+              {a.status.replace('_', ' ')}
+            </Badge>
+          )
+        }
+        return (
+          <Select
+            value={a.status}
+            onValueChange={async (v) => {
+              try {
+                await updateAsset.mutateAsync({ id: a.id, status: v as Asset['status'] })
+                toast.success('Asset updated')
+              } catch {
+                toast.error('Could not update the asset')
+              }
+            }}
+          >
+            <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="available">Available</SelectItem>
+              <SelectItem value="in_repair">In repair</SelectItem>
+              <SelectItem value="retired">Retired</SelectItem>
+              <SelectItem value="lost">Lost</SelectItem>
+            </SelectContent>
+          </Select>
+        )
+      },
     },
     {
       id: 'actions',
