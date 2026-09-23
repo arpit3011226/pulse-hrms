@@ -2,6 +2,13 @@ import jsPDF from 'jspdf'
 import { getMonthName } from './payroll-utils'
 import { numberToWords } from './number-to-words'
 import type { Organization } from '@/types/database.types'
+import {
+  AUGUST_ROSE,
+  companyAddress,
+  companyName,
+  drawAugustLogo,
+  stampFooters,
+} from '@/lib/document-branding'
 
 interface PayslipEarning {
   amount: number
@@ -42,8 +49,6 @@ export interface PayslipPdfData {
   deductions: PayslipDeduction[]
 }
 
-const COMPANY_ADDRESS = '4th Floor, #597, 15th Cross Road, Outer Ring Rd, MG Layout, JP Nagar Phase 6, J. P. Nagar, Bengaluru, Karnataka 560078'
-
 // Clean professional color palette — August brand
 const C = {
   black: [20, 20, 20] as [number, number, number],
@@ -53,11 +58,11 @@ const C = {
   light: [245, 245, 248] as [number, number, number],
   white: [255, 255, 255] as [number, number, number],
   border: [215, 215, 220] as [number, number, number],
-  // August brand magenta/crimson
-  august: [190, 30, 90] as [number, number, number],
+  // August brand rose, sampled from the design system artwork
+  august: AUGUST_ROSE,
   augustLight: [252, 235, 243] as [number, number, number],
   // Accent = August brand
-  accent: [190, 30, 90] as [number, number, number],
+  accent: AUGUST_ROSE,
   accentBg: [252, 235, 243] as [number, number, number],
   greenBg: [236, 253, 245] as [number, number, number],
   green: [16, 185, 129] as [number, number, number],
@@ -81,33 +86,6 @@ function formatDateShort(dateStr: string | null): string {
   return new Date(dateStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-/** Draw August logo — concentric circles in brand magenta */
-function drawAugustLogo(doc: jsPDF, x: number, y: number, size: number) {
-  const cx = x + size / 2
-  const cy = y + size / 2
-  const r = size / 2
-
-  // Outer filled circle (magenta)
-  doc.setFillColor(...C.august)
-  doc.circle(cx, cy, r, 'F')
-
-  // White ring
-  doc.setFillColor(...C.white)
-  doc.circle(cx, cy, r * 0.75, 'F')
-
-  // Middle filled circle (magenta)
-  doc.setFillColor(...C.august)
-  doc.circle(cx, cy, r * 0.55, 'F')
-
-  // Inner white ring
-  doc.setFillColor(...C.white)
-  doc.circle(cx, cy, r * 0.35, 'F')
-
-  // Center dot (magenta)
-  doc.setFillColor(...C.august)
-  doc.circle(cx, cy, r * 0.18, 'F')
-}
-
 export function generatePayslipPdf(data: PayslipPdfData, organization: Organization): void {
   const doc = new jsPDF('p', 'mm', 'a4')
   const pageWidth = 210
@@ -122,27 +100,27 @@ export function generatePayslipPdf(data: PayslipPdfData, organization: Organizat
   y = 8
 
   // ── Header: Company branding (white background) ──
-  // August logo (concentric circles)
-  drawAugustLogo(doc, margin, y, 14)
+  // The logo already carries the AUGUST wordmark, so the registered name sits
+  // underneath it in small type rather than beside it in large type.
+  const logoHeight = drawAugustLogo(doc, margin, y, 36)
 
-  // Company name
   doc.setTextColor(...C.black)
-  doc.setFontSize(16)
+  doc.setFontSize(8.5)
   doc.setFont('helvetica', 'bold')
-  doc.text(organization.name || 'Augustinnovate Pvt. Ltd.', margin + 18, y + 6)
+  doc.text(companyName(organization), margin, y + logoHeight + 4.5)
 
   // Company address
   doc.setTextColor(...C.muted)
   doc.setFontSize(7)
   doc.setFont('helvetica', 'normal')
-  const addressLines = doc.splitTextToSize(COMPANY_ADDRESS, 100)
-  doc.text(addressLines, margin + 18, y + 11)
+  const addressLines = doc.splitTextToSize(companyAddress(organization), 100) as string[]
+  doc.text(addressLines, margin, y + logoHeight + 8.5)
 
   // Website
   if (organization.website) {
     doc.setTextColor(...C.accent)
     doc.setFontSize(7)
-    doc.text(organization.website, margin + 18, y + 11 + addressLines.length * 3.5)
+    doc.text(organization.website, margin, y + logoHeight + 8.5 + addressLines.length * 3.5)
   }
 
   // Right side — PAYSLIP badge
@@ -368,33 +346,17 @@ export function generatePayslipPdf(data: PayslipPdfData, organization: Organizat
   y += 24
 
   // ── Footer ──
-  const footerY = 268
-
-  // Thin August accent line above footer
-  doc.setDrawColor(...C.august)
-  doc.setLineWidth(0.5)
-  doc.line(margin, footerY - 8, pageWidth - margin, footerY - 8)
-
+  // Payslip-specific line; the shared footer underneath carries the copyright,
+  // address, CIN and the computer-generated note.
   doc.setTextColor(...C.muted)
   doc.setFontSize(6.5)
-  doc.setFont('helvetica', 'italic')
-  doc.text(
-    'This is a computer-generated payslip and does not require a signature.',
-    pageWidth / 2, footerY - 2, { align: 'center' }
-  )
-
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(6.5)
   doc.text(
-    `Generated on: ${formatDateShort(data.generated_on)}  |  ${organization.name || 'Augustinnovate Pvt. Ltd.'}  |  Confidential`,
-    pageWidth / 2, footerY + 2, { align: 'center' }
+    `Generated on: ${formatDateShort(data.generated_on)}  |  Confidential`,
+    pageWidth / 2, 262, { align: 'center' }
   )
 
-  doc.setFontSize(6)
-  doc.text(
-    COMPANY_ADDRESS,
-    pageWidth / 2, footerY + 6, { align: 'center' }
-  )
+  stampFooters(doc, organization, margin)
 
   // Download
   const filename = `Payslip_${data.payslip_number}_${getMonthName(data.payroll_month)}_${data.payroll_year}.pdf`

@@ -27,6 +27,12 @@ export function OrganizationSettings() {
       email: organization?.email || '',
       phone: organization?.phone || '',
       website: organization?.website || '',
+      cin: organization?.cin || '',
+      line1: organization?.address?.line1 || '',
+      line2: organization?.address?.line2 || '',
+      city: organization?.address?.city || '',
+      state: organization?.address?.state || '',
+      pincode: organization?.address?.pincode || '',
     },
   })
 
@@ -34,12 +40,27 @@ export function OrganizationSettings() {
     if (!organization) return
     setIsLoading(true)
     try {
+      // The address is one JSONB column, so pull its parts out of the flat form.
+      const { line1, line2, city, state, pincode, ...rest } = data
+      const addressParts = { line1, line2, city, state, pincode }
+      const hasAddress = Object.values(addressParts).some((v) => v?.trim())
+
       const cleaned = Object.fromEntries(
-        Object.entries(data).map(([k, v]) => [k, v || null])
+        Object.entries(rest).map(([k, v]) => [k, v || null])
       )
+      const withAddress = {
+        ...cleaned,
+        address: hasAddress
+          ? Object.fromEntries(
+              Object.entries(addressParts)
+                .filter(([, v]) => v?.trim())
+                .map(([k, v]) => [k, v.trim()])
+            )
+          : null,
+      }
       const updateData = canEditRegional
-        ? { ...cleaned, fiscal_year_start: Number(fiscalYear), timezone, currency }
-        : cleaned
+        ? { ...withAddress, fiscal_year_start: Number(fiscalYear), timezone, currency }
+        : withAddress
       const { error } = await supabase
         .from('organizations')
         .update(updateData)
@@ -48,7 +69,7 @@ export function OrganizationSettings() {
       if (error) throw error
       await refreshProfile()
       toast.success('Organization updated')
-    } catch (err) {
+    } catch {
       toast.error('Failed to update organization')
     } finally {
       setIsLoading(false)
@@ -78,6 +99,47 @@ export function OrganizationSettings() {
           <div className="space-y-2">
             <Label htmlFor="org_website">Website</Label>
             <Input id="org_website" {...register('website')} />
+          </div>
+
+          <div className="pt-4 border-t space-y-4">
+            <div>
+              <h4 className="text-sm font-medium">Registered Address</h4>
+              <p className="text-xs text-muted-foreground">
+                This is printed on letters, offer letters and payslips.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="org_line1">Address Line 1</Label>
+              <Input id="org_line1" {...register('line1')} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="org_line2">Address Line 2</Label>
+              <Input id="org_line2" {...register('line2')} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="org_city">City</Label>
+                <Input id="org_city" {...register('city')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="org_state">State</Label>
+                <Input id="org_state" {...register('state')} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="org_pincode">PIN Code</Label>
+              <Input id="org_pincode" {...register('pincode')} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="org_cin">CIN</Label>
+              <Input id="org_cin" placeholder="e.g. U72900KA2023PTC000000" {...register('cin')} />
+              <p className="text-xs text-muted-foreground">
+                Corporate Identity Number. Shown in the document footer. Leave it blank to
+                keep it off the documents.
+              </p>
+            </div>
           </div>
 
           <div className="pt-4 border-t space-y-4">

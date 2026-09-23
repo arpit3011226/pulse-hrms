@@ -33,7 +33,10 @@ export interface Organization {
   slug: string
   logo_url: string | null
   domain: string | null
+  /** Registered address as { line1, line2, city, state, pincode }. */
   address: Record<string, string> | null
+  /** Corporate Identity Number, printed in the footer of generated documents. */
+  cin: string | null
   phone: string | null
   email: string | null
   website: string | null
