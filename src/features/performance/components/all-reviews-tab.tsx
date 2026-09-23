@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { DataTable } from '@/components/shared/data-table'
+import { SkipLevelReviewDialog } from './skip-level-review-dialog'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { toast } from 'sonner'
 import {
@@ -37,6 +38,7 @@ export function AllReviewsTab() {
   const finalizeReview = useFinalizeReview()
 
   const [finalizeTarget, setFinalizeTarget] = useState<PerformanceReviewWithRelations | null>(null)
+  const [skipLevelTarget, setSkipLevelTarget] = useState<PerformanceReviewWithRelations | null>(null)
 
   const canFinalize = (status: string) =>
     status === 'manager_review_done' || status === 'acknowledged'
@@ -90,12 +92,18 @@ export function AllReviewsTab() {
     },
     {
       id: 'actions',
-      cell: ({ row }) =>
-        canFinalize(row.original.status) ? (
-          <Button variant="outline" size="sm" onClick={() => setFinalizeTarget(row.original)}>
-            Finalize
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setSkipLevelTarget(row.original)}>
+            Skip-Level
           </Button>
-        ) : null,
+          {canFinalize(row.original.status) && (
+            <Button variant="outline" size="sm" onClick={() => setFinalizeTarget(row.original)}>
+              Finalize
+            </Button>
+          )}
+        </div>
+      ),
     },
   ]
 
@@ -122,6 +130,12 @@ export function AllReviewsTab() {
             </SelectContent>
           </Select>
         }
+      />
+
+      <SkipLevelReviewDialog
+        open={!!skipLevelTarget}
+        onOpenChange={(open) => !open && setSkipLevelTarget(null)}
+        review={skipLevelTarget}
       />
 
       {finalizeTarget && (

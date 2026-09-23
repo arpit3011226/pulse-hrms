@@ -66,9 +66,9 @@ Working code that no screen reaches today. Highest return per day.
 | F6 | Leave blackout periods and carry-forward processing | leave | S | **done** |
 | F7 | Attendance regularisation approval screen | attendance | S | **done** |
 | F8 | Shift roster assignment (single + bulk) | attendance | S | **done** |
-| F9 | Payroll adjustments, payslip detail, run approval | payroll | M | todo |
-| F10 | TDS record storage and view | payroll | M | todo |
-| F11 | Skip-level reviews and goal hierarchy view | performance | M | todo |
+| F9 | Payroll adjustments, payslip detail, run approval | payroll | M | **done** |
+| F10 | TDS record storage and view | payroll | M | **done** |
+| F11 | Skip-level reviews and goal hierarchy view | performance | M | **done** |
 
 ## Phase 2 — Foundation (3 days)
 

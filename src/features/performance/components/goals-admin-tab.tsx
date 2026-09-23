@@ -16,6 +16,7 @@ import { calculateGoalProgress } from '../utils/performance-utils'
 import { GOAL_CATEGORIES } from '@/lib/constants'
 import { GoalFormDialog } from './goal-form-dialog'
 import { CascadeGoalDialog } from './cascade-goal-dialog'
+import { GoalHierarchyDialog } from './goal-hierarchy-dialog'
 import type { EmployeeGoal, GoalKeyResult } from '@/types/database.types'
 
 type GoalWithRelations = EmployeeGoal & {
@@ -35,6 +36,7 @@ export function GoalsAdminTab() {
   const [selectedCycleId, setSelectedCycleId] = useState<string | undefined>(undefined)
   const [formOpen, setFormOpen] = useState(false)
   const [cascadeOpen, setCascadeOpen] = useState(false)
+  const [hierarchyGoal, setHierarchyGoal] = useState<GoalWithRelations | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
 
   const cycleId = selectedCycleId || activeCycle?.id
@@ -111,6 +113,20 @@ export function GoalsAdminTab() {
         ) : null,
     },
     {
+      id: 'hierarchy',
+      header: '',
+      cell: ({ row }) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs"
+          onClick={() => setHierarchyGoal(row.original)}
+        >
+          <GitBranch className="mr-1 h-3.5 w-3.5" /> Cascade
+        </Button>
+      ),
+    },
+    {
       accessorKey: 'status',
       header: 'Status',
       cell: ({ row }) => <StatusBadge status={row.original.status} />,
@@ -178,6 +194,12 @@ export function GoalsAdminTab() {
           cycleId={cycleId}
         />
       )}
+
+      <GoalHierarchyDialog
+        open={!!hierarchyGoal}
+        onOpenChange={(open) => !open && setHierarchyGoal(null)}
+        goal={hierarchyGoal}
+      />
 
       {cycleId && (
         <CascadeGoalDialog

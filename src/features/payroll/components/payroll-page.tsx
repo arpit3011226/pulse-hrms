@@ -9,6 +9,9 @@ import { PayrollRunsTab } from './payroll-runs-tab'
 import { TaxDeclarationForm } from './tax-declaration-form'
 import { TaxDeclarationsTab } from './tax-declarations-tab'
 import { PayrollConfigPanel } from './payroll-config-panel'
+import { AllPayslipsTab } from './all-payslips-tab'
+import { PayrollAdjustmentsTab } from './payroll-adjustments-tab'
+import { TdsRecordsTab } from './tds-records-tab'
 
 export function PayrollPage() {
   const {
@@ -41,8 +44,11 @@ export function PayrollPage() {
           {showComponentsTab && <TabsTrigger value="components">Components</TabsTrigger>}
           {showStructuresTab && <TabsTrigger value="structures">Structures</TabsTrigger>}
           {showRunsTab && <TabsTrigger value="runs">Payroll Runs</TabsTrigger>}
+          {showAdminTabs && <TabsTrigger value="adjustments">Adjustments</TabsTrigger>}
+          {showAdminTabs && <TabsTrigger value="all-payslips">All Payslips</TabsTrigger>}
           <TabsTrigger value="my-tax">My Tax</TabsTrigger>
           {showTaxAdminTab && <TabsTrigger value="tax-declarations">Income Tax</TabsTrigger>}
+          {showTaxAdminTab && <TabsTrigger value="tds-records">TDS Records</TabsTrigger>}
           {showSettingsTab && <TabsTrigger value="settings">Settings</TabsTrigger>}
         </TabsList>
 
@@ -74,6 +80,18 @@ export function PayrollPage() {
           </TabsContent>
         )}
 
+        {showAdminTabs && (
+          <TabsContent value="adjustments" className="mt-6">
+            <PayrollAdjustmentsTab />
+          </TabsContent>
+        )}
+
+        {showAdminTabs && (
+          <TabsContent value="all-payslips" className="mt-6">
+            <AllPayslipsTab />
+          </TabsContent>
+        )}
+
         <TabsContent value="my-tax" className="mt-6">
           <TaxDeclarationForm />
         </TabsContent>
@@ -81,6 +99,12 @@ export function PayrollPage() {
         {showTaxAdminTab && (
           <TabsContent value="tax-declarations" className="mt-6">
             <TaxDeclarationsTab />
+          </TabsContent>
+        )}
+
+        {showTaxAdminTab && (
+          <TabsContent value="tds-records" className="mt-6">
+            <TdsRecordsTab />
           </TabsContent>
         )}
 
