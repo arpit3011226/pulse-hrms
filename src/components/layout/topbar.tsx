@@ -12,6 +12,7 @@ import { useAuth } from '@/features/auth/hooks/use-auth'
 import { getInitials } from '@/lib/utils'
 import { NotificationPopover } from '@/components/layout/notification-popover'
 import { GlobalSearch } from '@/components/layout/global-search'
+import { HelpMenu } from '@/components/layout/help-menu'
 import { Link } from '@tanstack/react-router'
 
 export function Topbar() {
@@ -32,6 +33,8 @@ export function Topbar() {
 
       {/* Right side */}
       <div className="flex items-center gap-3">
+        <HelpMenu />
+
         {/* Notifications */}
         <NotificationPopover />
 

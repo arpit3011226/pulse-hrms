@@ -42,6 +42,26 @@ function AlumniIcon({ className }: { className?: string }) {
   )
 }
 
+function HelpdeskIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="9" fill="#60A5FA" opacity="0.35" />
+      <circle cx="12" cy="12" r="3.5" fill="#2563EB" />
+      <path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function RecognitionIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="9" r="5" fill="#FBBF24" opacity="0.5" />
+      <path d="M12 5.5 13.2 8l2.8.3-2.1 1.9.6 2.7L12 11.6 9.5 12.9l.6-2.7L8 8.3 10.8 8 12 5.5Z" fill="#D97706" />
+      <path d="m9 15-1.5 6L12 19l4.5 2L15 15" stroke="#F59E0B" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function DashboardIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none">
@@ -243,6 +263,8 @@ export function Sidebar() {
     { title: 'Performance', href: '/performance', icon: PerformanceIcon, visible: isModuleEnabled('performance') },
     { title: 'Recruitment', href: '/recruitment', icon: RecruitmentIcon, visible: permissions.canManageRecruitment && isModuleEnabled('recruitment') },
     { title: 'Self Service', href: '/self-service', icon: SelfServiceIcon, visible: true },
+    { title: 'Helpdesk', href: '/helpdesk', icon: HelpdeskIcon, visible: true },
+    { title: 'Recognition', href: '/recognition', icon: RecognitionIcon, visible: true },
     { title: 'Separation', href: '/separation', icon: SeparationIcon, visible: true },
     { title: 'Alumni', href: '/alumni', icon: AlumniIcon, visible: permissions.isAdmin || permissions.isHR || permissions.isPayrollAdmin },
     { title: 'Workflows', href: '/workflows', icon: WorkflowsIcon, visible: permissions.canViewWorkflows },

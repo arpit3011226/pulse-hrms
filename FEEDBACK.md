@@ -166,22 +166,22 @@ Needs F43.
 
 | ID | Feature | Module | Effort | Status |
 |----|---------|--------|--------|--------|
-| F30 | HR helpdesk — categories, SLA, routing, escalation | helpdesk | M | todo |
-| F31 | Travel request and advance | self-service | M | todo |
-| F32 | Document expiry tracking and renewal reminders | employees | S | todo |
-| F33 | Attendance depth — geo-fencing, mobile punch, overtime policy | attendance | M | todo |
-| F34 | Recognition and rewards | engagement | M | todo |
-| F35 | Pulse surveys (short, recurring) | engagement | S | todo |
-| F36 | Manager tools — team calendar, bulk approvals, team cost view | global | M | todo |
-| F46 | Policy acknowledgement | settings | S | todo |
-| F47 | Notification preferences and digest | global | M | todo |
-| F48 | Bulk operations across modules | global | S | todo |
-| F49 | DPDP basics — data export, consent record, erasure | settings | M | todo |
-| F50 | Stronger audit trail — who changed what, old value | global | M | todo |
-| F51 | Mobile-friendly / PWA | global | M | todo |
-| F52 | In-app help and first-run tour | global | S | todo |
-| F53 | Location-wise holiday calendar | leave | S | todo |
-| F54 | Two-factor for admin roles | auth | S | todo |
+| F30 | HR helpdesk — categories, SLA, routing, escalation | helpdesk | M | **done** |
+| F31 | Travel request and advance | self-service | M | **done** |
+| F32 | Document expiry tracking and renewal reminders | employees | S | **done** |
+| F33 | Attendance depth — geo-fencing, mobile punch, overtime policy | attendance | M | **done** |
+| F34 | Recognition and rewards | engagement | M | **done** |
+| F35 | Pulse surveys (short, recurring) | engagement | S | **done** |
+| F36 | Manager tools — team calendar, bulk approvals, team cost view | global | M | **done** |
+| F46 | Policy acknowledgement | settings | S | **done** |
+| F47 | Notification preferences and digest | global | M | **done** |
+| F48 | Bulk operations across modules | global | S | **done** |
+| F49 | DPDP basics — data export, consent record, erasure | settings | M | **done** |
+| F50 | Stronger audit trail — who changed what, old value | global | M | **done** |
+| F51 | Mobile-friendly / PWA | global | M | **done** |
+| F52 | In-app help and first-run tour | global | S | **done** |
+| F53 | Location-wise holiday calendar | leave | S | **done** |
+| F54 | Two-factor for admin roles | auth | S | **done** |
 
 ## Phase 7 — Claude end-to-end testing (1 week)
 

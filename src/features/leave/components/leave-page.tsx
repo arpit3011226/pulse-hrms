@@ -9,6 +9,7 @@ import { HolidaysTab } from './holidays-tab'
 import { LeaveBalancesTab } from './leave-balances-tab'
 import { LeaveEncashmentTab } from './leave-encashment-tab'
 import { LeaveRulesTab } from './leave-rules-tab'
+import { TeamOverview } from '@/features/workplace/components/team-overview'
 
 export function LeavePage() {
   const {
@@ -38,6 +39,7 @@ export function LeavePage() {
           <TabsTrigger value="my-leaves">My Leaves</TabsTrigger>
           <TabsTrigger value="encashment">Encashment</TabsTrigger>
           {showTeamTab && <TabsTrigger value="team-leaves">Team Leaves</TabsTrigger>}
+          {showTeamTab && <TabsTrigger value="team-overview">Team Overview</TabsTrigger>}
           {showAllTab && <TabsTrigger value="all-leaves">All Leaves</TabsTrigger>}
           {showPoliciesTab && <TabsTrigger value="policies">Policies</TabsTrigger>}
           {showPoliciesTab && <TabsTrigger value="rules">Rules</TabsTrigger>}
@@ -56,6 +58,12 @@ export function LeavePage() {
         {showTeamTab && (
           <TabsContent value="team-leaves" className="mt-6">
             <TeamLeavesTab />
+          </TabsContent>
+        )}
+
+        {showTeamTab && (
+          <TabsContent value="team-overview" className="mt-6">
+            <TeamOverview />
           </TabsContent>
         )}
 

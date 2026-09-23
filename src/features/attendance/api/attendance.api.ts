@@ -93,6 +93,41 @@ export async function getTodayAttendance(employeeId: string, today: string) {
   return data
 }
 
+/**
+ * F33 — ask the browser where we are, without blocking the punch.
+ *
+ * Location is a nice-to-have on a clock-in, not a gate: if the person declines
+ * or the device cannot fix a position, they still get to record their time.
+ */
+async function tryGetPosition(): Promise<{ lat: number; lng: number } | null> {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) return null
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), 5000)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        clearTimeout(timer)
+        resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+      },
+      () => {
+        clearTimeout(timer)
+        resolve(null)
+      },
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
+    )
+  })
+}
+
+/** Metres between two points, for the geofence check. */
+function distanceMetres(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371000
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180
+  const lat1 = (a.lat * Math.PI) / 180
+  const lat2 = (b.lat * Math.PI) / 180
+  const h = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2)
+  return 2 * R * Math.asin(Math.sqrt(h))
+}
+
 export async function clockIn(employeeId: string, orgId: string, today: string, shiftId?: string) {
   const record: Partial<AttendanceRecord> = {
     employee_id: employeeId,
@@ -102,6 +137,31 @@ export async function clockIn(employeeId: string, orgId: string, today: string, 
     status: 'present',
   }
   if (shiftId) record.shift_id = shiftId
+
+  const pos = await tryGetPosition()
+  if (pos) {
+    Object.assign(record, {
+      clock_in_latitude: pos.lat,
+      clock_in_longitude: pos.lng,
+      clock_in_source: 'web',
+    })
+    // Flag whether the punch was inside any active office geofence
+    const { data: locations } = await supabase
+      .from('work_locations')
+      .select('latitude, longitude, geofence_radius_metres')
+      .eq('organization_id', orgId)
+      .eq('is_active', true)
+    const inside = (locations ?? []).some((l) => {
+      if (l.latitude == null || l.longitude == null) return false
+      return (
+        distanceMetres(pos, { lat: Number(l.latitude), lng: Number(l.longitude) }) <=
+        (l.geofence_radius_metres ?? 200)
+      )
+    })
+    if ((locations ?? []).length > 0) {
+      Object.assign(record, { is_within_geofence: inside })
+    }
+  }
 
   const { data, error } = await supabase
     .from('attendance_records')

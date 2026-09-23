@@ -88,6 +88,8 @@ export function useCreateSurvey() {
       start_date: string
       end_date: string
       is_anonymous?: boolean
+      is_pulse?: boolean
+      recurrence?: string | null
       created_by: string
       questions: {
         question_text: string
@@ -131,6 +133,8 @@ export function useUpdateSurvey() {
         start_date?: string
         end_date?: string
         is_anonymous?: boolean
+        is_pulse?: boolean
+        recurrence?: string | null
       }
       questions?: {
         question_text: string

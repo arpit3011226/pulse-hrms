@@ -222,6 +222,9 @@ export function SurveyBuilderDialog({ open, onOpenChange, survey }: SurveyBuilde
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [isAnonymous, setIsAnonymous] = useState(false)
+  // F35 — a pulse is a short survey that repeats on a schedule
+  const [isPulse, setIsPulse] = useState(false)
+  const [recurrence, setRecurrence] = useState('monthly')
   const [targetRules, setTargetRules] = useState<SurveyTargetRule[]>([])
   const [questions, setQuestions] = useState<QuestionRow[]>([])
   const [audienceBuilderOpen, setAudienceBuilderOpen] = useState(false)
@@ -236,6 +239,8 @@ export function SurveyBuilderDialog({ open, onOpenChange, survey }: SurveyBuilde
         setStartDate(survey.start_date)
         setEndDate(survey.end_date)
         setIsAnonymous(survey.is_anonymous)
+        setIsPulse(Boolean((survey as { is_pulse?: boolean }).is_pulse))
+        setRecurrence((survey as { recurrence?: string }).recurrence ?? 'monthly')
         setTargetRules(survey.target_rules ?? [])
         setQuestions(
           survey.survey_questions
@@ -359,6 +364,8 @@ export function SurveyBuilderDialog({ open, onOpenChange, survey }: SurveyBuilde
             start_date: startDate,
             end_date: endDate,
             is_anonymous: isAnonymous,
+            is_pulse: isPulse,
+            recurrence: isPulse ? recurrence : null,
             target_rules: targetRules,
           },
           questions: questionsPayload,
@@ -372,6 +379,8 @@ export function SurveyBuilderDialog({ open, onOpenChange, survey }: SurveyBuilde
           start_date: startDate,
           end_date: endDate,
           is_anonymous: isAnonymous,
+          is_pulse: isPulse,
+          recurrence: isPulse ? recurrence : null,
           target_rules: targetRules,
           created_by: profile!.id,
           questions: questionsPayload,
@@ -444,6 +453,34 @@ export function SurveyBuilderDialog({ open, onOpenChange, survey }: SurveyBuilde
                 onCheckedChange={setIsAnonymous}
               />
               <Label htmlFor="anonymous">Anonymous survey</Label>
+            </div>
+
+            {/* F35 — pulse: a short survey that repeats */}
+            <div className="space-y-3 rounded-md border p-3">
+              <div className="flex items-center gap-3">
+                <Switch id="pulse" checked={isPulse} onCheckedChange={setIsPulse} />
+                <div>
+                  <Label htmlFor="pulse">Pulse survey</Label>
+                  <p className="text-xs text-muted-foreground">
+                    A few questions, asked again on a schedule. Better for tracking a trend than one
+                    long survey a year.
+                  </p>
+                </div>
+              </div>
+              {isPulse && (
+                <div className="flex items-center gap-2 pl-11">
+                  <Label className="text-sm font-normal">Repeat</Label>
+                  <Select value={recurrence} onValueChange={setRecurrence}>
+                    <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="fortnightly">Fortnightly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="quarterly">Quarterly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {/* Target Audience */}

@@ -19,6 +19,8 @@ import { AssetsPage } from '@/features/assets/components/assets-page'
 import { CandidatePortalPage } from '@/features/recruitment/components/candidate-portal-page'
 import { AlumniPage } from '@/features/alumni/components/alumni-page'
 import { MyRecordsPage } from '@/features/alumni/components/my-records-page'
+import { HelpdeskPage } from '@/features/helpdesk/components/helpdesk-page'
+import { RecognitionPage } from '@/features/workplace/components/recognition-page'
 import { EmployeeFormPage } from '@/features/employees/components/employee-form-page'
 import { DepartmentList } from '@/features/departments/components/department-list'
 import { LeavePage } from '@/features/leave/components/leave-page'
@@ -149,6 +151,9 @@ const myApplicationRoute = createRoute({ getParentRoute: () => appRoute, path: '
 
 const alumniRoute = createRoute({ getParentRoute: () => appRoute, path: '/alumni', component: AlumniPage })
 
+const helpdeskRoute = createRoute({ getParentRoute: () => appRoute, path: '/helpdesk', component: HelpdeskPage })
+const recognitionRoute = createRoute({ getParentRoute: () => appRoute, path: '/recognition', component: RecognitionPage })
+
 // F39 — an ex-employee signs in on their personal email and fetches their own
 // payslips, letters and settlement. Nothing else.
 const myRecordsRoute = createRoute({ getParentRoute: () => appRoute, path: '/my-records', component: MyRecordsPage })
@@ -187,6 +192,8 @@ const routeTree = rootRoute.addChildren([
     assetsRoute,
     myApplicationRoute,
     alumniRoute,
+    helpdeskRoute,
+    recognitionRoute,
     myRecordsRoute,
     departmentsRoute,
     leaveRoute,

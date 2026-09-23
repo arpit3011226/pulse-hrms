@@ -14,6 +14,10 @@ const holidaySchema = z.object({
   name: z.string().min(1, 'Name is required'),
   date: z.string().min(1, 'Date is required'),
   type: z.string().min(1, 'Type is required'),
+  // F53 — blank means it applies everywhere. One list breaks the moment there
+  // is a second city: Bengaluru and Delhi do not share every festival.
+  location: z.string().optional(),
+  is_optional: z.boolean().optional(),
 })
 
 type HolidayFormData = z.infer<typeof holidaySchema>
@@ -64,6 +68,18 @@ export function HolidayFormDialog({ open, onOpenChange, holiday, onSave, isLoadi
           <div className="space-y-2">
             <Label htmlFor="date">Date *</Label>
             <Input id="date" type="date" {...register('date')} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="location">Location</Label>
+            <Input
+              id="location"
+              placeholder="Leave blank to apply everywhere"
+              {...register('location')}
+            />
+            <p className="text-xs text-muted-foreground">
+              e.g. Bengaluru. Blank means the whole company.
+            </p>
             {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
           </div>
 

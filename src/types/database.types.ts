@@ -1857,6 +1857,10 @@ export interface Survey {
   start_date: string
   end_date: string
   is_anonymous: boolean
+  /** F35 — a pulse repeats on a schedule */
+  is_pulse?: boolean
+  recurrence?: string | null
+  next_run_date?: string | null
   created_by: string
   created_at: string
   updated_at: string
@@ -1883,6 +1887,10 @@ export interface SurveyResponse {
   employee_id: string
   submitted_at: string
   is_anonymous: boolean
+  /** F35 — a pulse repeats on a schedule */
+  is_pulse?: boolean
+  recurrence?: string | null
+  next_run_date?: string | null
 }
 
 export interface SurveyAnswer {

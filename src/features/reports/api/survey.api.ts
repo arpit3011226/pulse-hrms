@@ -32,6 +32,8 @@ export async function createSurvey(data: {
   start_date: string
   end_date: string
   is_anonymous?: boolean
+  is_pulse?: boolean
+  recurrence?: string | null
   created_by: string
 }) {
   const { data: survey, error } = await supabase
@@ -57,6 +59,8 @@ export async function updateSurvey(
     start_date?: string
     end_date?: string
     is_anonymous?: boolean
+    is_pulse?: boolean
+    recurrence?: string | null
   }
 ) {
   const { data: survey, error } = await supabase
