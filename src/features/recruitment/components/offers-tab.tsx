@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Plus, Pencil, Send, CheckCircle, XCircle, Ban } from 'lucide-react'
+import { MoreHorizontal, Plus, Pencil, Send, CheckCircle, XCircle, Ban, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ import { DataTable } from '@/components/shared/data-table'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { OfferFormDialog } from './offer-form-dialog'
+import { ConvertToEmployeeDialog } from './convert-to-employee-dialog'
 import {
   useOfferLetters,
   useUpdateOfferStatus,
@@ -30,6 +31,7 @@ export function OffersTab() {
   const updateStatus = useUpdateOfferStatus()
 
   const [formOpen, setFormOpen] = useState(false)
+  const [convertOffer, setConvertOffer] = useState<OfferLetterWithRelations | null>(null)
   const [editingOffer, setEditingOffer] = useState<OfferLetterWithRelations | undefined>()
   const [statusChange, setStatusChange] = useState<{
     id: string
@@ -133,6 +135,14 @@ export function OffersTab() {
                   <Pencil className="mr-2 h-4 w-4" /> Edit
                 </DropdownMenuItem>
               )}
+              {offer.offer_status === 'accepted' && (
+                <>
+                  {canEdit && <DropdownMenuSeparator />}
+                  <DropdownMenuItem onClick={() => setConvertOffer(offer)}>
+                    <UserPlus className="mr-2 h-4 w-4" /> Convert to Employee
+                  </DropdownMenuItem>
+                </>
+              )}
               {statusActions.length > 0 && canEdit && <DropdownMenuSeparator />}
               {statusActions.map((action) => (
                 <DropdownMenuItem
@@ -206,6 +216,12 @@ export function OffersTab() {
           if (!open) setEditingOffer(undefined)
         }}
         offer={editingOffer}
+      />
+
+      <ConvertToEmployeeDialog
+        open={!!convertOffer}
+        onOpenChange={(open) => !open && setConvertOffer(null)}
+        offer={convertOffer}
       />
 
       <ConfirmDialog
