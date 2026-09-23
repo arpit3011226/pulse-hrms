@@ -14,6 +14,8 @@ import { OnboardingForm } from '@/features/auth/components/onboarding-form'
 import { EmployeeList } from '@/features/employees/components/employee-list'
 import { EmployeeUnifiedView } from '@/features/employees/components/employee-unified-view'
 import { EmployeeLifecycleHub } from '@/features/employees/components/lifecycle-hub/employee-lifecycle-hub'
+import { OnboardingPage } from '@/features/onboarding/components/onboarding-page'
+import { AssetsPage } from '@/features/assets/components/assets-page'
 import { EmployeeFormPage } from '@/features/employees/components/employee-form-page'
 import { DepartmentList } from '@/features/departments/components/department-list'
 import { LeavePage } from '@/features/leave/components/leave-page'
@@ -28,7 +30,6 @@ import { SelfServicePage } from '@/features/self-service/components/self-service
 import { SettingsPage } from '@/features/settings/components/settings-page'
 import { WorkflowsPage } from '@/features/workflows/components/workflows-page'
 import { DashboardPage } from '@/features/dashboard/components/dashboard-page'
-import { PageHeader } from '@/components/layout/page-header'
 import { AuthBackground } from '@/components/shared/auth-background'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { Loader2 } from 'lucide-react'
@@ -129,6 +130,16 @@ const employeeEditRoute = createRoute({
   },
 })
 
+// NOTE: /onboarding is already the company-setup flow in the auth layout.
+// This module is employee onboarding, so it lives at /new-joiners.
+const newJoinersRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/new-joiners',
+  component: OnboardingPage,
+})
+
+const assetsRoute = createRoute({ getParentRoute: () => appRoute, path: '/assets', component: AssetsPage })
+
 const departmentsRoute = createRoute({ getParentRoute: () => appRoute, path: '/departments', component: DepartmentList })
 
 
@@ -159,6 +170,8 @@ const routeTree = rootRoute.addChildren([
     employeeNewRoute,
     employeeDetailRoute,
     employeeEditRoute,
+    newJoinersRoute,
+    assetsRoute,
     departmentsRoute,
     leaveRoute,
     attendanceRoute,

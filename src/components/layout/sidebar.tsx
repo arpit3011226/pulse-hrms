@@ -1,8 +1,5 @@
 import { Link, useMatchRoute } from '@tanstack/react-router'
-import {
-  ChevronLeft,
-  LogOut,
-} from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/ui-store'
 import { useAuth } from '@/features/auth/hooks/use-auth'
@@ -14,6 +11,25 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { PulseLogo, PulseLogoIcon } from '@/components/shared/pulse-logo'
 
 // ── Colorful sidebar icons ──────────────────────────────────────────
+
+function OnboardingIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none">
+      <path d="M12 2 4 6v6c0 5 3.4 8.9 8 10 4.6-1.1 8-5 8-10V6l-8-4Z" fill="#34D399" opacity="0.35" />
+      <path d="m8.5 12 2.5 2.5 4.5-4.5" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function AssetsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="5" width="18" height="12" rx="2" fill="#818CF8" opacity="0.4" />
+      <rect x="6" y="8" width="12" height="6" rx="1" fill="#4F46E5" />
+      <rect x="2" y="18" width="20" height="2" rx="1" fill="#A5B4FC" />
+    </svg>
+  )
+}
 
 function DashboardIcon({ className }: { className?: string }) {
   return (
@@ -208,6 +224,8 @@ export function Sidebar() {
     { title: 'Attendance', href: '/attendance', icon: AttendanceIcon, visible: isModuleEnabled('attendance') },
     { title: 'Departments', href: '/departments', icon: DepartmentsIcon, visible: true },
     { title: 'Employees', href: '/employees', icon: EmployeesIcon, visible: true },
+    { title: 'Onboarding', href: '/new-joiners', icon: OnboardingIcon, visible: true },
+    { title: 'Assets', href: '/assets', icon: AssetsIcon, visible: true },
     { title: 'Learning', href: '/learning', icon: LearningIcon, visible: isModuleEnabled('learning') },
     { title: 'Leave', href: '/leave', icon: LeaveIcon, visible: isModuleEnabled('leave') },
     { title: 'Payroll', href: '/payroll', icon: PayrollIcon, visible: permissions.canViewPayroll && isModuleEnabled('payroll') },

@@ -84,14 +84,14 @@ F43 blocks F17 and all of Phase 5.
 
 | ID | Feature | Module | Effort | Status |
 |----|---------|--------|--------|--------|
-| F22 | Onboarding task engine — tasks, owners, due dates, dependencies | onboarding | L | todo |
-| F23 | Pre-joining — document collection, joining formalities | onboarding | M | todo |
-| F24 | Day 1 checklist — assets, accounts, seating, induction | onboarding | M | todo |
-| F25 | 30/60/90/180/365 day journeys with auto-triggered surveys | onboarding | L | todo |
-| F26 | Probation tracking to confirmation letter | onboarding | M | todo |
-| F27 | Buddy/mentor assignment and check-ins | onboarding | S | todo |
-| F28 | Onboarding dashboard — progress, overdue tasks | onboarding | M | todo |
-| F29 | Asset management — issue, return, recovery (needed by onboard + exit) | assets | M | todo |
+| F22 | Onboarding task engine — tasks, owners, due dates, dependencies | onboarding | L | **done** |
+| F23 | Pre-joining — document collection, joining formalities | onboarding | M | **done** |
+| F24 | Day 1 checklist — assets, accounts, seating, induction | onboarding | M | **done** |
+| F25 | 30/60/90/180/365 day journeys with auto-triggered surveys | onboarding | L | **done** |
+| F26 | Probation tracking to confirmation letter | onboarding | M | **done** |
+| F27 | Buddy/mentor assignment and check-ins | onboarding | S | **done** |
+| F28 | Onboarding dashboard — progress, overdue tasks | onboarding | M | **done** |
+| F29 | Asset management — issue, return, recovery (needed by onboard + exit) | assets | M | **done** |
 
 ## Phase 4 — Hire (1.5 weeks)
 
