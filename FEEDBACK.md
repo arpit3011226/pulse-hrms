@@ -58,6 +58,40 @@ read from a stale log.
 | P7-4 | Low | Employees | Edit buttons were nested inside the accordion trigger button on the employee details screen — invalid HTML, and the inner button could not be reached by keyboard. | Fixed |
 | P7-5 | Low | Reports | `.single()` used for lookups that can legitimately return no rows (no performance cycle, no payroll run yet), returning 406 each time. Will happen at August, where there is no October cycle. | Fixed |
 
+### P7-6 — "Org members can read" was applied to tables holding personal data
+
+Forty SELECT policies let any signed-in member of the organisation read a whole
+table. For reference data — departments, holidays, leave types, shifts, letter
+templates — that is right. It was also applied to tables holding personal data,
+and those need narrowing. The first RLS audit looked at payroll and performance
+and did not question this pattern.
+
+Tested against the live database as an ordinary employee, using the real policies:
+
+| Table | What an ordinary employee can read | Evidence |
+|-------|-----------------------------------|----------|
+| `employees` | All 11 rows, every column: `pan_number`, `aadhar_number`, `passport_number`, `bank_details`, `date_of_birth`, `religion`, `permanent_address`, `personal_email`, `father_name`, `mother_name`, `spouse_name` | Proven: read 2 colleagues' PAN, 1 Aadhaar, 10 dates of birth. Bank and address read back empty only because the demo data has none |
+| `candidates` | All 4 rows: name, email, phone, current employer, CV link, interviewer notes, rejection reason | Proven |
+| `attendance_records` | All 134 rows for other people, including `clock_in_latitude/longitude` | Rows proven; the GPS columns are empty today, so location becomes readable as soon as geo-tagged attendance is switched on |
+| `employee_status_history` | Other people's status changes and the `reason` — including why somebody was terminated | Proven |
+| `leave_attachments` | Every attachment on every leave request, usually medical certificates | Policy allows it; the table is empty today |
+| `exit_clearances`, `onboarding_journeys`, `activity_log` | Who is leaving and their clearance notes, individual new-joiner check-ins, everyone's activity | Policy allows it |
+
+The UI does not show most of this, but PostgREST returns whole rows and the anon
+key is in the front-end bundle, so the API is the real boundary.
+
+**This needs a schema change, not a policy tweak.** Row-level security cannot hide
+a column: if the row is visible, every column is. The app also genuinely needs a
+staff directory — names, designation, department, photo — for all 80 places that
+read `employees`. The fix is to split the sensitive columns into a private table
+with its own policy (self, HR, admin, and payroll for the fields payroll needs),
+leaving the directory columns where they are.
+
+Blast radius: 80 call sites read `employees`, but only 8 files touch the
+sensitive columns, so the change is contained.
+
+Awaiting a decision on whether to do this before the October rollout.
+
 ### Still to do by hand, in the Supabase dashboard
 
 | Item | Where | Why |
