@@ -53,7 +53,7 @@ export function RunPayrollDialog({ open, onOpenChange }: RunPayrollDialogProps) 
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CycleFormValues>({
-    resolver: zodResolver(cycleSchema) as any,
+    resolver: zodResolver(cycleSchema),
     defaultValues: {
       payroll_year: new Date().getFullYear(),
     },

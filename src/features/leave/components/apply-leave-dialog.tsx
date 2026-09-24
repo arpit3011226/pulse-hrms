@@ -32,7 +32,7 @@ const applyLeaveSchema = z.object({
   half_day_period: z.string().optional(),
 })
 
-type ApplyLeaveFormData = z.infer<typeof applyLeaveSchema>
+type ApplyLeaveFormData = z.output<typeof applyLeaveSchema>
 
 interface ApplyLeaveDialogProps {
   open: boolean
@@ -60,8 +60,8 @@ export function ApplyLeaveDialog({ open, onOpenChange }: ApplyLeaveDialogProps) 
     setValue,
     reset,
     formState: { errors },
-  } = useForm<ApplyLeaveFormData>({
-    resolver: zodResolver(applyLeaveSchema) as any,
+  } = useForm<z.input<typeof applyLeaveSchema>, unknown, ApplyLeaveFormData>({
+    resolver: zodResolver(applyLeaveSchema),
     defaultValues: {
       is_half_day: false,
     },
@@ -81,7 +81,7 @@ export function ApplyLeaveDialog({ open, onOpenChange }: ApplyLeaveDialogProps) 
   // Calculate working days
   const totalDays = useMemo(() => {
     if (!startDate || !endDate) return 0
-    return calculateWorkingDays(startDate, endDate, workingDays, holidayDates || [], isHalfDay)
+    return calculateWorkingDays(startDate, endDate, workingDays, holidayDates || [], isHalfDay ?? false)
   }, [startDate, endDate, workingDays, holidayDates, isHalfDay])
 
   // Find balance for selected leave type

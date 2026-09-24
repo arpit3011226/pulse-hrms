@@ -16,7 +16,7 @@ const stageSchema = z.object({
   stage_order: z.coerce.number().min(1, 'Order must be at least 1'),
 })
 
-type StageFormData = z.infer<typeof stageSchema>
+type StageFormData = z.output<typeof stageSchema>
 
 interface StageFormDialogProps {
   open: boolean
@@ -34,8 +34,8 @@ export function StageFormDialog({ open, onOpenChange, stage }: StageFormDialogPr
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<StageFormData>({
-    resolver: zodResolver(stageSchema) as any,
+  } = useForm<z.input<typeof stageSchema>, unknown, StageFormData>({
+    resolver: zodResolver(stageSchema),
     defaultValues: {
       stage_name: '',
       stage_order: 1,

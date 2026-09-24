@@ -54,7 +54,7 @@ export function ComponentFormDialog({ open, onOpenChange, component }: Component
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ComponentFormValues>({
-    resolver: zodResolver(componentSchema) as any,
+    resolver: zodResolver(componentSchema),
     defaultValues: component
       ? {
           component_name: component.component_name,

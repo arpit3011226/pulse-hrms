@@ -39,7 +39,7 @@ export function PreviousExperienceForm({ open, onOpenChange, employeeId, experie
   const updateExp = useUpdatePreviousExperience()
 
   const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<ExperienceFormData>({
-    resolver: zodResolver(experienceSchema) as any,
+    resolver: zodResolver(experienceSchema),
     defaultValues: experience ? {
       company_name: experience.company_name,
       designation: experience.designation || '',

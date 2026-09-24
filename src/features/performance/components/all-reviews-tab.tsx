@@ -29,7 +29,7 @@ const finalizeSchema = z.object({
     .max(RATING_SCALE.MAX, `Maximum rating is ${RATING_SCALE.MAX}`),
 })
 
-type FinalizeFormData = z.infer<typeof finalizeSchema>
+type FinalizeFormData = z.output<typeof finalizeSchema>
 
 export function AllReviewsTab() {
   const { data: cycles } = usePerformanceCycles()
@@ -180,8 +180,8 @@ function FinalizeDialog({ open, onOpenChange, review, onFinalize, isPending }: F
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FinalizeFormData>({
-    resolver: zodResolver(finalizeSchema) as any,
+  } = useForm<z.input<typeof finalizeSchema>, unknown, FinalizeFormData>({
+    resolver: zodResolver(finalizeSchema),
     defaultValues: {
       finalRating: review.manager_review?.rating ?? undefined,
     },

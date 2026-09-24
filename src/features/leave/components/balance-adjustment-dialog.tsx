@@ -15,7 +15,7 @@ const adjustmentSchema = z.object({
   pending_days: z.coerce.number().min(0),
 })
 
-type AdjustmentFormData = z.infer<typeof adjustmentSchema>
+type AdjustmentFormData = z.output<typeof adjustmentSchema>
 
 interface BalanceAdjustmentDialogProps {
   open: boolean
@@ -40,8 +40,8 @@ export function BalanceAdjustmentDialog({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<AdjustmentFormData>({
-    resolver: zodResolver(adjustmentSchema) as any,
+  } = useForm<z.input<typeof adjustmentSchema>, unknown, AdjustmentFormData>({
+    resolver: zodResolver(adjustmentSchema),
     defaultValues: currentValues,
   })
 

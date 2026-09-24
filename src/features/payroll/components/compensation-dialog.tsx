@@ -48,7 +48,7 @@ const compensationSchema = z.object({
   revision_reason: z.string().optional(),
 })
 
-type CompensationFormData = z.infer<typeof compensationSchema>
+type CompensationFormData = z.output<typeof compensationSchema>
 
 interface ActiveEmployee {
   id: string
@@ -92,8 +92,8 @@ export function CompensationDialog({
     setValue,
     reset,
     formState: { errors },
-  } = useForm<CompensationFormData>({
-    resolver: zodResolver(compensationSchema) as any,
+  } = useForm<z.input<typeof compensationSchema>, unknown, CompensationFormData>({
+    resolver: zodResolver(compensationSchema),
     defaultValues: {
       employee_id: '',
       salary_structure_id: '',
@@ -163,7 +163,8 @@ export function CompensationDialog({
   }, [watchedStructureId, structures])
 
   // Compute component breakup
-  const monthlyGross = watchedCtc ? watchedCtc / 12 : 0
+  // watch() reports the form input, which is still a string until zod coerces it.
+  const monthlyGross = Number(watchedCtc) > 0 ? Number(watchedCtc) / 12 : 0
 
   const breakup: ComponentBreakup[] = useMemo(() => {
     if (!selectedStructure?.salary_structure_components || monthlyGross <= 0) {

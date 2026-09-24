@@ -54,7 +54,7 @@ const employeeSchema = z.object({
   uan_number: z.string().optional(),
 })
 
-type EmployeeFormData = z.infer<typeof employeeSchema>
+type EmployeeFormData = z.output<typeof employeeSchema>
 
 // Fields required per wizard step (for validation gating)
 const STEP_FIELDS: Record<number, (keyof EmployeeFormData)[]> = {
@@ -94,8 +94,8 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
   const [currentStep, setCurrentStep] = useState(0)
   const { data: nextCode } = useNextEmployeeCode()
 
-  const { register, handleSubmit, setValue, watch, trigger, formState: { errors, isSubmitting } } = useForm<EmployeeFormData>({
-    resolver: zodResolver(employeeSchema) as any,
+  const { register, handleSubmit, setValue, watch, trigger, formState: { errors, isSubmitting } } = useForm<z.input<typeof employeeSchema>, unknown, EmployeeFormData>({
+    resolver: zodResolver(employeeSchema),
     defaultValues: employee ? {
       salutation: employee.salutation || '',
       first_name: employee.first_name,

@@ -37,7 +37,7 @@ export function TemplateEditorDialog({ open, onOpenChange, template }: Props) {
   const updateTemplate = useUpdateTemplate()
 
   const form = useForm<FormData>({
-    resolver: zodResolver(schema) as any,
+    resolver: zodResolver(schema),
     defaultValues: {
       name: '',
       category: '',

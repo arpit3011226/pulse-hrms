@@ -66,7 +66,7 @@ export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogPr
     reset,
     formState: { errors },
   } = useForm<CycleFormData>({
-    resolver: zodResolver(cycleSchema) as any,
+    resolver: zodResolver(cycleSchema),
     defaultValues: {
       cycle_name: '',
       cycle_code: '',

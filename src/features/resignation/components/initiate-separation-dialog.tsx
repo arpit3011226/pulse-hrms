@@ -25,7 +25,7 @@ const separationSchema = z.object({
   notice_period_days: z.coerce.number().min(0),
 })
 
-type SeparationFormData = z.infer<typeof separationSchema>
+type SeparationFormData = z.output<typeof separationSchema>
 
 interface InitiateSeparationDialogProps {
   open: boolean
@@ -69,8 +69,8 @@ export function InitiateSeparationDialog({ open, onOpenChange }: InitiateSeparat
     setValue,
     reset,
     formState: { errors },
-  } = useForm<SeparationFormData>({
-    resolver: zodResolver(separationSchema) as any,
+  } = useForm<z.input<typeof separationSchema>, unknown, SeparationFormData>({
+    resolver: zodResolver(separationSchema),
     defaultValues: {
       resignation_date: new Date().toISOString().split('T')[0],
       exit_reason: '',
@@ -215,7 +215,7 @@ export function InitiateSeparationDialog({ open, onOpenChange }: InitiateSeparat
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <span className="text-muted-foreground">Notice Period</span>
-                <p className="font-medium">{noticePeriod || 0} days</p>
+                <p className="font-medium">{Number(noticePeriod) || 0} days</p>
               </div>
               <div>
                 <span className="text-muted-foreground">Last Working Date</span>

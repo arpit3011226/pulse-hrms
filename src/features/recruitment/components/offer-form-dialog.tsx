@@ -27,7 +27,7 @@ const offerSchema = z.object({
   offer_notes: z.string().optional(),
 })
 
-type OfferFormData = z.infer<typeof offerSchema>
+type OfferFormData = z.output<typeof offerSchema>
 
 interface OfferFormDialogProps {
   open: boolean
@@ -53,8 +53,8 @@ export function OfferFormDialog({ open, onOpenChange, offer }: OfferFormDialogPr
     setValue,
     watch,
     formState: { errors },
-  } = useForm<OfferFormData>({
-    resolver: zodResolver(offerSchema) as any,
+  } = useForm<z.input<typeof offerSchema>, unknown, OfferFormData>({
+    resolver: zodResolver(offerSchema),
     defaultValues: {
       candidate_application_id: '',
       offered_designation: '',

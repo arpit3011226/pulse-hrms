@@ -34,7 +34,7 @@ const goalSchema = z.object({
   due_date: z.string().optional(),
 })
 
-type GoalFormData = z.infer<typeof goalSchema>
+type GoalFormData = z.output<typeof goalSchema>
 
 interface KeyResultRow {
   id?: string
@@ -93,8 +93,8 @@ export function GoalFormDialog({ open, onOpenChange, goal, employeeId, cycleId }
     setValue,
     watch,
     formState: { errors },
-  } = useForm<GoalFormData>({
-    resolver: zodResolver(goalSchema) as any,
+  } = useForm<z.input<typeof goalSchema>, unknown, GoalFormData>({
+    resolver: zodResolver(goalSchema),
     defaultValues: {
       category: 'individual',
       unit: 'percentage',

@@ -19,7 +19,7 @@ const schema = z.object({
   is_default: z.boolean().default(false),
 })
 
-type FormData = z.infer<typeof schema>
+type FormData = z.output<typeof schema>
 
 interface ShiftFormDialogProps {
   open: boolean
@@ -32,8 +32,8 @@ export function ShiftFormDialog({ open, onOpenChange, shift }: ShiftFormDialogPr
   const updateShift = useUpdateShift()
   const isEditing = !!shift
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<FormData>({
-    resolver: zodResolver(schema) as any,
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<z.input<typeof schema>, unknown, FormData>({
+    resolver: zodResolver(schema),
     defaultValues: {
       name: '',
       start_time: '09:00',

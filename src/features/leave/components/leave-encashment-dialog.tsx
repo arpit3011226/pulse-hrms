@@ -19,7 +19,7 @@ const encashmentSchema = z.object({
   remarks: z.string().optional(),
 })
 
-type EncashmentFormData = z.infer<typeof encashmentSchema>
+type EncashmentFormData = z.output<typeof encashmentSchema>
 
 interface LeaveEncashmentDialogProps {
   open: boolean
@@ -40,8 +40,8 @@ export function LeaveEncashmentDialog({ open, onOpenChange }: LeaveEncashmentDia
     setValue,
     reset,
     formState: { errors },
-  } = useForm<EncashmentFormData>({
-    resolver: zodResolver(encashmentSchema) as any,
+  } = useForm<z.input<typeof encashmentSchema>, unknown, EncashmentFormData>({
+    resolver: zodResolver(encashmentSchema),
   })
 
   const selectedTypeId = watch('leave_type_id')

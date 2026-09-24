@@ -70,7 +70,7 @@ export function PipFormDialog({ open, onOpenChange, pip }: PipFormDialogProps) {
     watch,
     formState: { errors },
   } = useForm<FormData>({
-    resolver: zodResolver(schema) as any,
+    resolver: zodResolver(schema),
     defaultValues: {
       employee_id: '',
       plan_title: '',

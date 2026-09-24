@@ -28,7 +28,7 @@ const candidateSchema = z.object({
   notes: z.string().optional(),
 })
 
-type CandidateFormData = z.infer<typeof candidateSchema>
+type CandidateFormData = z.output<typeof candidateSchema>
 
 interface CandidateFormDialogProps {
   open: boolean
@@ -48,8 +48,8 @@ export function CandidateFormDialog({ open, onOpenChange, candidate }: Candidate
     setValue,
     watch,
     formState: { errors },
-  } = useForm<CandidateFormData>({
-    resolver: zodResolver(candidateSchema) as any,
+  } = useForm<z.input<typeof candidateSchema>, unknown, CandidateFormData>({
+    resolver: zodResolver(candidateSchema),
     defaultValues: {
       first_name: '',
       last_name: '',

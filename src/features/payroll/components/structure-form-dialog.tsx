@@ -82,7 +82,7 @@ export function StructureFormDialog({ open, onOpenChange, structure }: Structure
     watch,
     formState: { errors },
   } = useForm<StructureFormData>({
-    resolver: zodResolver(structureSchema) as any,
+    resolver: zodResolver(structureSchema),
     defaultValues: {
       structure_name: '',
       structure_code: '',

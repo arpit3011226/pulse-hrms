@@ -35,7 +35,7 @@ const requisitionSchema = z.object({
   location: z.string().optional(),
 })
 
-type RequisitionFormData = z.infer<typeof requisitionSchema>
+type RequisitionFormData = z.output<typeof requisitionSchema>
 
 interface RequisitionFormDialogProps {
   open: boolean
@@ -88,8 +88,8 @@ export function RequisitionFormDialog({ open, onOpenChange, requisition }: Requi
     setValue,
     watch,
     formState: { errors },
-  } = useForm<RequisitionFormData>({
-    resolver: zodResolver(requisitionSchema) as any,
+  } = useForm<z.input<typeof requisitionSchema>, unknown, RequisitionFormData>({
+    resolver: zodResolver(requisitionSchema),
     defaultValues: {
       title: '',
       requisition_code: '',

@@ -27,7 +27,7 @@ export function LetterRequestDialog({ open, onOpenChange, template, employeeId }
   const requestLetter = useRequestLetter()
 
   const form = useForm({
-    resolver: zodResolver(schema) as any,
+    resolver: zodResolver(schema),
     defaultValues: { remarks: '' },
   })
 

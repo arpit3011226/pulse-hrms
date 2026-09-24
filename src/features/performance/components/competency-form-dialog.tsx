@@ -26,7 +26,7 @@ const competencySchema = z.object({
   is_active: z.boolean().default(true),
 })
 
-type CompetencyFormData = z.infer<typeof competencySchema>
+type CompetencyFormData = z.output<typeof competencySchema>
 
 interface CompetencyFormDialogProps {
   open: boolean
@@ -46,8 +46,8 @@ export function CompetencyFormDialog({ open, onOpenChange, competency }: Compete
     watch,
     reset,
     formState: { errors },
-  } = useForm<CompetencyFormData>({
-    resolver: zodResolver(competencySchema) as any,
+  } = useForm<z.input<typeof competencySchema>, unknown, CompetencyFormData>({
+    resolver: zodResolver(competencySchema),
     defaultValues: {
       competency_name: '',
       competency_code: '',

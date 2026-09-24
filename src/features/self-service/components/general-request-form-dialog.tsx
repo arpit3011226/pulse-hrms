@@ -29,7 +29,7 @@ const schema = z.object({
   hours: z.coerce.number().optional(),
 })
 
-type FormData = z.infer<typeof schema>
+type FormData = z.output<typeof schema>
 
 interface Props {
   open: boolean
@@ -83,8 +83,8 @@ export function GeneralRequestFormDialog({ open, onOpenChange, employeeId }: Pro
   const { profile, organization } = useAuth()
   const createRequest = useCreateGeneralRequest()
 
-  const form = useForm<FormData>({
-    resolver: zodResolver(schema) as any,
+  const form = useForm<z.input<typeof schema>, unknown, FormData>({
+    resolver: zodResolver(schema),
     defaultValues: {
       request_type: '',
       description: '',
@@ -357,7 +357,7 @@ export function GeneralRequestFormDialog({ open, onOpenChange, employeeId }: Pro
                       <FormItem>
                         <FormLabel>Hours</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.5" min="0.5" max="12" placeholder="e.g. 2" {...field} />
+                          <Input type="number" step="0.5" min="0.5" max="12" placeholder="e.g. 2" {...field} value={(field.value as string | number | undefined) ?? ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

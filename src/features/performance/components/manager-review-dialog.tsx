@@ -24,7 +24,7 @@ const managerReviewSchema = z.object({
   comments: z.string().optional(),
 })
 
-type ManagerReviewFormData = z.infer<typeof managerReviewSchema>
+type ManagerReviewFormData = z.output<typeof managerReviewSchema>
 
 interface ManagerReviewDialogProps {
   open: boolean
@@ -47,8 +47,8 @@ export function ManagerReviewDialog({ open, onOpenChange, review }: ManagerRevie
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<ManagerReviewFormData>({
-    resolver: zodResolver(managerReviewSchema) as any,
+  } = useForm<z.input<typeof managerReviewSchema>, unknown, ManagerReviewFormData>({
+    resolver: zodResolver(managerReviewSchema),
     defaultValues: {
       rating: existing?.rating ?? undefined,
       strengths: existing?.strengths ?? '',

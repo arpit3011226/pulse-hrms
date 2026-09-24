@@ -23,7 +23,7 @@ const selfReviewSchema = z.object({
   comments: z.string().optional(),
 })
 
-type SelfReviewFormData = z.infer<typeof selfReviewSchema>
+type SelfReviewFormData = z.output<typeof selfReviewSchema>
 
 interface SelfReviewDialogProps {
   open: boolean
@@ -40,8 +40,8 @@ export function SelfReviewDialog({ open, onOpenChange, reviewId, existing }: Sel
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<SelfReviewFormData>({
-    resolver: zodResolver(selfReviewSchema) as any,
+  } = useForm<z.input<typeof selfReviewSchema>, unknown, SelfReviewFormData>({
+    resolver: zodResolver(selfReviewSchema),
     defaultValues: {
       self_rating: existing?.self_rating ?? undefined,
       strengths: existing?.strengths ?? '',

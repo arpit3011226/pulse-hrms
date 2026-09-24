@@ -46,7 +46,7 @@ export function ApplicationFormDialog({ open, onOpenChange }: ApplicationFormDia
     watch,
     formState: { errors },
   } = useForm<ApplicationFormData>({
-    resolver: zodResolver(applicationSchema) as any,
+    resolver: zodResolver(applicationSchema),
     defaultValues: {
       candidate_id: '',
       job_requisition_id: '',

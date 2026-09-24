@@ -21,7 +21,7 @@ const peerReviewSchema = z.object({
   feedback: z.string().optional(),
 })
 
-type PeerReviewFormData = z.infer<typeof peerReviewSchema>
+type PeerReviewFormData = z.output<typeof peerReviewSchema>
 
 interface PeerReviewDialogProps {
   open: boolean
@@ -42,8 +42,8 @@ export function PeerReviewDialog({ open, onOpenChange, reviewId, peerId }: PeerR
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<PeerReviewFormData>({
-    resolver: zodResolver(peerReviewSchema) as any,
+  } = useForm<z.input<typeof peerReviewSchema>, unknown, PeerReviewFormData>({
+    resolver: zodResolver(peerReviewSchema),
     defaultValues: {
       rating: existing?.rating ?? undefined,
       strengths: existing?.strengths ?? '',

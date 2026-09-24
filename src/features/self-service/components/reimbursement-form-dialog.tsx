@@ -22,7 +22,7 @@ const schema = z.object({
   description: z.string().min(1, 'Description is required'),
 })
 
-type FormData = z.infer<typeof schema>
+type FormData = z.output<typeof schema>
 
 interface Props {
   open: boolean
@@ -36,8 +36,8 @@ export function ReimbursementFormDialog({ open, onOpenChange, employeeId }: Prop
   const [receiptFile, setReceiptFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
 
-  const form = useForm<FormData>({
-    resolver: zodResolver(schema) as any,
+  const form = useForm<z.input<typeof schema>, unknown, FormData>({
+    resolver: zodResolver(schema),
     defaultValues: {
       category: '',
       amount: undefined as any,
@@ -134,7 +134,7 @@ export function ReimbursementFormDialog({ open, onOpenChange, employeeId }: Prop
                   <FormItem>
                     <FormLabel>Amount (₹)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                      <Input type="number" step="0.01" placeholder="0.00" {...field} value={(field.value as string | number | undefined) ?? ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

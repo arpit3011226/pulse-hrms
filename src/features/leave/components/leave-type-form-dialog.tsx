@@ -31,7 +31,7 @@ const leaveTypeSchema = z.object({
   is_use_it_or_lose_it: z.boolean().default(false),
 })
 
-type LeaveTypeFormData = z.infer<typeof leaveTypeSchema>
+type LeaveTypeFormData = z.output<typeof leaveTypeSchema>
 
 interface LeaveTypeFormDialogProps {
   open: boolean
@@ -57,8 +57,8 @@ export function LeaveTypeFormDialog({
     watch,
     reset,
     formState: { errors },
-  } = useForm<LeaveTypeFormData>({
-    resolver: zodResolver(leaveTypeSchema) as any,
+  } = useForm<z.input<typeof leaveTypeSchema>, unknown, LeaveTypeFormData>({
+    resolver: zodResolver(leaveTypeSchema),
     defaultValues: leaveType
       ? {
           name: leaveType.name,

@@ -20,7 +20,7 @@ const checkinSchema = z.object({
   checkin_date: z.string().min(1, 'Check-in date is required'),
 })
 
-type CheckinFormData = z.infer<typeof checkinSchema>
+type CheckinFormData = z.output<typeof checkinSchema>
 
 interface GoalCheckinDialogProps {
   open: boolean
@@ -39,8 +39,8 @@ export function GoalCheckinDialog({ open, onOpenChange, goal }: GoalCheckinDialo
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<CheckinFormData>({
-    resolver: zodResolver(checkinSchema) as any,
+  } = useForm<z.input<typeof checkinSchema>, unknown, CheckinFormData>({
+    resolver: zodResolver(checkinSchema),
     defaultValues: {
       progress_value: goal.current_value,
       comments: '',

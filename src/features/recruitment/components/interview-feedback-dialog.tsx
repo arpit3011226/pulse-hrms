@@ -22,7 +22,7 @@ const feedbackSchema = z.object({
   comments: z.string().optional(),
 })
 
-type FeedbackFormData = z.infer<typeof feedbackSchema>
+type FeedbackFormData = z.output<typeof feedbackSchema>
 
 interface InterviewFeedbackDialogProps {
   open: boolean
@@ -47,8 +47,8 @@ export function InterviewFeedbackDialog({ open, onOpenChange, interview }: Inter
     setValue,
     watch,
     formState: { errors },
-  } = useForm<FeedbackFormData>({
-    resolver: zodResolver(feedbackSchema) as any,
+  } = useForm<z.input<typeof feedbackSchema>, unknown, FeedbackFormData>({
+    resolver: zodResolver(feedbackSchema),
     defaultValues: {
       rating: 3,
       recommendation: '',

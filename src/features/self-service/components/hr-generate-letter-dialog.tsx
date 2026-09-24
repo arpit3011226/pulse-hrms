@@ -32,7 +32,7 @@ export function HrGenerateLetterDialog({ open, onOpenChange }: Props) {
   const [employees, setEmployees] = useState<any[]>([])
 
   const form = useForm({
-    resolver: zodResolver(schema) as any,
+    resolver: zodResolver(schema),
     defaultValues: { employee_id: '', template_id: '', remarks: '' },
   })
 

@@ -79,7 +79,7 @@ export function InterviewFormDialog({ open, onOpenChange, interview }: Interview
     watch,
     formState: { errors },
   } = useForm<InterviewFormData>({
-    resolver: zodResolver(interviewSchema) as any,
+    resolver: zodResolver(interviewSchema),
     defaultValues: {
       candidate_application_id: '',
       interview_stage_id: '',
