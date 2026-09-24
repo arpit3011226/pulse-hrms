@@ -308,6 +308,20 @@ searches, and a signed-in visit to /login still redirects to the dashboard.
 | Turn off "Allow new users to sign up" | Authentication → Sign In / Providers | Closes self sign-up at the platform level, not just in the app |
 | Turn on leaked password protection | Authentication → Password settings | Checks new passwords against known breaches |
 
+**These two have to be done by hand, and here is the evidence for why.** I pulled
+the live configuration with `supabase config pull` to see whether the CLI could
+change just those two settings. The file that came back describes only Apple
+under `[auth.external]` — there is no Google section in it at all, even though
+Google sign-in is configured and working on the project. Pushing that file back
+would therefore have turned off the Google sign-in you asked for. The pull also
+warned that it would invalidate the Twilio SMS settings.
+
+So the CLI cannot make a surgical change here; it replaces the whole auth block
+with what it can see, and it cannot see everything. Two clicks in the dashboard
+are safe and take a minute. I removed the pulled `config.toml` afterwards rather
+than leave it in the repository, because anyone running `supabase config push`
+later would disable Google sign-in without meaning to.
+
 The nine remaining `authenticated_security_definer_function_executable` advisor
 warnings are intended: the signed-in app calls those RPCs.
 
