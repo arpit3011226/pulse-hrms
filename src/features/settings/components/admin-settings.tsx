@@ -19,7 +19,6 @@ const MODULE_INFO = [
   { key: 'payroll' as const, label: 'Payroll', description: 'Salary processing, payslips, and compensation management' },
   { key: 'recruitment' as const, label: 'Recruitment', description: 'Job postings, candidate tracking, and hiring pipeline' },
   { key: 'performance' as const, label: 'Performance', description: 'Performance reviews, goals, and feedback cycles' },
-  { key: 'learning' as const, label: 'Learning', description: 'Training courses, certifications, and skill development' },
 ]
 
 function mergeSettings(saved: Partial<OrganizationSettings> | undefined): OrganizationSettings {

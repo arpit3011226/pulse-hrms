@@ -8,7 +8,6 @@ import {
 } from '@tanstack/react-router'
 import { AppLayout } from '@/components/layout/app-layout'
 import { LoginForm } from '@/features/auth/components/login-form'
-import { SignupForm } from '@/features/auth/components/signup-form'
 import { ForgotPasswordForm } from '@/features/auth/components/forgot-password-form'
 import { OnboardingForm } from '@/features/auth/components/onboarding-form'
 import { EmployeeList } from '@/features/employees/components/employee-list'
@@ -28,7 +27,6 @@ import { AttendancePage } from '@/features/attendance/components/attendance-page
 import { PayrollPage } from '@/features/payroll/components/payroll-page'
 import { PerformancePage } from '@/features/performance/components/performance-page'
 import { RecruitmentPage } from '@/features/recruitment/components/recruitment-page'
-import { LearningPage } from '@/features/learning/components/learning-page'
 import { ReportsPage } from '@/features/reports/components/reports-page'
 import { ResignationPage } from '@/features/resignation/components/resignation-page'
 import { SelfServicePage } from '@/features/self-service/components/self-service-page'
@@ -88,7 +86,6 @@ function AuthLayout() {
 
 const authRoute = createRoute({ getParentRoute: () => rootRoute, id: 'auth', component: AuthLayout })
 const loginRoute = createRoute({ getParentRoute: () => authRoute, path: '/login', component: LoginForm })
-const signupRoute = createRoute({ getParentRoute: () => authRoute, path: '/signup', component: SignupForm })
 const forgotPasswordRoute = createRoute({ getParentRoute: () => authRoute, path: '/forgot-password', component: ForgotPasswordForm })
 const onboardingRoute = createRoute({ getParentRoute: () => authRoute, path: '/onboarding', component: OnboardingForm })
 
@@ -170,7 +167,6 @@ const attendanceRoute = createRoute({ getParentRoute: () => appRoute, path: '/at
 const recruitmentRoute = createRoute({ getParentRoute: () => appRoute, path: '/recruitment', component: RecruitmentPage })
 const payrollRoute = createRoute({ getParentRoute: () => appRoute, path: '/payroll', component: PayrollPage })
 const performanceRoute = createRoute({ getParentRoute: () => appRoute, path: '/performance', component: PerformancePage })
-const learningRoute = createRoute({ getParentRoute: () => appRoute, path: '/learning', component: LearningPage })
 const selfServiceRoute = createRoute({ getParentRoute: () => appRoute, path: '/self-service', component: SelfServicePage })
 const separationRoute = createRoute({ getParentRoute: () => appRoute, path: '/separation', component: ResignationPage })
 const reportsRoute = createRoute({ getParentRoute: () => appRoute, path: '/reports', component: ReportsPage })
@@ -185,7 +181,7 @@ const indexRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  authRoute.addChildren([loginRoute, signupRoute, forgotPasswordRoute, onboardingRoute]),
+  authRoute.addChildren([loginRoute, forgotPasswordRoute, onboardingRoute]),
   appRoute.addChildren([
     dashboardRoute,
     employeesRoute,
@@ -205,7 +201,6 @@ const routeTree = rootRoute.addChildren([
     recruitmentRoute,
     payrollRoute,
     performanceRoute,
-    learningRoute,
     selfServiceRoute,
     separationRoute,
     reportsRoute,

@@ -356,7 +356,7 @@ export function generatePayslipPdf(data: PayslipPdfData, organization: Organizat
     pageWidth / 2, 262, { align: 'center' }
   )
 
-  stampFooters(doc, organization, margin)
+  stampFooters(doc, organization, { margin, showComputerGeneratedNote: true })
 
   // Download
   const filename = `Payslip_${data.payslip_number}_${getMonthName(data.payroll_month)}_${data.payroll_year}.pdf`

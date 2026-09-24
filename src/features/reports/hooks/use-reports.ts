@@ -56,11 +56,3 @@ export function useApplicationsReport() {
   })
 }
 
-export function useLearningReport() {
-  const { organization } = useAuth()
-  return useQuery({
-    queryKey: ['report-learning', organization?.id],
-    queryFn: () => api.fetchLearningReport(organization!.id),
-    enabled: !!organization?.id,
-  })
-}

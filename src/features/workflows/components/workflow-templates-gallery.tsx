@@ -26,7 +26,6 @@ const MODULE_OPTIONS = [
   { value: 'performance', label: 'Performance' },
   { value: 'recruitment', label: 'Recruitment' },
   { value: 'resignation', label: 'Separation' },
-  { value: 'learning', label: 'Learning' },
   { value: 'self_service', label: 'Self Service' },
 ]
 

@@ -6,7 +6,6 @@ import { LeaveReportsTab } from './leave-reports-tab'
 import { AttendanceReportsTab } from './attendance-reports-tab'
 import { PayrollReportsTab } from './payroll-reports-tab'
 import { RecruitmentReportsTab } from './recruitment-reports-tab'
-import { LearningReportsTab } from './learning-reports-tab'
 import { PeopleAnalyticsTab } from './people-analytics-tab'
 import { SentimentAnalyticsTab } from './sentiment-analytics-tab'
 import { SurveyManagement } from './survey-management'
@@ -32,7 +31,6 @@ export function ReportsPage() {
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="payroll">Payroll</TabsTrigger>
           <TabsTrigger value="recruitment">Recruitment</TabsTrigger>
-          <TabsTrigger value="learning">Learning</TabsTrigger>
         </TabsList>
 
         <TabsContent value="analytics" className="mt-6">
@@ -60,9 +58,6 @@ export function ReportsPage() {
         </TabsContent>
         <TabsContent value="recruitment" className="mt-6">
           <RecruitmentReportsTab />
-        </TabsContent>
-        <TabsContent value="learning" className="mt-6">
-          <LearningReportsTab />
         </TabsContent>
       </Tabs>
     </div>

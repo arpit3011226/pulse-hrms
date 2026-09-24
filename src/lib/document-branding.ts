@@ -54,6 +54,10 @@ export interface DocumentOrg {
   website?: string | null
   phone?: string | null
   email?: string | null
+  signatory_name?: string | null
+  signatory_designation?: string | null
+  /** Signature artwork as a data URI. */
+  signature_image?: string | null
 }
 
 export function companyName(org?: DocumentOrg | null): string {
@@ -159,11 +163,21 @@ export function drawLetterhead(
  * current year, the registered address, the CIN when we hold one, and the
  * computer-generated note.
  */
+interface FooterOptions {
+  margin?: number
+  /**
+   * Payslips carry the computer-generated note because nobody signs them.
+   * Letters and offer letters carry a real signature instead, so they leave it off.
+   */
+  showComputerGeneratedNote?: boolean
+}
+
 export function stampFooters(
   doc: jsPDF,
   org?: DocumentOrg | null,
-  margin: number = PAGE_MARGIN
+  opts: FooterOptions = {}
 ): void {
+  const { margin = PAGE_MARGIN, showComputerGeneratedNote = false } = opts
   const lines: string[] = [
     `© ${new Date().getFullYear()} ${companyName(org)}`,
     companyAddress(org),
@@ -182,7 +196,9 @@ export function stampFooters(
   const lineHeight = 3.2
   const bottom = PAGE_HEIGHT - 12
   const noteY = bottom
-  const firstLineY = noteY - 3.8 - (wrapped.length - 1) * lineHeight
+  // Without the note, the address block itself sits on the bottom line.
+  const lastLineY = showComputerGeneratedNote ? noteY - 3.8 : noteY
+  const firstLineY = lastLineY - (wrapped.length - 1) * lineHeight
   const ruleY = firstLineY - 4
 
   const pageCount = doc.getNumberOfPages()
@@ -200,9 +216,11 @@ export function stampFooters(
       doc.text(line, PAGE_WIDTH / 2, firstLineY + i * lineHeight, { align: 'center' })
     })
 
-    doc.setFont('helvetica', 'italic')
-    doc.setFontSize(6.5)
-    doc.text(COMPUTER_GENERATED_NOTE, PAGE_WIDTH / 2, noteY, { align: 'center' })
+    if (showComputerGeneratedNote) {
+      doc.setFont('helvetica', 'italic')
+      doc.setFontSize(6.5)
+      doc.text(COMPUTER_GENERATED_NOTE, PAGE_WIDTH / 2, noteY, { align: 'center' })
+    }
 
     if (pageCount > 1) {
       doc.setFont('helvetica', 'normal')
@@ -212,4 +230,74 @@ export function stampFooters(
       })
     }
   }
+}
+
+/** Height reserved for the signature block, so a generator can keep it on one page. */
+export const SIGNATURE_BLOCK_HEIGHT = 34
+
+/**
+ * "For <company>", the signature itself, then the ruled line and the signatory's
+ * name and designation.
+ *
+ * When no signature has been uploaded the block still draws, leaving an empty
+ * line for a wet signature — a document must never silently lose its sign-off.
+ * Returns the y below the block.
+ */
+export function drawSignatureBlock(
+  doc: jsPDF,
+  org: DocumentOrg | null | undefined,
+  x: number,
+  y: number
+): number {
+  const lineWidth = 55
+
+  doc.setTextColor(...DOC_COLORS.ink)
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'bold')
+  doc.text(`For ${companyName(org)}`, x, y)
+
+  // The signature sits in the gap between that line and the rule.
+  const gapTop = y + 3
+  const gapHeight = 15
+  const image = org?.signature_image?.trim()
+  if (image) {
+    try {
+      const props = doc.getImageProperties(image)
+      const ratio = props.width / props.height
+      // Fit inside the gap, never wider than the rule it sits on.
+      let h = gapHeight
+      let w = h * ratio
+      if (w > lineWidth) {
+        w = lineWidth
+        h = w / ratio
+      }
+      doc.addImage(image, x, gapTop + (gapHeight - h), w, h)
+    } catch {
+      // A corrupt or unsupported image must not stop the document being issued.
+    }
+  }
+
+  let ly = gapTop + gapHeight + 2
+  doc.setLineWidth(0.3)
+  doc.setDrawColor(...DOC_COLORS.border)
+  doc.line(x, ly, x + lineWidth, ly)
+  ly += 4
+
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...DOC_COLORS.ink)
+  const name = org?.signatory_name?.trim()
+  doc.text(name || 'Authorised Signatory', x, ly)
+  ly += 4
+
+  const designation = org?.signatory_designation?.trim()
+  if (name && designation) {
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...DOC_COLORS.muted)
+    doc.text(designation, x, ly)
+    ly += 4
+  }
+
+  return ly
 }

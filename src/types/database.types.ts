@@ -15,7 +15,6 @@ export interface OrganizationSettings {
     payroll: boolean
     recruitment: boolean
     performance: boolean
-    learning: boolean
   }
   working_days: number[]
   date_format: string
@@ -37,6 +36,11 @@ export interface Organization {
   address: Record<string, string> | null
   /** Corporate Identity Number, printed in the footer of generated documents. */
   cin: string | null
+  /** Name printed under the signature on letters and offer letters. */
+  signatory_name: string | null
+  signatory_designation: string | null
+  /** Signature artwork as a data URI. */
+  signature_image: string | null
   phone: string | null
   email: string | null
   website: string | null

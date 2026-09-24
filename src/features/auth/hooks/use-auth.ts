@@ -9,7 +9,6 @@ export interface AuthContextType {
   organization: Organization | null
   isLoading: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string, metadata?: Record<string, string>) => Promise<void>
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>

@@ -72,14 +72,3 @@ export async function fetchApplicationsReport(organizationId: string) {
   return data
 }
 
-// ── Learning Reports ──────────────────────────────────
-
-export async function fetchLearningReport(organizationId: string) {
-  const { data, error } = await supabase
-    .from('training_enrollments')
-    .select('id, status, progress_percent, enrolled_date, completion_date, course:training_courses(course_name, course_code), employee:employees!training_enrollments_employee_id_fkey(first_name, last_name, employee_code)')
-    .eq('organization_id', organizationId)
-    .order('enrolled_date', { ascending: false })
-  if (error) throw error
-  return data
-}

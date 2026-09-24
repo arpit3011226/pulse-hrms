@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import {
-  Building2, CalendarDays, FileText, GraduationCap, LayoutDashboard, LogOut,
+  Building2, CalendarDays, FileText, LayoutDashboard, LogOut,
   Search, Settings as SettingsIcon, Target, UserRound, Users, Wallet, Workflow,
 } from 'lucide-react'
 import {
@@ -58,7 +58,6 @@ export function GlobalSearch() {
       { title: 'Leave', href: '/leave', icon: CalendarDays, visible: true },
       { title: 'Payroll', href: '/payroll', icon: Wallet, visible: permissions.canViewPayroll },
       { title: 'Performance', href: '/performance', icon: Target, visible: true },
-      { title: 'Learning', href: '/learning', icon: GraduationCap, visible: true },
       { title: 'Recruitment', href: '/recruitment', icon: UserRound, visible: permissions.canManageRecruitment },
       { title: 'Self Service', href: '/self-service', icon: FileText, visible: true },
       { title: 'Separation', href: '/separation', icon: LogOut, visible: true },

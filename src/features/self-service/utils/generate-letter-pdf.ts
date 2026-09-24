@@ -5,8 +5,9 @@ import {
   DOC_COLORS,
   PAGE_MARGIN,
   PAGE_WIDTH,
-  companyName,
+  SIGNATURE_BLOCK_HEIGHT,
   drawLetterhead,
+  drawSignatureBlock,
   stampFooters,
 } from '@/lib/document-branding'
 
@@ -89,27 +90,12 @@ export function generateLetterPdf(
 
   // ── Signature block ──
   // Keep it together: if it will not fit above the footer, start a fresh page.
-  const signatureHeight = 30
   y = Math.max(y + 20, 200)
-  if (y + signatureHeight > CONTENT_BOTTOM) {
+  if (y + SIGNATURE_BLOCK_HEIGHT > CONTENT_BOTTOM) {
     doc.addPage()
     y = PAGE_MARGIN + 20
   }
-
-  doc.setTextColor(...DOC_COLORS.ink)
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'bold')
-  doc.text(`For ${companyName(organization)}`, PAGE_MARGIN, y)
-  y += 18
-
-  doc.setLineWidth(0.3)
-  doc.setDrawColor(...DOC_COLORS.border)
-  doc.line(PAGE_MARGIN, y, PAGE_MARGIN + 50, y)
-  y += 5
-
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
-  doc.text('Authorised Signatory', PAGE_MARGIN, y)
+  drawSignatureBlock(doc, organization, PAGE_MARGIN, y)
 
   stampFooters(doc, organization)
 

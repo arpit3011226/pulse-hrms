@@ -38,7 +38,6 @@ export const DEFAULT_ORG_SETTINGS: OrganizationSettings = {
     payroll: true,
     recruitment: true,
     performance: true,
-    learning: true,
   },
   working_days: [1, 2, 3, 4, 5],
   date_format: 'DD/MM/YYYY',
@@ -192,14 +191,6 @@ export const PERMISSION_CATEGORIES = [
     ],
   },
   {
-    key: 'learning',
-    label: 'Learning & Development',
-    permissions: [
-      { key: 'manage_learning', label: 'Manage courses, enrollments, and assessments' },
-      { key: 'view_learning', label: 'View training catalog and enrollments' },
-    ],
-  },
-  {
     key: 'departments',
     label: 'Departments & Designations',
     permissions: [
@@ -237,7 +228,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'view_attendance', 'manage_attendance', 'manage_shifts',
     'view_performance', 'manage_performance',
     'manage_recruitment', 'view_candidates',
-    'manage_learning', 'view_learning',
     'manage_departments', 'manage_designations',
     'view_reports', 'export_reports',
   ],
@@ -253,7 +243,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'view_attendance',
     'view_performance',
     'view_candidates',
-    'view_learning',
     'view_reports',
   ],
   leadership: [
@@ -263,7 +252,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'view_attendance',
     'view_performance',
     'view_candidates',
-    'view_learning',
     'view_reports', 'export_reports',
   ],
   employee: [],
@@ -662,42 +650,6 @@ export const OFFER_STATUSES = [
   { value: 'withdrawn', label: 'Withdrawn' },
 ] as const
 
-// ── Learning & Development ──────────────────────────────────────────
-
-export const COURSE_MODES = [
-  { value: 'online', label: 'Online' },
-  { value: 'classroom', label: 'Classroom' },
-  { value: 'blended', label: 'Blended' },
-  { value: 'self_paced', label: 'Self-Paced' },
-] as const
-
-export const COURSE_STATUSES = [
-  { value: 'draft', label: 'Draft' },
-  { value: 'published', label: 'Published' },
-  { value: 'archived', label: 'Archived' },
-] as const
-
-export const ENROLLMENT_STATUSES = [
-  { value: 'enrolled', label: 'Enrolled' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'dropped', label: 'Dropped' },
-  { value: 'failed', label: 'Failed' },
-] as const
-
-export const ASSESSMENT_TYPES = [
-  { value: 'quiz', label: 'Quiz' },
-  { value: 'assignment', label: 'Assignment' },
-  { value: 'practical', label: 'Practical' },
-  { value: 'certification_exam', label: 'Certification Exam' },
-] as const
-
-export const ATTEMPT_STATUSES = [
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'passed', label: 'Passed' },
-  { value: 'failed', label: 'Failed' },
-] as const
-
 // ============================================================================
 // Self-Service: Letter Management
 // ============================================================================
@@ -895,16 +847,6 @@ export const WORKFLOW_EVENT_MODULES = [
       { value: 'general_request_submitted', label: 'General Request Submitted', description: 'Employee submits a general request', timingOptions: ['on_event'] },
     ],
   },
-  {
-    module: 'Learning',
-    icon: 'GraduationCap',
-    events: [
-      { value: 'course_published', label: 'Course Published', description: 'New training course is published', timingOptions: ['on_event'] },
-      { value: 'enrollment_created', label: 'Employee Enrolled', description: 'Employee is enrolled in a course', timingOptions: ['on_event'] },
-      { value: 'course_completed', label: 'Course Completed', description: 'Employee completes a course', timingOptions: ['on_event'] },
-      { value: 'assessment_passed', label: 'Assessment Passed', description: 'Employee passes an assessment', timingOptions: ['on_event'] },
-    ],
-  },
 ] as const
 
 /** Flat list of all events for lookups */
@@ -1043,15 +985,6 @@ export const APP_PERMISSION_MODULES: PermissionModule[] = [
     ],
   },
   {
-    key: 'learning',
-    label: 'Learning',
-    icon: 'GraduationCap',
-    features: [
-      { key: 'learning_courses', label: 'Courses & Training', description: 'Manage LMS content' },
-      { key: 'learning_enrollments', label: 'Enrollments', description: 'View and manage enrollments' },
-    ],
-  },
-  {
     key: 'self_service',
     label: 'Self Service',
     icon: 'FileText',
@@ -1120,7 +1053,6 @@ export const DEFAULT_ROLE_PERMISSION_LEVELS: Record<string, Record<string, Permi
     payroll_processing: 'read', payroll_compensation: 'read', payroll_reports: 'read',
     performance_reviews: 'manage', performance_competencies: 'manage',
     recruitment_jobs: 'manage', recruitment_applications: 'manage',
-    learning_courses: 'manage', learning_enrollments: 'manage',
     self_service_letters: 'manage', self_service_reimbursements: 'manage', self_service_requests: 'manage',
     separation_resignations: 'manage', separation_clearances: 'manage',
     workflows_management: 'manage', workflows_templates: 'manage',
@@ -1141,7 +1073,6 @@ export const DEFAULT_ROLE_PERMISSION_LEVELS: Record<string, Record<string, Permi
     payroll_processing: 'manage', payroll_compensation: 'manage', payroll_reports: 'manage',
     performance_reviews: 'read', performance_competencies: 'no_access',
     recruitment_jobs: 'no_access', recruitment_applications: 'no_access',
-    learning_courses: 'no_access', learning_enrollments: 'no_access',
     self_service_letters: 'no_access', self_service_reimbursements: 'manage', self_service_requests: 'no_access',
     separation_resignations: 'no_access', separation_clearances: 'no_access',
     workflows_management: 'no_access', workflows_templates: 'no_access',
@@ -1162,7 +1093,6 @@ export const DEFAULT_ROLE_PERMISSION_LEVELS: Record<string, Record<string, Permi
     payroll_processing: 'no_access', payroll_compensation: 'no_access', payroll_reports: 'no_access',
     performance_reviews: 'manage', performance_competencies: 'read',
     recruitment_jobs: 'read', recruitment_applications: 'read',
-    learning_courses: 'read', learning_enrollments: 'read',
     self_service_letters: 'no_access', self_service_reimbursements: 'manage', self_service_requests: 'manage',
     separation_resignations: 'manage', separation_clearances: 'no_access',
     workflows_management: 'no_access', workflows_templates: 'no_access',
@@ -1183,7 +1113,6 @@ export const DEFAULT_ROLE_PERMISSION_LEVELS: Record<string, Record<string, Permi
     payroll_processing: 'read', payroll_compensation: 'read', payroll_reports: 'read',
     performance_reviews: 'read', performance_competencies: 'read',
     recruitment_jobs: 'read', recruitment_applications: 'read',
-    learning_courses: 'read', learning_enrollments: 'read',
     self_service_letters: 'no_access', self_service_reimbursements: 'read', self_service_requests: 'read',
     separation_resignations: 'read', separation_clearances: 'no_access',
     workflows_management: 'read', workflows_templates: 'read',
@@ -1204,7 +1133,6 @@ export const DEFAULT_ROLE_PERMISSION_LEVELS: Record<string, Record<string, Permi
     payroll_processing: 'no_access', payroll_compensation: 'no_access', payroll_reports: 'no_access',
     performance_reviews: 'no_access', performance_competencies: 'no_access',
     recruitment_jobs: 'no_access', recruitment_applications: 'no_access',
-    learning_courses: 'read', learning_enrollments: 'no_access',
     self_service_letters: 'no_access', self_service_reimbursements: 'no_access', self_service_requests: 'no_access',
     separation_resignations: 'no_access', separation_clearances: 'no_access',
     workflows_management: 'no_access', workflows_templates: 'no_access',

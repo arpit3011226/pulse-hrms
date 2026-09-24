@@ -124,11 +124,8 @@ export function LoginForm() {
         </Button>
       </CardContent>
       <CardFooter className="justify-center">
-        <p className="text-sm text-muted-foreground">
-          Don't have an account?{' '}
-          <Link to="/signup" className="text-primary hover:underline">
-            Sign up
-          </Link>
+        <p className="text-center text-sm text-muted-foreground">
+          Accounts are created by HR. If you cannot sign in, please contact the HR team.
         </p>
       </CardFooter>
     </Card>

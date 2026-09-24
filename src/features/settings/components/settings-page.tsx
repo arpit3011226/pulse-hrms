@@ -8,12 +8,15 @@ import { SecuritySettings } from '@/features/workplace/components/security-setti
 import { ExpiringDocuments } from '@/features/workplace/components/expiring-documents'
 import { OrganizationSettings } from './organization-settings'
 import { AdminSettings } from './admin-settings'
+import { LoginSettings } from './login-settings'
 import { RolesDefinitions } from './roles-definitions'
 import { SeedDemoData } from './seed-demo-data'
 
 export function SettingsPage() {
-  const { canManageSettings } = usePermissions()
+  const { canManageSettings, isAdmin, isHR, isLeadership } = usePermissions()
   const showAdmin = canManageSettings
+  // Creating logins is deliberately narrower than general admin rights.
+  const showLogins = isAdmin || isHR || isLeadership
 
   return (
     <div>
@@ -28,6 +31,7 @@ export function SettingsPage() {
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="policies">Policies</TabsTrigger>
           <TabsTrigger value="privacy">Privacy</TabsTrigger>
+          {showLogins && <TabsTrigger value="logins">Logins</TabsTrigger>}
           {showAdmin && <TabsTrigger value="audit">Audit Log</TabsTrigger>}
           {showAdmin && (
             <TabsTrigger value="admin">Admin Settings</TabsTrigger>
@@ -67,6 +71,12 @@ export function SettingsPage() {
         <TabsContent value="privacy" className="mt-6">
           <PrivacySettings />
         </TabsContent>
+
+        {showLogins && (
+          <TabsContent value="logins" className="mt-6">
+            <LoginSettings />
+          </TabsContent>
+        )}
 
         {showAdmin && (
           <TabsContent value="audit" className="mt-6 space-y-6">

@@ -125,11 +125,6 @@ export function usePermissions() {
       canViewPerformance: useNew ? canRead(levels, 'performance_reviews') : legacyHas('view_performance'),
       canManagePerformance: useNew ? canManage(levels, 'performance_reviews') : legacyHas('manage_performance'),
 
-      // ── Learning ──
-      canViewLearning: useNew
-        ? canRead(levels, 'learning_courses')
-        : legacyHas('view_learning') || legacyHas('manage_learning'),
-      canManageLearning: useNew ? canManage(levels, 'learning_courses') : legacyHas('manage_learning'),
 
       // ── Resignation / Separation ──
       canSubmitResignation: role === 'employee' || role === 'manager' || role === 'leadership',

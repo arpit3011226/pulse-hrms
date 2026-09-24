@@ -5,8 +5,10 @@ import {
   DOC_COLORS,
   PAGE_MARGIN,
   PAGE_WIDTH,
+  SIGNATURE_BLOCK_HEIGHT,
   companyName,
   drawLetterhead,
+  drawSignatureBlock,
   stampFooters,
 } from '@/lib/document-branding'
 
@@ -165,20 +167,20 @@ export function generateOfferPdf(data: OfferPdfData, organization: Organization)
 
   // ── Signatures ────────────────────────────────────────────
   // Never split the signature block across pages.
-  ensureSpace(12)
+  ensureSpace(SIGNATURE_BLOCK_HEIGHT)
   const colWidth = (contentWidth - 10) / 2
+  drawSignatureBlock(doc, organization, PAGE_MARGIN, y)
+
+  // Candidate's side: they sign by hand on return.
+  const acceptLineY = y + 20
   doc.setDrawColor(...DOC_COLORS.border)
   doc.setLineWidth(0.3)
-  doc.line(PAGE_MARGIN, y, PAGE_MARGIN + colWidth, y)
-  doc.line(PAGE_MARGIN + colWidth + 10, y, rightEdge, y)
-
+  doc.line(PAGE_MARGIN + colWidth + 10, acceptLineY, rightEdge, acceptLineY)
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8.5)
   doc.setTextColor(...DOC_COLORS.muted)
-  doc.text(`For ${companyName(organization)}`, PAGE_MARGIN, y + 4.6)
-  doc.text(`Accepted by ${data.candidateName}`, PAGE_MARGIN + colWidth + 10, y + 4.6)
-  doc.text('Authorised signatory', PAGE_MARGIN, y + 8.6)
-  doc.text('Date', PAGE_MARGIN + colWidth + 10, y + 8.6)
+  doc.text(`Accepted by ${data.candidateName}`, PAGE_MARGIN + colWidth + 10, acceptLineY + 4)
+  doc.text('Date', PAGE_MARGIN + colWidth + 10, acceptLineY + 8)
 
   stampFooters(doc, organization)
 

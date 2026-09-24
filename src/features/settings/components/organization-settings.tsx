@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,8 @@ export function OrganizationSettings() {
   const [fiscalYear, setFiscalYear] = useState(String(organization?.fiscal_year_start || 4))
   const [timezone, setTimezone] = useState(organization?.timezone || 'Asia/Kolkata')
   const [currency, setCurrency] = useState(organization?.currency || 'INR')
+  const [signature, setSignature] = useState<string | null>(organization?.signature_image || null)
+  const signatureInput = useRef<HTMLInputElement>(null)
 
   const { register, handleSubmit } = useForm({
     defaultValues: {
@@ -28,6 +30,8 @@ export function OrganizationSettings() {
       phone: organization?.phone || '',
       website: organization?.website || '',
       cin: organization?.cin || '',
+      signatory_name: organization?.signatory_name || '',
+      signatory_designation: organization?.signatory_designation || '',
       line1: organization?.address?.line1 || '',
       line2: organization?.address?.line2 || '',
       city: organization?.address?.city || '',
@@ -58,9 +62,10 @@ export function OrganizationSettings() {
             )
           : null,
       }
+      const withSignature = { ...withAddress, signature_image: signature }
       const updateData = canEditRegional
-        ? { ...withAddress, fiscal_year_start: Number(fiscalYear), timezone, currency }
-        : withAddress
+        ? { ...withSignature, fiscal_year_start: Number(fiscalYear), timezone, currency }
+        : withSignature
       const { error } = await supabase
         .from('organizations')
         .update(updateData)
@@ -74,6 +79,27 @@ export function OrganizationSettings() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  /**
+   * The signature is stored as a data URI on the organisation record because the
+   * PDF is built in the browser and needs the bytes without a second round trip.
+   * A signature is a few kilobytes, so the limit below is generous.
+   */
+  const onSignatureChosen = (file: File | undefined) => {
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please choose an image file')
+      return
+    }
+    if (file.size > 500_000) {
+      toast.error('That image is too large. Please use one under 500 KB.')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => setSignature(String(reader.result))
+    reader.onerror = () => toast.error('Could not read that file')
+    reader.readAsDataURL(file)
   }
 
   return (
@@ -138,6 +164,61 @@ export function OrganizationSettings() {
               <p className="text-xs text-muted-foreground">
                 Corporate Identity Number. Shown in the document footer. Leave it blank to
                 keep it off the documents.
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t space-y-4">
+            <div>
+              <h4 className="text-sm font-medium">Authorised Signatory</h4>
+              <p className="text-xs text-muted-foreground">
+                Signs letters and offer letters. Payslips are not signed.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="org_signatory_name">Name</Label>
+              <Input id="org_signatory_name" {...register('signatory_name')} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="org_signatory_designation">Designation</Label>
+              <Input
+                id="org_signatory_designation"
+                placeholder="e.g. Director"
+                {...register('signatory_designation')}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Signature</Label>
+              {signature ? (
+                <div className="rounded-md border bg-white p-3">
+                  <img src={signature} alt="Signature" className="h-14 object-contain" />
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  No signature uploaded. Documents will show an empty line to sign by hand.
+                </p>
+              )}
+              <input
+                ref={signatureInput}
+                type="file"
+                accept="image/png,image/jpeg"
+                className="hidden"
+                onChange={(e) => onSignatureChosen(e.target.files?.[0])}
+              />
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => signatureInput.current?.click()}>
+                  {signature ? 'Replace' : 'Upload'} signature
+                </Button>
+                {signature && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setSignature(null)}>
+                    Remove
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                A PNG with a transparent background works best. Under 500 KB.
               </p>
             </div>
           </div>

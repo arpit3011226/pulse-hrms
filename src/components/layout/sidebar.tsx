@@ -152,18 +152,6 @@ function PerformanceIcon({ className }: { className?: string }) {
   )
 }
 
-function LearningIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none">
-      <path d="M12 3L2 8l10 5 10-5-10-5z" fill="#8B5CF6" />
-      <path d="M4 10v6c0 1 3.6 4 8 4s8-3 8-4v-6" fill="#C4B5FD" />
-      <path d="M4 10v6c0 1 3.6 4 8 4s8-3 8-4v-6" stroke="#7C3AED" strokeWidth="0.5" />
-      <line x1="20" y1="8" x2="20" y2="16" stroke="#7C3AED" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="20" cy="17" r="1" fill="#7C3AED" />
-    </svg>
-  )
-}
-
 function SelfServiceIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none">
@@ -305,7 +293,6 @@ export function Sidebar() {
     { title: 'Departments', href: '/departments', icon: DepartmentsIcon, visible: true },
     { title: 'Employees', href: '/employees', icon: EmployeesIcon, visible: true },
     { title: 'Helpdesk', href: '/helpdesk', icon: HelpdeskIcon, visible: true },
-    { title: 'Learning', href: '/learning', icon: LearningIcon, visible: isModuleEnabled('learning') },
     { title: 'Leave', href: '/leave', icon: LeaveIcon, visible: isModuleEnabled('leave') },
     { title: 'Onboarding', href: '/new-joiners', icon: OnboardingIcon, visible: true },
     { title: 'Payroll', href: '/payroll', icon: PayrollIcon, visible: permissions.canViewPayroll && isModuleEnabled('payroll') },

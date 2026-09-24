@@ -1,8 +1,22 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import type { Profile, Organization } from '@/types/database.types'
 import { AuthContext } from './hooks/use-auth'
+
+/**
+ * Google sign-in is for employees only, and only for people HR has already set up.
+ *
+ * Signing in with Google creates an auth user for any Google address, so without
+ * this check a stranger could land on the company-setup screen. Alumni and
+ * candidates keep their email and password.
+ */
+function mayUseGoogle(user: User, profile: Profile | null): boolean {
+  if (user.app_metadata?.provider !== 'google') return true
+  if (!profile?.organization_id) return false
+  return profile.role !== 'candidate' && profile.role !== 'alumni'
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
@@ -13,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const mountedRef = useRef(true)
   const safetyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string, user?: User) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -24,6 +38,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.error('Failed to fetch profile:', error.message)
         setProfile(null)
+        return
+      }
+
+      if (user && !mayUseGoogle(user, data as Profile | null)) {
+        await supabase.auth.signOut()
+        setSession(null)
+        setUser(null)
+        setProfile(null)
+        setOrganization(null)
+        toast.error('This Google account does not have access. Please ask HR to set up your login.')
         return
       }
 
@@ -77,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (newSession?.user) {
           // Fetch profile without blocking — .finally guarantees isLoading=false
-          fetchProfile(newSession.user.id).finally(() => {
+          fetchProfile(newSession.user.id, newSession.user).finally(() => {
             if (mountedRef.current) {
               setIsLoading(false)
               clearTimeout(safetyTimerRef.current)
@@ -117,15 +141,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // onAuthStateChange will handle setting session, profile, and isLoading=false
   }
 
-  const signUp = async (email: string, password: string, metadata?: Record<string, string>) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: metadata },
-    })
-    if (error) throw error
-  }
-
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -155,7 +170,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         organization,
         isLoading,
         signIn,
-        signUp,
         signInWithGoogle,
         signOut,
         refreshProfile,
