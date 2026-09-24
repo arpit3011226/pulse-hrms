@@ -1,4 +1,4 @@
-import { FileText, Download } from 'lucide-react'
+import { Download } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'

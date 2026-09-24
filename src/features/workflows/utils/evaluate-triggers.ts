@@ -114,7 +114,7 @@ async function getEventMatchedEmployees(
   const targetMonth = targetDate.getMonth() + 1
   const targetDay = targetDate.getDate()
 
-  let query = supabase
+  const query = supabase
     .from('employees')
     .select('*')
     .eq('organization_id', orgId)

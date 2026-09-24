@@ -51,7 +51,6 @@ import {
   useRejectPayrollCycle,
   usePayrollConfig,
 } from '../hooks/use-payroll-config'
-import { useAuth } from '@/features/auth/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatCurrency, getMonthName } from '../utils/payroll-utils'
 import { toast } from 'sonner'
@@ -131,8 +130,7 @@ function ApprovalStatusBadge({ status }: { status?: string }) {
 // --------------------------------------------------
 
 export function PayrollRunsTab() {
-  const { profile } = useAuth()
-  const { canManagePayroll, isAdmin, isPayrollAdmin, isHR, role } = usePermissions()
+  const { canManagePayroll, isAdmin, isHR, role } = usePermissions()
   const currentYear = new Date().getFullYear()
 
   // State

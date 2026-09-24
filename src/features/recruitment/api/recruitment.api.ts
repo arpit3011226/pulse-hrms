@@ -395,9 +395,18 @@ export async function updateOfferLetter(id: string, updates: Partial<OfferLetter
 }
 
 export async function updateOfferStatus(id: string, offerStatus: string, applicationId?: string) {
+  // Stamp the time along with the status. The offers screen drives every
+  // transition through here, so without this an offer could be marked sent or
+  // answered with no record of when — which is what the ageing and
+  // "valid until" views rely on.
+  const now = new Date().toISOString()
+  const patch: Record<string, unknown> = { offer_status: offerStatus }
+  if (offerStatus === 'sent') patch.sent_at = now
+  if (['accepted', 'rejected', 'withdrawn'].includes(offerStatus)) patch.responded_at = now
+
   const { data, error } = await supabase
     .from('offer_letters')
-    .update({ offer_status: offerStatus })
+    .update(patch)
     .eq('id', id)
     .select()
     .single()

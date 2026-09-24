@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
 import { getCurrentEmployee } from '@/features/attendance/api/attendance.api'
-import { usePendingManagerApprovals, usePendingHRApprovals, useResignationRequests } from '../hooks/use-resignation'
+import { usePendingManagerApprovals, useResignationRequests } from '../hooks/use-resignation'
 import { MyResignationTab } from './my-resignation-tab'
 import { ResignationApprovalList } from './resignation-approval-list'
 import { ResignationActionDialog } from './resignation-action-dialog'
@@ -30,7 +30,6 @@ export function ResignationPage() {
   const { data: managerApprovals } = usePendingManagerApprovals(employeeId)
 
   // HR approvals
-  const { data: hrApprovals } = usePendingHRApprovals()
 
   // All requests (admin/hr)
   const { data: allRequests } = useResignationRequests()

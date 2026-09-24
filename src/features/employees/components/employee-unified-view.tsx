@@ -78,26 +78,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { getInitials, formatDate } from '@/lib/utils'
 
-import {
-  SALUTATION_OPTIONS,
-  GENDER_OPTIONS,
-  MARITAL_STATUS_OPTIONS,
-  BLOOD_GROUPS,
-  EMPLOYMENT_TYPES,
-  EMPLOYEE_STATUSES,
-  ADDRESS_TYPES,
-  RELATIONSHIP_TYPES,
-  BANK_ACCOUNT_TYPES,
-  IDENTITY_DOCUMENT_TYPES,
-  DOCUMENT_CATEGORIES,
-  NOMINEE_APPLICABLE_FOR,
-  ORG_CHANGE_TYPES,
-  EXIT_TYPES,
-  EXIT_STATUSES,
-  CLEARANCE_STATUSES,
-  RELIGION_OPTIONS,
-  NATIONALITY_OPTIONS,
-} from '@/lib/constants'
+import { SALUTATION_OPTIONS, GENDER_OPTIONS, MARITAL_STATUS_OPTIONS, BLOOD_GROUPS, EMPLOYMENT_TYPES, EMPLOYEE_STATUSES, IDENTITY_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, NOMINEE_APPLICABLE_FOR, ORG_CHANGE_TYPES, EXIT_TYPES, EXIT_STATUSES, CLEARANCE_STATUSES, RELIGION_OPTIONS, NATIONALITY_OPTIONS } from '@/lib/constants'
 
 import { EmployeeAddressForm } from './employee-address-form'
 import { EmployeeContactForm } from './employee-contact-form'
@@ -1126,7 +1107,7 @@ interface InlineEditFormProps {
 }
 
 function PersonalEditForm({ employee, onSave, onCancel, isPending }: InlineEditFormProps) {
-  const { register, handleSubmit, setValue, watch } = useForm({
+  const { register, handleSubmit, setValue } = useForm({
     defaultValues: {
       salutation: employee.salutation || '',
       first_name: employee.first_name,

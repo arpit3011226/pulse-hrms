@@ -1,5 +1,4 @@
 import { useAuth } from '@/features/auth/hooks/use-auth'
-import { usePermissions } from '@/hooks/use-permissions'
 import { useWorkflowEvaluator } from '@/features/workflows/hooks/use-workflow-evaluator'
 import {
   useDashboardStats,
@@ -21,7 +20,6 @@ import { ThingsToDoWidget } from './widgets/things-to-do-widget'
 
 export function DashboardPage() {
   const { profile } = useAuth()
-  const permissions = usePermissions()
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
   const { data: activities } = useRecentActivity()
   const { data: employee } = useDashboardEmployee()

@@ -415,8 +415,6 @@ export async function computePayrollForRun(runId: string, orgId: string) {
   if (insertEmpError) throw insertEmpError
 
   // 7. For each employee: bulk insert payroll_earnings and payroll_deductions
-  let earningIdx = 0
-  let deductionIdx = 0
   for (let i = 0; i < activeCompensations.length; i++) {
     const comp = activeCompensations[i]
     const runEmpId = insertedEmployees[i]?.id
@@ -489,8 +487,6 @@ export async function computePayrollForRun(runId: string, orgId: string) {
       if (dErr) throw dErr
     }
 
-    earningIdx += result.earnings.length
-    deductionIdx += result.deductions.length
   }
 
   // 8. Update payroll_run with totals and status='completed'
@@ -535,7 +531,7 @@ export async function computePayrollForRun(runId: string, orgId: string) {
 // Execute Payroll (CSV Export + Mark Paid)
 // ============================================
 
-export async function executePayrollForCycle(cycleId: string, orgId: string) {
+export async function executePayrollForCycle(cycleId: string, _orgId: string) {
   // 1. Get the cycle for month/year
   const { data: cycle, error: cycleError } = await supabase
     .from('payroll_cycles')

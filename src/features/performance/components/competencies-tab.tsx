@@ -13,11 +13,7 @@ import { DataTable } from '@/components/shared/data-table'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { CompetencyFormDialog } from './competency-form-dialog'
-import {
-  useReviewCompetencies,
-  useDeleteReviewCompetency,
-  useUpdateReviewCompetency,
-} from '../hooks/use-performance'
+import { useReviewCompetencies, useUpdateReviewCompetency } from '../hooks/use-performance'
 import { COMPETENCY_CATEGORIES } from '@/lib/constants'
 import { toast } from 'sonner'
 import type { ReviewCompetency } from '@/types/database.types'
@@ -27,7 +23,6 @@ const categoryLabel = (value: string) =>
 
 export function CompetenciesTab() {
   const { data: competencies, isLoading } = useReviewCompetencies()
-  const deleteCompetency = useDeleteReviewCompetency()
   const updateCompetency = useUpdateReviewCompetency()
 
   const [formOpen, setFormOpen] = useState(false)

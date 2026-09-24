@@ -10,11 +10,10 @@ import {
   LineChart,
   Line,
 } from 'recharts'
-import { TrendingUp, TrendingDown, Users, Star, CheckCircle2 } from 'lucide-react'
+import { Users, Star, CheckCircle2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { cn } from '@/lib/utils'
 import {
   usePerformanceCycles,
   useActiveCycle,
@@ -22,28 +21,7 @@ import {
   useRatingTrend,
 } from '../hooks/use-performance'
 
-interface DeltaBadgeProps {
-  value: number
-  suffix?: string
-}
 
-function DeltaBadge({ value, suffix = '' }: DeltaBadgeProps) {
-  if (value === 0) return null
-  const isPositive = value > 0
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-0.5 text-xs font-medium rounded-full px-1.5 py-0.5',
-        isPositive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-      )}
-    >
-      {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-      {isPositive ? '+' : ''}
-      {value}
-      {suffix}
-    </span>
-  )
-}
 
 export function AnalyticsTab() {
   const { data: cycles } = usePerformanceCycles()
@@ -52,7 +30,7 @@ export function AnalyticsTab() {
 
   const cycleId = selectedCycleId || activeCycle?.id || ''
   const { data: analytics, isLoading: analyticsLoading } = usePerformanceAnalytics(cycleId)
-  const { data: ratingTrend, isLoading: trendLoading } = useRatingTrend()
+  const { data: ratingTrend } = useRatingTrend()
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const analyticsData = analytics as any

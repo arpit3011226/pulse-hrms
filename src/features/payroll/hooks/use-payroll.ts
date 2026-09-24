@@ -1,16 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/hooks/use-auth'
-import type {
-  SalaryComponent,
-  SalaryStructure,
-  SalaryStructureComponent,
-  EmployeeCompensation,
-  EmployeeCompensationComponent,
-  PayrollCycle,
-  PayrollRun,
-  Payslip,
-  PayrollAdjustment,
-} from '@/types/database.types'
+import type { SalaryComponent, SalaryStructure, SalaryStructureComponent, EmployeeCompensation, EmployeeCompensationComponent, PayrollCycle, PayrollRun, PayrollAdjustment } from '@/types/database.types'
 import {
   getCurrentEmployee,
   getSalaryComponents,

@@ -2,7 +2,6 @@ import { Link } from '@tanstack/react-router'
 import { UserPlus, CalendarPlus, ClipboardList, Building2, FileText, BarChart3, Target, DollarSign } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePermissions } from '@/hooks/use-permissions'
-import { useAuth } from '@/features/auth/hooks/use-auth'
 
 const ACTION_COLORS: Record<string, { bg: string; text: string; hover: string }> = {
   blue:    { bg: 'bg-blue-50 dark:bg-blue-900/20',    text: 'text-blue-600 dark:text-blue-400',    hover: 'hover:bg-blue-100 dark:hover:bg-blue-900/30' },
@@ -17,8 +16,6 @@ const ACTION_COLORS: Record<string, { bg: string; text: string; hover: string }>
 
 export function QuickActions() {
   const permissions = usePermissions()
-  const { profile } = useAuth()
-  const role = profile?.role
 
   const actions = [
     {

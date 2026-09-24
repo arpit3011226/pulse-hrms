@@ -17,11 +17,7 @@ import { ConvertToEmployeeDialog } from './convert-to-employee-dialog'
 import { OfferResponseDialog } from './offer-response-dialog'
 import { generateOfferPdf } from '../utils/generate-offer-pdf'
 import { useAuth } from '@/features/auth/hooks/use-auth'
-import {
-  useOfferLetters,
-  useUpdateOfferStatus,
-  useMarkOfferSent,
-} from '../hooks/use-recruitment'
+import { useOfferLetters, useUpdateOfferStatus } from '../hooks/use-recruitment'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import type { OfferLetterWithRelations } from '@/types/database.types'
@@ -34,7 +30,6 @@ export function OffersTab() {
 
   const { data: offers, isLoading } = useOfferLetters()
   const updateStatus = useUpdateOfferStatus()
-  const markSent = useMarkOfferSent()
 
   const [formOpen, setFormOpen] = useState(false)
   const [convertOffer, setConvertOffer] = useState<OfferLetterWithRelations | null>(null)

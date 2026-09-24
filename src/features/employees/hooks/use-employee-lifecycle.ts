@@ -33,7 +33,7 @@ export function useCreateAddress() {
   return useMutation({
     mutationFn: (address: Partial<EmployeeAddress>) =>
       api.createEmployeeAddress({ ...address, organization_id: organization!.id }),
-    onSuccess: (_, variables) => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['employee-addresses', variables.employee_id] })
     },
   })
@@ -44,7 +44,7 @@ export function useUpdateAddress() {
   return useMutation({
     mutationFn: ({ id, ...updates }: Partial<EmployeeAddress> & { id: string }) =>
       api.updateEmployeeAddress(id, updates),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employee-addresses'] })
     },
   })

@@ -179,7 +179,9 @@ export interface PayrollCSVRow {
   ifscCode: string
 }
 
-export function generatePayrollCSV(rows: PayrollCSVRow[], month: number, year: number): string {
+// The period is carried in the filename, not the rows: this file is a bank
+// transfer list and the columns are fixed by what the bank accepts.
+export function generatePayrollCSV(rows: PayrollCSVRow[], _month: number, _year: number): string {
   const header = ['Employee Name', 'Employee Code', 'Net Pay (INR)', 'Bank Name', 'Account Number', 'IFSC Code']
   const csvRows = [
     header.join(','),

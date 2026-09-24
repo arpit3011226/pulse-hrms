@@ -15,7 +15,6 @@ import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { CandidateFormDialog } from './candidate-form-dialog'
 import { useCandidates, useDeleteCandidate } from '../hooks/use-recruitment'
 import { usePermissions } from '@/hooks/use-permissions'
-import { CANDIDATE_SOURCES } from '@/lib/constants'
 import type { Candidate } from '@/types/database.types'
 import { toast } from 'sonner'
 
@@ -29,10 +28,6 @@ export function CandidatesTab() {
   const [formOpen, setFormOpen] = useState(false)
   const [editingCandidate, setEditingCandidate] = useState<Candidate | undefined>()
   const [deleteId, setDeleteId] = useState<string | null>(null)
-
-  const getSourceLabel = (value: string) => {
-    return CANDIDATE_SOURCES.find((s) => s.value === value)?.label || value
-  }
 
   const columns: ColumnDef<Candidate>[] = [
     {

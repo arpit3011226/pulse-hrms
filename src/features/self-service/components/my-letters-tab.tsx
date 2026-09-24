@@ -1,8 +1,5 @@
 import { useState } from 'react'
-import {
-  FileText, DollarSign, MapPin, Award, Download, Clock,
-  CheckCircle2, XCircle, Loader2, Send,
-} from 'lucide-react'
+import { FileText, DollarSign, MapPin, Award, Download, Send } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,7 +11,6 @@ import { generateLetterPdf } from '../utils/generate-letter-pdf'
 import { LetterRequestDialog } from './letter-request-dialog'
 import { toast } from 'sonner'
 import { useQuery } from '@tanstack/react-query'
-import { getCurrentEmployee } from '@/features/attendance/api/attendance.api'
 import { supabase } from '@/lib/supabase'
 import type { LetterTemplate } from '@/types/database.types'
 

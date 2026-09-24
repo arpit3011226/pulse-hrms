@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Loader2, ShieldCheck, User } from 'lucide-react'
+import { Loader2, ShieldCheck } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { OutstandingAssets } from '@/features/assets/components/outstanding-assets'
 import { Button } from '@/components/ui/button'

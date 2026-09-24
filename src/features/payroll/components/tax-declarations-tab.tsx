@@ -37,19 +37,11 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { useAuth } from '@/features/auth/hooks/use-auth'
 import { useCurrentEmployee } from '../hooks/use-payroll'
 import { useTaxDeclarations, useVerifyTaxDeclaration } from '../hooks/use-tax'
-import {
-  getCurrentFinancialYear,
-  getFinancialYearOptions,
-  calculateAnnualTax,
-  calculateMonthlyTds,
-  type Exemptions,
-} from '../utils/tax-calculator'
+import { getCurrentFinancialYear, getFinancialYearOptions } from '../utils/tax-calculator'
 import { formatCurrency } from '../utils/payroll-utils'
-import { TaxSummaryCard } from './tax-summary-card'
-import type { TaxDeclarationWithRelations, TaxRegime } from '@/types/database.types'
+import type { TaxDeclarationWithRelations } from '@/types/database.types'
 
 type StatusFilter = 'all' | 'draft' | 'submitted' | 'verified' | 'rejected'
 
@@ -137,14 +129,6 @@ export function TaxDeclarationsTab() {
 
   // If detail view
   if (detailDecl) {
-    const exemptions: Exemptions = {
-      section_80c: detailDecl.section_80c,
-      section_80d: detailDecl.section_80d,
-      home_loan_interest: detailDecl.home_loan_interest,
-      hra_claimed: detailDecl.hra_claimed,
-      nps_contribution: detailDecl.nps_contribution,
-      other_deductions: detailDecl.other_deductions,
-    }
     // We don't have the employee's annual income from the declaration alone;
     // show the exemption totals and regime info.
     return (

@@ -1,12 +1,6 @@
 import { supabase } from '@/lib/supabase'
-import type { TaxDeclaration, TaxDeclarationStatus } from '@/types/database.types'
-import {
-  calculateAnnualTax,
-  calculateMonthlyTds,
-  getContractorTds,
-  getCurrentFinancialYear,
-  type Exemptions,
-} from '../utils/tax-calculator'
+import type { TaxDeclaration } from '@/types/database.types'
+import { calculateAnnualTax, calculateMonthlyTds, getCurrentFinancialYear, type Exemptions } from '../utils/tax-calculator'
 import type { TaxRegime } from '@/types/database.types'
 
 // ============================================

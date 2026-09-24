@@ -35,7 +35,7 @@ export function MyAttendanceWidget({ employeeId }: MyAttendanceWidgetProps) {
       </CardHeader>
       <CardContent>
         <div className="flex items-center justify-center gap-2">
-          {(days ?? DAY_LABELS.map((_, i) => ({ date: '', status: null, clock_in: null, clock_out: null, work_hours: null }))).map((day, i) => {
+          {(days ?? DAY_LABELS.map(() => ({ date: '', status: null, clock_in: null, clock_out: null, work_hours: null }))).map((day, i) => {
             const isFuture = day.date > today
             const config = day.status ? STATUS_CONFIG[day.status] : null
             return (

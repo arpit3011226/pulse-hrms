@@ -11,7 +11,7 @@ import {
   useReviewParticipants,
   useUpdatePerformanceReviewStatus,
 } from '../hooks/use-performance'
-import { formatRating, getReviewStatusStep } from '../utils/performance-utils'
+import { formatRating } from '../utils/performance-utils'
 import { SelfReviewDialog } from './self-review-dialog'
 import { PeerReviewDialog } from './peer-review-dialog'
 import type { ReviewParticipantWithRelations } from '@/types/database.types'

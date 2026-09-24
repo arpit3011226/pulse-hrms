@@ -16,7 +16,6 @@ import { TdsRecordsTab } from './tds-records-tab'
 export function PayrollPage() {
   const {
     canManagePayroll,
-    canViewPayroll,
     isAdmin,
     isPayrollAdmin,
     isHR,

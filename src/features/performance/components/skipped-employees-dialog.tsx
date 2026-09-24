@@ -9,7 +9,6 @@ import {
   useManuallyIncludeEmployee,
 } from '../hooks/use-performance'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface SkippedRow {
   employee: {
     id: string

@@ -34,10 +34,6 @@ export function LeaveActionDialog({
     ? Math.max(0, balance.total_days + balance.carried_forward_days - balance.used_days - balance.pending_days)
     : 0
 
-  const balanceAfterApproval = balance
-    ? (balance.total_days + balance.carried_forward_days - balance.used_days - balance.pending_days) - request.total_days + (balance.pending_days > 0 ? Math.min(balance.pending_days, request.total_days) : 0)
-    : 0
-
   // Simplified: available balance already accounts for pending, so check if used + this request exceeds total
   const wouldGoNegative = balance
     ? (balance.used_days + request.total_days) > (balance.total_days + balance.carried_forward_days)
