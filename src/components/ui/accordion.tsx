@@ -20,9 +20,16 @@ AccordionItem.displayName = "AccordionItem"
 
 const AccordionTrigger = React.forwardRef<
   React.ComponentRef<typeof AccordionPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
-  <AccordionPrimitive.Header className="flex">
+  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger> & {
+    /**
+     * Controls that belong on the header row, such as an edit button.
+     * They render beside the trigger, never inside it: a button inside a button
+     * is invalid HTML and the inner one cannot be reached by keyboard.
+     */
+    action?: React.ReactNode
+  }
+>(({ className, children, action, ...props }, ref) => (
+  <AccordionPrimitive.Header className="flex items-center">
     <AccordionPrimitive.Trigger
       ref={ref}
       className={cn(
@@ -34,6 +41,7 @@ const AccordionTrigger = React.forwardRef<
       {children}
       <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
     </AccordionPrimitive.Trigger>
+    {action}
   </AccordionPrimitive.Header>
 ))
 AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName

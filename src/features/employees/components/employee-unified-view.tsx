@@ -140,34 +140,28 @@ function InfoField({ label, value }: { label: string; value: string | null | und
 function SectionHeader({
   icon: Icon,
   title,
-  canEdit,
-  isEditing,
-  onToggleEdit,
 }: {
   icon: React.ElementType
   title: string
-  canEdit: boolean
-  isEditing: boolean
-  onToggleEdit: () => void
 }) {
   return (
     <div className="flex w-full items-center gap-2">
       <Icon className="h-4 w-4 text-primary" />
       <span>{title}</span>
-      {canEdit && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="ml-auto mr-2 h-6 w-6"
-          onClick={(e) => {
-            e.stopPropagation()
-            onToggleEdit()
-          }}
-        >
-          <Pencil className="h-3 w-3" />
-        </Button>
-      )}
     </div>
+  )
+}
+
+/**
+ * Passed to AccordionTrigger's `action` slot so it sits beside the trigger
+ * rather than inside it.
+ */
+function SectionEditAction({ canEdit, onToggleEdit }: { canEdit: boolean; onToggleEdit: () => void }) {
+  if (!canEdit) return null
+  return (
+    <Button variant="ghost" size="icon" className="ml-2 h-6 w-6 shrink-0" onClick={onToggleEdit}>
+      <Pencil className="h-3 w-3" />
+    </Button>
   )
 }
 
@@ -355,14 +349,16 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
       <Accordion type="multiple" defaultValue={['personal', 'employment']}>
         {/* SECTION 1: Personal Information */}
         <AccordionItem value="personal">
-          <AccordionTrigger className="text-base font-semibold">
-            <SectionHeader
-              icon={User}
-              title="Personal Information"
-              canEdit={canEdit}
-              isEditing={editingSection === 'personal'}
-              onToggleEdit={() => setEditingSection(editingSection === 'personal' ? null : 'personal')}
-            />
+          <AccordionTrigger
+            className="text-base font-semibold"
+            action={
+              <SectionEditAction
+                canEdit={canEdit}
+                onToggleEdit={() => setEditingSection(editingSection === 'personal' ? null : 'personal')}
+              />
+            }
+          >
+            <SectionHeader icon={User} title="Personal Information" />
           </AccordionTrigger>
           <AccordionContent>
             {editingSection === 'personal' ? (
@@ -390,14 +386,16 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
 
         {/* SECTION 2: Employment Details */}
         <AccordionItem value="employment">
-          <AccordionTrigger className="text-base font-semibold">
-            <SectionHeader
-              icon={Briefcase}
-              title="Employment Details"
-              canEdit={canEdit}
-              isEditing={editingSection === 'employment'}
-              onToggleEdit={() => setEditingSection(editingSection === 'employment' ? null : 'employment')}
-            />
+          <AccordionTrigger
+            className="text-base font-semibold"
+            action={
+              <SectionEditAction
+                canEdit={canEdit}
+                onToggleEdit={() => setEditingSection(editingSection === 'employment' ? null : 'employment')}
+              />
+            }
+          >
+            <SectionHeader icon={Briefcase} title="Employment Details" />
           </AccordionTrigger>
           <AccordionContent>
             {editingSection === 'employment' ? (
@@ -443,14 +441,16 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
 
         {/* SECTION 3: Family Details */}
         <AccordionItem value="family">
-          <AccordionTrigger className="text-base font-semibold">
-            <SectionHeader
-              icon={Heart}
-              title="Family Details"
-              canEdit={canEdit}
-              isEditing={editingSection === 'family'}
-              onToggleEdit={() => setEditingSection(editingSection === 'family' ? null : 'family')}
-            />
+          <AccordionTrigger
+            className="text-base font-semibold"
+            action={
+              <SectionEditAction
+                canEdit={canEdit}
+                onToggleEdit={() => setEditingSection(editingSection === 'family' ? null : 'family')}
+              />
+            }
+          >
+            <SectionHeader icon={Heart} title="Family Details" />
           </AccordionTrigger>
           <AccordionContent>
             {editingSection === 'family' ? (
@@ -467,14 +467,16 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
 
         {/* SECTION 4: Compliance & Identity */}
         <AccordionItem value="compliance">
-          <AccordionTrigger className="text-base font-semibold">
-            <SectionHeader
-              icon={ShieldCheck}
-              title="Compliance & Identity"
-              canEdit={canEdit}
-              isEditing={editingSection === 'compliance'}
-              onToggleEdit={() => setEditingSection(editingSection === 'compliance' ? null : 'compliance')}
-            />
+          <AccordionTrigger
+            className="text-base font-semibold"
+            action={
+              <SectionEditAction
+                canEdit={canEdit}
+                onToggleEdit={() => setEditingSection(editingSection === 'compliance' ? null : 'compliance')}
+              />
+            }
+          >
+            <SectionHeader icon={ShieldCheck} title="Compliance & Identity" />
           </AccordionTrigger>
           <AccordionContent>
             {editingSection === 'compliance' ? (
@@ -492,7 +494,7 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
         {/* SECTION 5: Addresses */}
         <AccordionItem value="addresses">
           <AccordionTrigger className="text-base font-semibold">
-            <SectionHeader icon={MapPin} title="Addresses" canEdit={false} isEditing={false} onToggleEdit={() => {}} />
+            <SectionHeader icon={MapPin} title="Addresses" />
           </AccordionTrigger>
           <AccordionContent>
             <SubSectionTitle canEdit={canEdit} onAdd={() => { setEditingAddress(undefined); setAddressDialogOpen(true) }}>
@@ -538,7 +540,7 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
         {/* SECTION 6: Emergency Contacts */}
         <AccordionItem value="contacts">
           <AccordionTrigger className="text-base font-semibold">
-            <SectionHeader icon={Phone} title="Emergency Contacts" canEdit={false} isEditing={false} onToggleEdit={() => {}} />
+            <SectionHeader icon={Phone} title="Emergency Contacts" />
           </AccordionTrigger>
           <AccordionContent>
             <SubSectionTitle canEdit={canEdit} onAdd={() => { setEditingContact(undefined); setContactDialogOpen(true) }}>
@@ -581,7 +583,7 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
         {/* SECTION 7: Bank & Finance */}
         <AccordionItem value="bank">
           <AccordionTrigger className="text-base font-semibold">
-            <SectionHeader icon={Landmark} title="Bank & Finance" canEdit={false} isEditing={false} onToggleEdit={() => {}} />
+            <SectionHeader icon={Landmark} title="Bank & Finance" />
           </AccordionTrigger>
           <AccordionContent>
             <SubSectionTitle canEdit={canEdit} onAdd={() => { setEditingBank(undefined); setBankDialogOpen(true) }}>
@@ -638,7 +640,7 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
         {/* SECTION 8: Dependents & Nominees */}
         <AccordionItem value="dependents">
           <AccordionTrigger className="text-base font-semibold">
-            <SectionHeader icon={Users} title="Dependents & Nominees" canEdit={false} isEditing={false} onToggleEdit={() => {}} />
+            <SectionHeader icon={Users} title="Dependents & Nominees" />
           </AccordionTrigger>
           <AccordionContent>
             {/* Dependents */}
@@ -719,7 +721,7 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
         {/* SECTION 9: Documents */}
         <AccordionItem value="documents">
           <AccordionTrigger className="text-base font-semibold">
-            <SectionHeader icon={FileText} title="Documents" canEdit={false} isEditing={false} onToggleEdit={() => {}} />
+            <SectionHeader icon={FileText} title="Documents" />
           </AccordionTrigger>
           <AccordionContent>
             {/* Identity Documents */}
@@ -813,7 +815,7 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
         {/* SECTION 10: Work History */}
         <AccordionItem value="work-history">
           <AccordionTrigger className="text-base font-semibold">
-            <SectionHeader icon={Clock} title="Work History" canEdit={false} isEditing={false} onToggleEdit={() => {}} />
+            <SectionHeader icon={Clock} title="Work History" />
           </AccordionTrigger>
           <AccordionContent>
             {permissions.canManageWorkProfiles && (
@@ -963,7 +965,7 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
         {showExit && (
           <AccordionItem value="exit">
             <AccordionTrigger className="text-base font-semibold">
-              <SectionHeader icon={LogOut} title="Exit Management" canEdit={false} isEditing={false} onToggleEdit={() => {}} />
+              <SectionHeader icon={LogOut} title="Exit Management" />
             </AccordionTrigger>
             <AccordionContent>
               {exitRecord ? (

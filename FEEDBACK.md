@@ -44,6 +44,30 @@ Track feedback, bugs, and improvements for regular build releases.
 | 19 | ui-fix | performance | Cycle form dialog still overlapping — rebuilt with calc-based ScrollArea + border-separated footer | 2026-03-15 |
 
 
+## Phase 7 — Claude end-to-end testing (24 Sep 2026)
+
+Route and tab sweep: 21 routes and 90+ tabs driven in the browser with a request
+and console hook installed, so failures were caught as they happened rather than
+read from a stale log.
+
+| ID | Severity | Area | Finding | Status |
+|----|----------|------|---------|--------|
+| P7-1 | **Critical** | Security | Every `SECURITY DEFINER` function was executable by `anon`. Postgres grants EXECUTE to PUBLIC by default and the earlier `GRANT ... TO authenticated` took nothing away. Proven with the public anon key: `POST /rest/v1/rpc/mark_as_alumni` returned 204, so anyone could demote an employee's login to `alumni` and strip their access; `find_profile_by_personal_email` answered whether an address has an account. | Fixed — 00044 |
+| P7-2 | Medium | Security | `get_user_org_id`, `get_user_role` and `update_updated_at` ran `SECURITY DEFINER` with a mutable `search_path`. | Fixed — 00044 |
+| P7-3 | Medium | Security | `mark_as_alumni` trusted its caller entirely. Now refuses anyone who is not HR, admin or leadership in the same organisation. | Fixed — 00044 |
+| P7-4 | Low | Employees | Edit buttons were nested inside the accordion trigger button on the employee details screen — invalid HTML, and the inner button could not be reached by keyboard. | Fixed |
+| P7-5 | Low | Reports | `.single()` used for lookups that can legitimately return no rows (no performance cycle, no payroll run yet), returning 406 each time. Will happen at August, where there is no October cycle. | Fixed |
+
+### Still to do by hand, in the Supabase dashboard
+
+| Item | Where | Why |
+|------|-------|-----|
+| Turn off "Allow new users to sign up" | Authentication → Sign In / Providers | Closes self sign-up at the platform level, not just in the app |
+| Turn on leaked password protection | Authentication → Password settings | Checks new passwords against known breaches |
+
+The nine remaining `authenticated_security_definer_function_executable` advisor
+warnings are intended: the signed-in app calls those RPCs.
+
 ## Security — RLS audit (23 Sep 2026)
 
 Full review of all 102 tables and ~256 policies, prompted by finding one bad

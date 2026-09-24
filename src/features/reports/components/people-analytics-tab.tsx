@@ -225,7 +225,8 @@ export function PeopleAnalyticsTab() {
           .order('payroll_year', { ascending: false })
           .order('payroll_month', { ascending: false })
           .limit(1)
-          .single()
+          // maybeSingle: payroll may not have been run yet.
+          .maybeSingle()
         if (!latestPayslip) return 0
         const { data: payslips } = await supabase
           .from('payslips')
@@ -254,7 +255,8 @@ export function PeopleAnalyticsTab() {
           .in('status', ['active', 'completed'])
           .order('end_date', { ascending: false })
           .limit(1)
-          .single()
+          // maybeSingle: there may be no cycle at all, which is not an error.
+          .maybeSingle()
         if (!cycle) return { rate: 0, completed: 0, total: 0 }
         const { data: reviews } = await supabase
           .from('performance_reviews')
