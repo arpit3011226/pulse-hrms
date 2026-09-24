@@ -12,11 +12,12 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { exportToCSV } from '../utils/export-csv'
 
 export function AttendanceReportsTab() {
-  const today = new Date().toISOString().split('T')[0]
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]
-
-  const [startDate, setStartDate] = useState(thirtyDaysAgo)
-  const [endDate, setEndDate] = useState(today)
+  // Lazy initialisers: the range is picked once when the screen opens, not
+  // recomputed on every render.
+  const [startDate, setStartDate] = useState(
+    () => new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]
+  )
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0])
 
   const { data: records, isLoading } = useAttendanceReport(startDate, endDate)
   const { hasPermission } = usePermissions()

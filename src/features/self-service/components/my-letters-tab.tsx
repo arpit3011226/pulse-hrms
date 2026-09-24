@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { LetterRequestWithRelations } from '@/types/database.types'
 import { FileText, DollarSign, MapPin, Award, Download, Send } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -96,7 +97,7 @@ export function MyLettersTab({ employeeId }: Props) {
     }
   }
 
-  function handleDownload(request: any) {
+  function handleDownload(request: LetterRequestWithRelations) {
     if (!organization || !fullEmployee || !request.template) return
 
     const resolved = request.resolved_body_html || resolvePlaceholders(request.template.body_html, {

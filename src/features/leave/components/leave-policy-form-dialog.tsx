@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -79,37 +79,43 @@ export function LeavePolicyFormDialog({ open, onOpenChange, policy }: LeavePolic
       : {},
   })
 
-  useEffect(() => {
-    if (policy?.leave_policy_details) {
-      setDetails(
-        policy.leave_policy_details.map((d) => ({
-          leave_type_id: d.leave_type_id,
-          entitled_days: d.entitled_days,
-          max_consecutive_days: d.max_consecutive_days,
-          min_days_per_request: d.min_days_per_request,
-          max_days_per_request: d.max_days_per_request,
-          allow_half_day: d.allow_half_day,
-          allow_carry_forward: d.allow_carry_forward,
-          max_carry_forward_days: d.max_carry_forward_days,
-          carry_forward_expiry_months: d.carry_forward_expiry_months,
-          accrual_type: d.accrual_type,
-          probation_applicable: d.probation_applicable,
-          notice_days_required: d.notice_days_required,
-        }))
-      )
-    } else {
-      setDetails([])
-    }
-    if (policy) {
-      reset({
-        policy_name: policy.policy_name,
-        policy_code: policy.policy_code || '',
-        description: policy.description || '',
-      })
-    } else {
-      reset({ policy_name: '', policy_code: '', description: '' })
-    }
-  }, [policy, reset])
+  // Load the policy into the editable rows once, when the dialog is opened for a
+  // different policy. Doing this in an effect rendered the dialog empty first and
+  // then again with the values.
+  const [loadedPolicyId, setLoadedPolicyId] = useState<string | null | undefined>(undefined)
+  const policyId = policy?.id ?? null
+  if (policyId !== loadedPolicyId) {
+    setLoadedPolicyId(policyId)
+  if (policy?.leave_policy_details) {
+        setDetails(
+          policy.leave_policy_details.map((d) => ({
+            leave_type_id: d.leave_type_id,
+            entitled_days: d.entitled_days,
+            max_consecutive_days: d.max_consecutive_days,
+            min_days_per_request: d.min_days_per_request,
+            max_days_per_request: d.max_days_per_request,
+            allow_half_day: d.allow_half_day,
+            allow_carry_forward: d.allow_carry_forward,
+            max_carry_forward_days: d.max_carry_forward_days,
+            carry_forward_expiry_months: d.carry_forward_expiry_months,
+            accrual_type: d.accrual_type,
+            probation_applicable: d.probation_applicable,
+            notice_days_required: d.notice_days_required,
+          }))
+        )
+      } else {
+        setDetails([])
+      }
+      if (policy) {
+        reset({
+          policy_name: policy.policy_name,
+          policy_code: policy.policy_code || '',
+          description: policy.description || '',
+        })
+      } else {
+        reset({ policy_name: '', policy_code: '', description: '' })
+      }
+  }
 
   const addDetail = () => {
     const usedTypeIds = details.map((d) => d.leave_type_id)

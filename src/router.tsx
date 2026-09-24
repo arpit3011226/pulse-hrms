@@ -1,11 +1,4 @@
-import {
-  createRouter,
-  createRoute,
-  createRootRoute,
-  Outlet,
-  Navigate,
-  useLocation,
-} from '@tanstack/react-router'
+import {createRouter, createRoute, createRootRoute, Outlet, Navigate} from '@tanstack/react-router'
 import { AppLayout } from '@/components/layout/app-layout'
 import { LoginForm } from '@/features/auth/components/login-form'
 import { ForgotPasswordForm } from '@/features/auth/components/forgot-password-form'
@@ -33,56 +26,11 @@ import { SelfServicePage } from '@/features/self-service/components/self-service
 import { SettingsPage } from '@/features/settings/components/settings-page'
 import { WorkflowsPage } from '@/features/workflows/components/workflows-page'
 import { DashboardPage } from '@/features/dashboard/components/dashboard-page'
-import { AuthBackground } from '@/components/shared/auth-background'
-import { useAuth } from '@/features/auth/hooks/use-auth'
-import { Loader2 } from 'lucide-react'
+import { AuthLayout } from '@/features/auth/components/auth-layout'
 
 // Root
 const rootRoute = createRootRoute({ component: Outlet })
 
-// Auth layout — redirects authenticated users to dashboard
-function AuthLayout() {
-  const { session, isLoading, profile } = useAuth()
-  const location = useLocation()
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
-
-  // If logged in and has org, go to dashboard
-  if (session && profile?.organization_id) {
-    return <Navigate to="/dashboard" />
-  }
-
-  // If logged in but no org, redirect to onboarding (unless already there)
-  if (session && profile && !profile.organization_id && location.pathname !== '/onboarding') {
-    return <Navigate to="/onboarding" />
-  }
-
-  return (
-    <div className="relative flex min-h-screen flex-col bg-white">
-      <AuthBackground />
-      <div className="relative z-10 flex flex-1 items-center justify-center p-4">
-        <Outlet />
-      </div>
-      <footer className="relative z-10 flex items-center justify-between px-6 py-4 text-xs text-muted-foreground">
-        <span>&copy; {new Date().getFullYear()} | Augustinnovate Pvt. Ltd.</span>
-        <a
-          href="https://madewithloveinindia.org"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="transition-opacity hover:opacity-80"
-        >
-          Made with <span aria-label="Love" style={{ color: '#f43f5e' }}>&hearts;</span> in India
-        </a>
-      </footer>
-    </div>
-  )
-}
 
 const authRoute = createRoute({ getParentRoute: () => rootRoute, id: 'auth', component: AuthLayout })
 const loginRoute = createRoute({ getParentRoute: () => authRoute, path: '/login', component: LoginForm })

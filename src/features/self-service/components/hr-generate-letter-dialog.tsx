@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { one } from '@/lib/supabase-embed'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -25,11 +26,21 @@ interface Props {
   onOpenChange: (open: boolean) => void
 }
 
+/** Just enough of an employee to pick one from a list. */
+interface PickerEmployee {
+  id: string
+  first_name: string
+  last_name: string
+  employee_code: string | null
+  department?: { id: string; name: string } | { id: string; name: string }[] | null
+  designation?: { id: string; title: string } | { id: string; title: string }[] | null
+}
+
 export function HrGenerateLetterDialog({ open, onOpenChange }: Props) {
   const { profile, organization } = useAuth()
   const { data: templates } = useLetterTemplates()
   const requestLetter = useRequestLetter()
-  const [employees, setEmployees] = useState<any[]>([])
+  const [employees, setEmployees] = useState<PickerEmployee[]>([])
 
   const form = useForm({
     resolver: zodResolver(schema),
@@ -75,7 +86,8 @@ export function HrGenerateLetterDialog({ open, onOpenChange }: Props) {
 
       if (template && employee && organization) {
         const resolved = resolvePlaceholders(template.body_html, {
-          employee,
+          // Narrow the to-one embeds the picker query returns.
+          ...{ employee: { ...employee, department: one(employee.department), designation: one(employee.designation) } },
           organization,
         })
         generateLetterPdf(

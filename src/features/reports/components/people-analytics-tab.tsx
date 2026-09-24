@@ -319,7 +319,7 @@ export function PeopleAnalyticsTab() {
     if (!activeEmployees || activeEmployees.length === 0) return []
     const map = new Map<string, number>()
     for (const e of activeEmployees) {
-      const type = (e as any).employment_type ?? 'Unknown'
+      const type = e.employment_type ?? 'Unknown'
       map.set(type, (map.get(type) ?? 0) + 1)
     }
     return Array.from(map.entries()).map(([name, value]) => ({ name, value }))

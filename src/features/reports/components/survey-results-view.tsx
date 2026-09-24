@@ -147,7 +147,8 @@ export function SurveyResultsView({ surveyId, onBack }: SurveyResultsViewProps) 
     enabled: !!organization?.id,
   })
 
-  const questions = (survey?.survey_questions ?? []) as QuestionInfo[]
+  // Memoised: a fresh [] each render would invalidate the summaries below.
+  const questions = useMemo(() => (survey?.survey_questions ?? []) as QuestionInfo[], [survey])
 
   // Aggregate stats
   const stats = useMemo(() => {

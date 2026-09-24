@@ -54,7 +54,9 @@ export function ExitInterviewTab({ canManage }: { canManage: boolean }) {
   }, [conductOpen])
 
   const qs = (questions ?? []) as Array<Record<string, unknown>>
-  const resp = (responses ?? []) as Array<Record<string, unknown>>
+  // Memoised so the empty-array fallback does not create a new value each render
+  // and invalidate everything downstream.
+  const resp = useMemo(() => (responses ?? []) as Array<Record<string, unknown>>, [responses])
 
   // Average rating per question, across everyone who has answered
   const trends = useMemo(() => {

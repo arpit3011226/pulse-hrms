@@ -19,8 +19,10 @@ export function OrgChartView({ employees }: OrgChartViewProps) {
 
   const [searchQuery, setSearchQuery] = useState('')
   const [zoomLevel, setZoomLevel] = useState(0.85)
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set())
-  const [highlightedId, setHighlightedId] = useState<string | null>(null)
+  // Which nodes start open is derived from the tree; what the person has since
+  // opened or closed is kept separately and applied on top. Computing the default
+  // into state from an effect meant setting state on every mount.
+  const [nodeOverrides, setNodeOverrides] = useState<Map<string, boolean>>(new Map())
 
   const containerRef = useRef<HTMLDivElement>(null)
   const nodeRefs = useRef<Map<string, HTMLDivElement>>(new Map())
@@ -28,19 +30,17 @@ export function OrgChartView({ employees }: OrgChartViewProps) {
   // Build tree
   const tree = useMemo(() => buildOrgTree(employees), [employees])
 
-  // Initialize expanded nodes — expand all by default for small orgs, top 2 levels for large
-  useEffect(() => {
-    const allIds = new Set<string>()
+  // Open everything for a small organisation, the top two levels for a large one.
+  const defaultExpanded = useMemo(() => {
+    const ids = new Set<string>()
     function collectIds(nodes: OrgTreeNode[], depth: number) {
       for (const node of nodes) {
-        if (employees.length <= 50 || depth < 2) {
-          allIds.add(node.employee.id)
-        }
+        if (employees.length <= 50 || depth < 2) ids.add(node.employee.id)
         collectIds(node.children, depth + 1)
       }
     }
     collectIds(tree, 0)
-    setExpandedNodes(allIds)
+    return ids
   }, [tree, employees.length])
 
   // Find current user's employee record
@@ -66,70 +66,69 @@ export function OrgChartView({ employees }: OrgChartViewProps) {
     [permissions, currentEmployeeId]
   )
 
-  // Toggle expand/collapse
+  // Toggle expand/collapse — recorded as an override on top of the default.
   const toggleNode = useCallback((id: string) => {
-    setExpandedNodes((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
+    setNodeOverrides((prev) => {
+      const next = new Map(prev)
+      const currentlyOpen = next.has(id) ? next.get(id)! : defaultExpanded.has(id)
+      next.set(id, !currentlyOpen)
       return next
     })
-  }, [])
+  }, [defaultExpanded])
 
-  // Search
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setHighlightedId(null)
-      return
-    }
-
-    const q = searchQuery.toLowerCase()
+  // What the search matches is derived, not stored.
+  const highlightedId = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return null
     const match = employees.find(
       (e) =>
         `${e.first_name} ${e.last_name}`.toLowerCase().includes(q) ||
         e.employee_code?.toLowerCase().includes(q) ||
         e.email?.toLowerCase().includes(q)
     )
-
-    if (match) {
-      setHighlightedId(match.id)
-      // Expand ancestors
-      const ancestorIds = getAncestorIds(employees, match.id)
-      setExpandedNodes((prev) => {
-        const next = new Set(prev)
-        ancestorIds.forEach((id) => next.add(id))
-        next.add(match.id)
-        return next
-      })
-      // Scroll into view
-      requestAnimationFrame(() => {
-        const el = nodeRefs.current.get(match.id)
-        el?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
-      })
-    } else {
-      setHighlightedId(null)
-    }
+    return match?.id ?? null
   }, [searchQuery, employees])
+
+  // Everything above a match has to be open for it to be visible, and the node
+  // has to be scrolled to. Both are effects on the match, not derivations of it.
+  const expandedNodes = useMemo(() => {
+    const open = new Set(defaultExpanded)
+    for (const [id, isOpen] of nodeOverrides) {
+      if (isOpen) open.add(id)
+      else open.delete(id)
+    }
+    if (highlightedId) {
+      getAncestorIds(employees, highlightedId).forEach((id) => open.add(id))
+      open.add(highlightedId)
+    }
+    return open
+  }, [defaultExpanded, nodeOverrides, highlightedId, employees])
+
+  useEffect(() => {
+    if (!highlightedId) return
+    const el = nodeRefs.current.get(highlightedId)
+    requestAnimationFrame(() => {
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+    })
+  }, [highlightedId])
 
   // Zoom controls
   const zoomIn = () => setZoomLevel((z) => Math.min(z + 0.1, 1.5))
   const zoomOut = () => setZoomLevel((z) => Math.max(z - 0.1, 0.3))
   const zoomFit = () => setZoomLevel(0.85)
 
-  // Expand all / Collapse all
+  // Expand all — recorded as an override for every node, so it survives the
+  // default being recomputed.
   const expandAll = () => {
-    const allIds = new Set<string>()
+    const all = new Map<string, boolean>()
     function collect(nodes: OrgTreeNode[]) {
       for (const node of nodes) {
-        allIds.add(node.employee.id)
+        all.set(node.employee.id, true)
         collect(node.children)
       }
     }
     collect(tree)
-    setExpandedNodes(allIds)
+    setNodeOverrides(all)
   }
 
   if (employees.length === 0) {

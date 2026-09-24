@@ -127,6 +127,11 @@ function InfoField({ label, value }: { label: string; value: string | null | und
   )
 }
 
+/** Whole days from `fromMs` to a date, never negative. */
+function daysUntil(dateStr: string, fromMs: number): number {
+  return Math.max(0, Math.ceil((new Date(dateStr).getTime() - fromMs) / (1000 * 60 * 60 * 24)))
+}
+
 function SectionHeader({
   icon: Icon,
   title,
@@ -254,6 +259,9 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
   // ---------------------------------------------------------------------------
 
   const queryClient = useQueryClient()
+  // Read the clock once per mount; reading it during render makes the output
+  // change on every pass.
+  const [todayMs] = useState(() => Date.now())
 
   async function handleSaveSection(sectionData: Record<string, unknown>) {
     try {
@@ -443,7 +451,7 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
                       <Badge variant="outline" className="mt-1 border-green-200 bg-green-50 text-green-700">Confirmed</Badge>
                     ) : new Date(emp.probation_end_date) >= new Date() ? (
                       <Badge variant="outline" className="mt-1 border-amber-200 bg-amber-50 text-amber-700">
-                        On Probation ({Math.ceil((new Date(emp.probation_end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days remaining)
+                        On Probation ({daysUntil(emp.probation_end_date, todayMs)} days remaining)
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="mt-1 border-yellow-200 bg-yellow-50 text-yellow-700">Probation Ended — Awaiting Confirmation</Badge>

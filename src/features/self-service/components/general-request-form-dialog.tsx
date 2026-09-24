@@ -107,7 +107,7 @@ export function GeneralRequestFormDialog({ open, onOpenChange, employeeId }: Pro
     if (!open) {
       form.reset()
     }
-  }, [open])
+  }, [open, form])
 
   async function onSubmit(data: FormData) {
     if (!organization || !profile) return

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Loader2, Calendar, Bell, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,20 +31,24 @@ export function PayrollConfigPanel() {
   const [form, setForm] = useState<Partial<PayrollConfig>>({})
   const [hasChanges, setHasChanges] = useState(false)
 
-  useEffect(() => {
-    if (config) {
-      setForm({
-        pay_day_type: config.pay_day_type,
-        fixed_pay_day: config.fixed_pay_day,
-        skip_holidays: config.skip_holidays,
-        reminder_days_before: config.reminder_days_before,
-        reminder_enabled: config.reminder_enabled,
-        require_two_level_approval: config.require_two_level_approval,
-        first_approver_role: config.first_approver_role,
-        second_approver_role: config.second_approver_role,
-      })
-    }
-  }, [config])
+  // React's documented way to reset editable state when the record behind it
+  // changes: adjust during render, guarded by which record we last loaded.
+  // Doing it in an effect made the panel render, then render again.
+  const [loadedConfigId, setLoadedConfigId] = useState<string | null>(null)
+  if (config && config.id !== loadedConfigId) {
+    setLoadedConfigId(config.id)
+    setHasChanges(false)
+    setForm({
+      pay_day_type: config.pay_day_type,
+      fixed_pay_day: config.fixed_pay_day,
+      skip_holidays: config.skip_holidays,
+      reminder_days_before: config.reminder_days_before,
+      reminder_enabled: config.reminder_enabled,
+      require_two_level_approval: config.require_two_level_approval,
+      first_approver_role: config.first_approver_role,
+      second_approver_role: config.second_approver_role,
+    })
+  }
 
   const updateField = <K extends keyof PayrollConfig>(key: K, value: PayrollConfig[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))

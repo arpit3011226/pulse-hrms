@@ -24,6 +24,19 @@ import type { EmployeeIdentityDocument, EmployeeDocument } from '@/types/databas
 import { toast } from 'sonner'
 import { uploadFile, validateFile, formatFileSize, FileValidationError } from '@/lib/storage'
 
+/**
+ * A unique storage path for an uploaded file.
+ *
+ * Lives outside the components on purpose: reading the clock is impure, and the
+ * React Compiler rightly objects to that inside a component body even when the
+ * call only happens on submit.
+ */
+function uploadPath(employeeId: string, folder: string, label: string, fileName: string): string {
+  const ext = fileName.split('.').pop()
+  return `${employeeId}/${folder}/${label}_${Date.now()}.${ext}`
+}
+
+
 const STORAGE_BUCKET = 'employee-documents'
 
 const identityDocSchema = z.object({
@@ -155,8 +168,7 @@ function IdentityDocForm({ open, onOpenChange, employeeId, document }: { open: b
 
       // Upload file if selected
       if (selectedFile) {
-        const ext = selectedFile.name.split('.').pop()
-        const path = `${employeeId}/identity/${data.document_type || 'doc'}_${Date.now()}.${ext}`
+        const path = uploadPath(employeeId, 'identity', data.document_type || 'doc', selectedFile.name)
         fileUrl = await uploadFile(STORAGE_BUCKET, path, selectedFile)
       }
 
@@ -278,8 +290,7 @@ function EmpDocForm({ open, onOpenChange, employeeId, document }: { open: boolea
 
       // Upload file if selected
       if (selectedFile) {
-        const ext = selectedFile.name.split('.').pop()
-        const path = `${employeeId}/documents/${data.document_category || 'doc'}_${Date.now()}.${ext}`
+        const path = uploadPath(employeeId, 'documents', data.document_category || 'doc', selectedFile.name)
         fileUrl = await uploadFile(STORAGE_BUCKET, path, selectedFile)
         fileSize = selectedFile.size
       }

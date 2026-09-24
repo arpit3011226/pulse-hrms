@@ -99,7 +99,8 @@ export function HelpdeskPage() {
     setCatName(''); setCatAssignee(''); setRespSla('24'); setResSla('72')
   }, [catOpen])
 
-  const all = tickets ?? []
+  // Memoised: a fresh [] each render would invalidate the lists built from it.
+  const all = useMemo(() => tickets ?? [], [tickets])
   const mine = useMemo(() => all.filter((t) => t.raised_by === myId), [all, myId])
   const assigned = useMemo(() => all.filter((t) => t.assigned_to === myId), [all, myId])
   const openOverdue = all.filter(isOverdue).length

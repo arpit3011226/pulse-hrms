@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import type { Employee } from '@/types/database.types'
 import { Upload, Download, FileText, AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -153,7 +154,7 @@ export function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogProps) {
 
     for (const row of validRows) {
       try {
-        const payload: Record<string, unknown> = {
+        const payload: Partial<Employee> & Record<string, unknown> = {
           organization_id: organization.id,
           employee_code: currentCode,
           status: 'active',
@@ -166,7 +167,7 @@ export function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogProps) {
           else if (CSV_PERSONAL_FIELDS.includes(key)) personal[key] = val
           else payload[key] = val
         }
-        const created = await createEmployee(payload as any)
+        const created = await createEmployee(payload)
         const newId = (created as { id: string }).id
         if (Object.keys(statutory).length > 0) {
           await upsertEmployeeStatutory(newId, organization.id, statutory)

@@ -65,7 +65,7 @@ export function TemplateEditorDialog({ open, onOpenChange, template }: Props) {
         approval_type: 'auto',
       })
     }
-  }, [template, open])
+  }, [template, open, form])
 
   // Auto-set approval type when category changes
   const watchCategory = form.watch('category')
@@ -74,7 +74,7 @@ export function TemplateEditorDialog({ open, onOpenChange, template }: Props) {
     if (cat) {
       form.setValue('approval_type', cat.approvalType)
     }
-  }, [watchCategory])
+  }, [watchCategory, form])
 
   const isEditing = !!template
   const isSubmitting = createTemplate.isPending || updateTemplate.isPending

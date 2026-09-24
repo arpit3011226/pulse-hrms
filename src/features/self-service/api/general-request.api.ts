@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import type { GeneralRequestStatus } from '@/types/database.types'
 import { createBulkNotifications, getProfileIdsByRole } from '@/features/resignation/api/notifications.api'
 import type { GeneralRequest, GeneralRequestWithRelations } from '@/types/database.types'
 
@@ -119,7 +120,7 @@ export async function approveGeneralRequestManager(
   const { data, error } = await supabase
     .from('general_requests')
     .update({
-      status: nextStatus as any,
+      status: nextStatus as GeneralRequestStatus,
       manager_approved_by: approverEmployeeId,
       manager_approved_at: new Date().toISOString(),
       manager_remarks: remarks || null,
@@ -179,7 +180,7 @@ export async function approveGeneralRequestHR(
   const { data, error } = await supabase
     .from('general_requests')
     .update({
-      status: 'completed' as any,
+      status: 'completed' as GeneralRequestStatus,
       hr_approved_by: approverEmployeeId,
       hr_approved_at: new Date().toISOString(),
       hr_remarks: remarks || null,

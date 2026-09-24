@@ -232,6 +232,46 @@ set: one `manager`, one `hr_admin`, one `leadership`, and four `employee`. They
 are useful for the human testing round; say the word if you would rather they
 were removed before then.
 
+### Lint cleanup (24 Sep 2026) — 265 problems to zero
+
+`npm run lint` now reports no errors and no warnings. Nothing was silenced to get
+there; each item was read before it was changed.
+
+Three rules were set at the config level rather than per-line, because they are
+project conventions, not defects:
+
+| Rule | Decision | Why |
+|------|----------|-----|
+| `no-unused-vars` | A leading underscore means deliberately unused | The usual TypeScript convention, for a positional argument we must accept or a destructured field we are dropping |
+| `react-hooks/incompatible-library` | Off | Fires on react-hook-form's `watch()` in every form. A property of the library; nothing to fix short of replacing it |
+| `react-refresh/only-export-components` | Off for `src/components/ui/**` | shadcn primitives export their variants beside the component by upstream convention, and these are not screens being hot-reloaded |
+
+Everything else was fixed in code. Four defects came out of it:
+
+| Finding | Detail |
+|---------|--------|
+| Offer timestamps were never recorded | The offers screen drives every status change through `updateOfferStatus`, which only wrote `offer_status`. `markOfferSent`, which stamps `sent_at`, was imported and never called. An offer could be marked sent or answered with no record of when — which is what the ageing and "valid until" views rely on. Fixed at the source, so every caller benefits |
+| Generated letters printed a blank joining date | The letter request query never selected `date_of_joining` or `date_of_leaving` and did not load the statutory or personal records, so four placeholders always resolved to empty |
+| Forms could produce values the database rejects | 33 forms cast `zodResolver(schema) as any`, hiding that schemas which coerce have different input and output types. Typed with the three generics react-hook-form provides. Fields the database types as unions are now `z.enum()` rather than `z.string()`, so a form cannot produce a category or status the database will refuse |
+| A raw zod message reached users | The leave form showed "Invalid input: expected string, received undefined" for leave type, because the field had no default, so zod's type check fired before the message written on the schema |
+
+The `as any` casts around Supabase embeds were hiding a genuine mismatch: PostgREST
+returns an object for a to-one embed but the generated types widen it to an array.
+One helper, `one()` in `src/lib/supabase-embed.ts`, narrows it at those call sites.
+
+The React Compiler rules were treated as correctness signals, since that family
+caught the infinite render loop earlier in Phase 7. The org chart now derives its
+expanded set and its search match instead of writing them to state from an effect;
+the clock-in card derives the elapsed label from a ticking value; three forms that
+load a record for editing reset during render, guarded by which record they last
+loaded, which is React's documented pattern; and `Date.now()` no longer runs during
+render anywhere.
+
+Verified afterwards in the browser: every route and tab still loads with no failed
+requests and no console errors, forms open and validate with readable messages, the
+payroll configuration still shows its saved values, the org chart still expands and
+searches, and a signed-in visit to /login still redirects to the dashboard.
+
 ### Still to do by hand, in the Supabase dashboard
 
 | Item | Where | Why |

@@ -7,6 +7,14 @@ import { useCurrentEmployee, useTodayAttendance, useEmployeeShift, useClockIn, u
 import { formatTime, formatWorkHours, calculateWorkHours, getTodayDateString } from '../utils/attendance-utils'
 import { toast } from 'sonner'
 
+/** "2h 35m" from a duration in milliseconds. Never negative. */
+function formatElapsed(diffMs: number): string {
+  const safe = Math.max(0, diffMs)
+  const h = Math.floor(safe / 3600000)
+  const m = Math.floor((safe % 3600000) / 60000)
+  return `${h}h ${m}m`
+}
+
 export function ClockInOutCard() {
   const today = getTodayDateString()
   const { data: employee } = useCurrentEmployee()
@@ -14,28 +22,24 @@ export function ClockInOutCard() {
   const { data: roster } = useEmployeeShift(employee?.id || '', today)
   const doClockIn = useClockIn()
   const doClockOut = useClockOut()
-  const [elapsed, setElapsed] = useState('')
+  // A ticking clock in state, with the label derived from it during render.
+  // Writing the label into state from the effect made the component set state on
+  // every mount, which is what the cascading-render rule warns about.
+  const [nowMs, setNowMs] = useState(() => Date.now())
 
   const shift = roster?.shift as { id: string; name: string; start_time: string; end_time: string } | null
 
-  // Live elapsed time counter
+  // Tick once a minute only while the clock is actually running.
+  const isRunning = !!todayRecord?.clock_in && !todayRecord?.clock_out
   useEffect(() => {
-    if (!todayRecord?.clock_in || todayRecord?.clock_out) {
-      setElapsed('')
-      return
-    }
-
-    const update = () => {
-      const diffMs = Date.now() - new Date(todayRecord.clock_in!).getTime()
-      const h = Math.floor(diffMs / 3600000)
-      const m = Math.floor((diffMs % 3600000) / 60000)
-      setElapsed(`${h}h ${m}m`)
-    }
-
-    update()
-    const interval = setInterval(update, 60000)
+    if (!isRunning) return
+    const interval = setInterval(() => setNowMs(Date.now()), 60000)
     return () => clearInterval(interval)
-  }, [todayRecord?.clock_in, todayRecord?.clock_out])
+  }, [isRunning])
+
+  const elapsed = isRunning
+    ? formatElapsed(nowMs - new Date(todayRecord!.clock_in!).getTime())
+    : ''
 
   const handleClockIn = async () => {
     if (!employee) return

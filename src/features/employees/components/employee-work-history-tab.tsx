@@ -103,7 +103,7 @@ export function EmployeeWorkHistoryTab({ employee, departments, designations, ma
               <div>
                 <p className="text-xs text-muted-foreground">Reporting Manager</p>
                 <p className="text-sm font-medium">
-                  {(workProfiles?.[0] as any)?.reporting_manager
+                  {one(workProfiles?.[0]?.reporting_manager)
                     ? `${one(workProfiles?.[0]?.reporting_manager)?.first_name} ${one(workProfiles?.[0]?.reporting_manager)?.last_name}`
                     : '-'}
                 </p>

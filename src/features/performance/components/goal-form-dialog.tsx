@@ -282,7 +282,7 @@ export function GoalFormDialog({ open, onOpenChange, goal, employeeId, cycleId }
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Category</Label>
-                  <Select value={watchCategory} onValueChange={(v) => setValue('category', v as any)}>
+                  <Select value={watchCategory} onValueChange={(v) => setValue('category', v as GoalFormData['category'])}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
@@ -304,7 +304,7 @@ export function GoalFormDialog({ open, onOpenChange, goal, employeeId, cycleId }
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Unit</Label>
-                  <Select value={watchUnit} onValueChange={(v) => setValue('unit', v as any)}>
+                  <Select value={watchUnit} onValueChange={(v) => setValue('unit', v as GoalFormData['unit'])}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select unit" />
                     </SelectTrigger>

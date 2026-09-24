@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Loader2, Info, ArrowRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -61,8 +61,13 @@ export function TaxDeclarationForm() {
   const [otherDeductions, setOtherDeductions] = useState(0)
   const [otherDeductionsDetail, setOtherDeductionsDetail] = useState('')
 
-  // Sync form with existing declaration
-  useEffect(() => {
+  // Reset the fields when a different declaration is loaded. Adjusting during
+  // render rather than in an effect keeps it to a single pass; an effect made the
+  // form render once with the old values and again with the new ones.
+  const [loadedId, setLoadedId] = useState<string | null | undefined>(undefined)
+  const currentId = existing?.id ?? null
+  if (currentId !== loadedId) {
+    setLoadedId(currentId)
     if (existing) {
       setRegime(existing.tax_regime as TaxRegime)
       setSection80c(existing.section_80c || 0)
@@ -73,7 +78,6 @@ export function TaxDeclarationForm() {
       setOtherDeductions(existing.other_deductions || 0)
       setOtherDeductionsDetail(existing.other_deductions_detail || '')
     } else {
-      // Reset form for new declaration
       setRegime('new')
       setSection80c(0)
       setSection80d(0)
@@ -83,7 +87,7 @@ export function TaxDeclarationForm() {
       setOtherDeductions(0)
       setOtherDeductionsDetail('')
     }
-  }, [existing])
+  }
 
   const annualIncome = compensation?.annual_ctc || (compensation?.monthly_gross || 0) * 12
 
