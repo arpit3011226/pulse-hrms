@@ -13,6 +13,7 @@ import {
   withdrawResignation,
   type SubmitResignationData,
   type ResignationFilters,
+  completeExit,
 } from '../api/resignation.api'
 
 // ============================================================================
@@ -180,6 +181,24 @@ export function useWithdrawResignation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-resignation'] })
       queryClient.invalidateQueries({ queryKey: ['resignation-requests'] })
+    },
+  })
+}
+
+// ============================================================================
+// COMPLETE EXIT — relieve the person
+// ============================================================================
+
+export function useCompleteExit() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (exitRecordId: string) => completeExit(exitRecordId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resignation-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['employees'] })
+      queryClient.invalidateQueries({ queryKey: ['alumni'] })
+      queryClient.invalidateQueries({ queryKey: ['exit-records'] })
     },
   })
 }

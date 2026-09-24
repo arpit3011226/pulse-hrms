@@ -43,12 +43,19 @@ export async function getClearancesByOrg(orgId: string) {
 // GET ALL PENDING CLEARANCES
 // ============================================================================
 
+/**
+ * Everything still on HR's plate: exits that have not been completed yet.
+ *
+ * This deliberately returns cleared items too, not just pending ones. An exit
+ * whose departments have all signed off still needs somebody to relieve the
+ * person; if it dropped off this list at that point, nobody could finish it.
+ */
 export async function getAllPendingClearances(orgId: string) {
   const { data, error } = await supabase
     .from('exit_clearances')
     .select(`
       *,
-      exit_record:employee_exit_records!exit_record_id(
+      exit_record:employee_exit_records!exit_record_id!inner(
         id, employee_id, resignation_date, last_working_date, status,
         employee:employees!employee_id(
           id, first_name, last_name, employee_code, email,
@@ -58,7 +65,7 @@ export async function getAllPendingClearances(orgId: string) {
       )
     `)
     .eq('organization_id', orgId)
-    .eq('clearance_status', 'pending')
+    .neq('exit_record.status', 'completed')
     .order('created_at', { ascending: false })
   if (error) throw error
   return data

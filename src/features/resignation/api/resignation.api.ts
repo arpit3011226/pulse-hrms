@@ -496,3 +496,21 @@ export async function withdrawResignation(exitRecordId: string) {
   if (error) throw error
   return data as EmployeeExitRecord
 }
+
+/**
+ * Relieve somebody: the last step of an exit.
+ *
+ * Marking the record complete is what sets the employee's status and leaving
+ * date and turns their login into an alumni login — a trigger does all three
+ * together, so they cannot drift apart (migration 00051).
+ */
+export async function completeExit(exitRecordId: string) {
+  const { data, error } = await supabase
+    .from('employee_exit_records')
+    .update({ status: 'completed' })
+    .eq('id', exitRecordId)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}

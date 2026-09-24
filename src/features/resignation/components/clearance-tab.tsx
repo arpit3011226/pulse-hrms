@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { useAllPendingClearances } from '../hooks/use-clearance'
+import { useCompleteExit } from '../hooks/use-resignation'
+import { ConfirmDialog } from '@/components/shared/confirm-dialog'
+import { toast } from 'sonner'
 import { ClearanceActionDialog } from './clearance-action-dialog'
 import { formatDate } from '@/lib/utils'
 import type { ExitClearance } from '@/types/database.types'
@@ -20,6 +23,7 @@ interface GroupedClearances {
   department: string
   resignationDate: string | null
   lastWorkingDate: string | null
+  exitStatus: string | null
   clearances: ClearanceWithRelations[]
 }
 
@@ -37,6 +41,7 @@ function groupClearances(clearances: ClearanceWithRelations[]): GroupedClearance
         department: emp?.department?.name || '-',
         resignationDate: c.exit_record?.resignation_date || null,
         lastWorkingDate: c.exit_record?.last_working_date || null,
+        exitStatus: c.exit_record?.status || null,
         clearances: [],
       })
     }
@@ -54,6 +59,8 @@ export function ClearanceTab({ approverEmployeeId }: ClearanceTabProps) {
   const { data: clearances, isLoading } = useAllPendingClearances()
   const [selectedClearance, setSelectedClearance] = useState<ClearanceWithRelations | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [relieving, setRelieving] = useState<GroupedClearances | null>(null)
+  const completeExit = useCompleteExit()
 
   if (isLoading) {
     return (
@@ -99,9 +106,24 @@ export function ClearanceTab({ approverEmployeeId }: ClearanceTabProps) {
                       <p className="text-sm text-muted-foreground">{group.department}</p>
                     </div>
                   </div>
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                    {cleared}/{total} cleared
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      {cleared}/{total} cleared
+                    </Badge>
+                    {/* Relieving is the last step and it is deliberate: it sets the
+                        leaving date and turns their login into an alumni login. */}
+                    {group.exitStatus === 'completed' ? (
+                      <Badge className="bg-emerald-100 text-emerald-800">Relieved</Badge>
+                    ) : cleared === total && total > 0 ? (
+                      <Button
+                        size="sm"
+                        onClick={() => setRelieving(group)}
+                        disabled={completeExit.isPending}
+                      >
+                        Relieve
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
                 {(group.resignationDate || group.lastWorkingDate) && (
                   <p className="text-xs text-muted-foreground mt-2">
@@ -159,6 +181,30 @@ export function ClearanceTab({ approverEmployeeId }: ClearanceTabProps) {
         onOpenChange={setDialogOpen}
         clearance={selectedClearance}
         approverEmployeeId={approverEmployeeId}
+      />
+
+      <ConfirmDialog
+        open={!!relieving}
+        onOpenChange={() => setRelieving(null)}
+        title={`Relieve ${relieving?.employeeName ?? ''}?`}
+        description={
+          `This closes the exit. Their last working day is recorded as ` +
+          `${relieving?.lastWorkingDate ? formatDate(relieving.lastWorkingDate) : 'the date on the exit record'}, ` +
+          `they move out of the active employee list, and their login becomes an alumni login ` +
+          `so they can still reach their own payslips and letters.`
+        }
+        confirmLabel="Relieve"
+        onConfirm={async () => {
+          if (!relieving) return
+          try {
+            await completeExit.mutateAsync(relieving.exitRecordId)
+            toast.success('Exit completed')
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Could not complete the exit')
+          } finally {
+            setRelieving(null)
+          }
+        }}
       />
     </>
   )

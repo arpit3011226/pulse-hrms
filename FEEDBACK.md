@@ -189,6 +189,41 @@ Verified afterwards, with real logins in each role:
 Performance reviews and PIPs still carry a blanket HR policy; the rule we agreed
 covered compensation, so that is flagged rather than changed.
 
+### Journey testing — all four walked end to end
+
+Driven through the app's own API layer, so the real queries, policies and
+business rules ran. All test data was removed afterwards and the row counts
+returned to where they started.
+
+**Hire** — raise a requisition with a pay band, submit, approve (draft → open),
+add a candidate, create an application, move a stage, schedule an interview,
+complete it, submit feedback, make an offer, revise it, accept, mark hired, park
+the candidate in the talent pool, and generate the offer PDF. Passes.
+
+**Onboard** — build a template with tasks, create a joiner, start onboarding from
+the template (2 tasks and 5 check-ins created), complete a task, complete the
+30-day check-in, confirm the employee. Passes.
+
+**Retire** — submit a resignation, manager approves, HR approves (notice period
+begins, 3 clearances raised), clear every department, draft a final settlement,
+approve and pay it, relieve the person, and see them appear in the alumni
+directory. Passes now; see P7-12 for what was broken.
+
+**Lifecycle** — covered by the route and tab sweep plus the role matrix: leave,
+attendance, payroll, performance, self-service, helpdesk, assets, recognition.
+
+| ID | Severity | Finding | Status |
+|----|----------|---------|--------|
+| P7-11 | High | **Revising an offer always failed.** 00034 added offer versioning, and reviseOffer() withdraws the old offer and inserts a new row — but the original schema had a UNIQUE constraint on candidate_application_id, so the insert threw a duplicate key error every time. Replaced with a partial unique index: one *live* offer per application, with the superseded ones kept as history. | Fixed — 00050 |
+| P7-12 | High | **Nobody ever became an alumnus.** The exit flow reaches clearance_completed on its own, but nothing anywhere set the employee's own status — every reference to 'resigned' and 'terminated' in the codebase only reads them. So the alumni directory was permanently empty, a leaver's login never became an alumni login, and ex-employees stayed on the books as "on notice" for ever. Added a Relieve step: a trigger sets the status, the leaving date and the login role together, so they cannot drift apart. | Fixed — 00051 |
+| P7-13 | Medium | The new Relieve button would have been unreachable: the HR clearance list only returned clearances still marked pending, so an exit disappeared from it the moment the last department signed off — exactly when somebody needs to finish it. It now lists exits until they are completed. | Fixed |
+| P7-14 | Low | No exit interview questions exist and none are seeded, so the exit interview built in F42 cannot be answered until HR writes the questions by hand. Worth seeding a standard set before rollout. | Open |
+
+Signature mismatches I hit while driving the APIs (`offered_ctc` not
+`offered_designation_id`, `employee_exit_record_id` not `exit_record_id`,
+category values like `pre_joining`) were my own errors reading the code, not
+defects.
+
 ### Test logins created during Phase 7
 
 To test the roles at all I had to create logins, because only `super_admin` and
