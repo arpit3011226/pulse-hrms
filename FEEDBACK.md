@@ -133,6 +133,70 @@ details but could still read every application in the company. Now scoped to the
 applications a person interviewed for, the requisitions they are hiring manager
 for, and HR, admin and leadership.
 
+### P7-9 — The rest of the org-wide personal data (00048)
+
+Reference data stays open to everyone: departments, holidays, leave types,
+shifts, policies, announcements, letter templates. Records about a particular
+person no longer are.
+
+The line drawn, matching what `leave_requests` already did: operational records
+follow the reporting line — your own plus your team's — while money and the
+reasons somebody left follow the role.
+
+| Table | Now visible to |
+|-------|----------------|
+| `attendance_records`, `attendance_regularization_requests` | The person, their manager, HR, admin, leadership |
+| `leave_attachments` (medical certificates) | Whoever can see the leave request it belongs to |
+| `leave_carry_forward_logs` | The person, their manager, HR, admin, leadership |
+| `leave_accrual_runs` | HR, admin, leadership |
+| `employee_status_history` (carries why somebody was terminated) | The person, HR, admin, leadership — deliberately not their manager |
+| `employee_org_history`, `employee_work_profiles` | The person, their manager, HR, admin, leadership |
+| `exit_clearances` | The person, their manager, whoever is clearing, HR, admin, leadership |
+| `onboarding_journeys` | Whoever can see the onboarding record, plus HR, admin, leadership |
+| `activity_log`, `workflow_runs` | HR and admin |
+| `payroll_approvals`, `payroll_config` | The approver, HR, admin, payroll, leadership |
+
+Measured after the change: attendance went from 147 rows visible to everyone, to
+26 for an employee with one direct report and 14 for one with none. Exit
+clearances, status history and payroll approvals all went to zero for an
+ordinary employee.
+
+### P7-10 — **HR could still see leadership pay** (00049)
+
+The rule set in 00038 — HR sees everyone's compensation except leadership's — was
+not actually in force. The read policy was right, but the older `admin_manage_*`
+policies are `FOR ALL` with a USING clause handing hr_admin the whole
+organisation, and Postgres ORs policies together, so the broad one won.
+
+Caught by giving one employee the leadership role and another the HR role and
+looking. HR could read the leadership employee's compensation row, while
+correctly seeing none of their payslips — the payslip policy was right only
+because its manage policy never mentioned hr_admin.
+
+Same shape as S12 in the first audit: a permissive policy left alive beside a
+restrictive one. Fixed on `employee_compensation`,
+`employee_compensation_components` and `payroll_run_employees`.
+
+Verified afterwards, with real logins in each role:
+
+| Role | Compensation rows visible (10 exist, 2 belong to leadership) |
+|------|--------------------------------------------------------------|
+| Manager with one direct report | 1 — their report only |
+| HR admin | 8 — everyone except the two leadership people |
+| Leadership | 10 — everyone |
+
+`salary_structures` was left alone: it holds templates, not anybody's pay.
+Performance reviews and PIPs still carry a blanket HR policy; the rule we agreed
+covered compensation, so that is flagged rather than changed.
+
+### Test logins created during Phase 7
+
+To test the roles at all I had to create logins, because only `super_admin` and
+`employee` existed. These now exist on demo employee records, with no password
+set: one `manager`, one `hr_admin`, one `leadership`, and four `employee`. They
+are useful for the human testing round; say the word if you would rather they
+were removed before then.
+
 ### Still to do by hand, in the Supabase dashboard
 
 | Item | Where | Why |
