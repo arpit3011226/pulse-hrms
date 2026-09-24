@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { Download, FileText, Loader2, Receipt, Wallet } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -5,6 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { useMyAlumniRecords } from '../hooks/use-alumni'
+import { getPayslipDetail } from '@/features/payroll/api/payroll.api'
+import { generatePayslipPdf } from '@/features/payroll/utils/generate-payslip-pdf'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 const MONTHS = [
@@ -19,8 +23,29 @@ const MONTHS = [
  * personal email (F43), so "my own records" policies keep matching.
  */
 export function MyRecordsPage() {
-  const { profile } = useAuth()
+  const { profile, organization } = useAuth()
   const { data, isLoading } = useMyAlumniRecords(profile?.id)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+
+  /**
+   * Same document an employee gets, from the same generator. An alumnus can read
+   * their own payslip and its lines because those policies are written around
+   * ownership, not around still working here.
+   */
+  async function handleDownload(payslipId: string) {
+    if (!organization) return
+    setDownloadingId(payslipId)
+    try {
+      const detail = await getPayslipDetail(payslipId)
+      generatePayslipPdf(detail, organization)
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Could not produce that payslip. Please contact HR.'
+      )
+    } finally {
+      setDownloadingId(null)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -126,8 +151,18 @@ export function MyRecordsPage() {
                       <span className="text-sm font-medium">
                         {formatCurrency((p.net_pay as number) ?? 0)}
                       </span>
-                      <Button variant="ghost" size="icon" disabled title="Download coming soon">
-                        <Download className="h-4 w-4" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Download payslip"
+                        disabled={downloadingId === (p.id as string)}
+                        onClick={() => handleDownload(p.id as string)}
+                      >
+                        {downloadingId === (p.id as string) ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </div>

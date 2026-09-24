@@ -12,7 +12,7 @@ Track feedback, bugs, and improvements for regular build releases.
 |---|------|--------|-------------|----------|----------|
 | ~~20~~ | bug | performance | ~~Add competency not working~~ — retested end to end on 24 Sep 2026 through the UI: the dialog opens, the category picker works, Create saves and the list updates. Whatever caused this has been fixed somewhere along the way. Reopen with the exact steps if it reappears. | resolved | 2026-03-15 |
 | ~~21~~ | enhancement | employees | ~~Simplify employee details — unified screen~~ — delivered as F1 | done | 2026-03-15 |
-| 22 | enhancement | workflows | Add file/attachment support in workflow actions — allow attaching documents (e.g. offer letters, policy docs) to notification and email actions | medium | 2026-03-15 |
+| ~~22~~ | enhancement | workflows | Built as a **document link**, not an attachment. A workflow action can now point at a company policy, and the message carries a link to it. Attachments were deliberately not built: a file sent by email leaves the system, so none of the access rules we spent this work building apply to it any more, and an attached policy is a snapshot that is wrong for ever once the policy changes. A link keeps the document in one place, always current, behind the same sign-in. | done | 2026-03-15 |
 
 ## In Progress
 

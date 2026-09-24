@@ -1829,6 +1829,17 @@ export interface WorkflowActionConfig {
   subject?: string
   body?: string
   include_notification?: boolean
+  /**
+   * A document to point the recipient at — a policy, a handbook, a form.
+   *
+   * A link rather than an attachment on purpose. An attached file leaves the
+   * system: it sits in inboxes, gets forwarded, and none of the access rules
+   * apply to it any more. It is also a snapshot, so a policy that changes later
+   * is wrong for ever in everyone's mailbox. A link keeps the document where it
+   * is, always current, and behind the same sign-in as everything else.
+   */
+  document_url?: string
+  document_label?: string
 }
 
 export interface WorkflowAction {

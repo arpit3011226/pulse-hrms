@@ -39,6 +39,7 @@ import type {
   WorkflowAction,
   WorkflowActionConfig,
 } from '@/types/database.types'
+import { usePolicies } from '@/features/workplace/hooks/use-workplace'
 
 interface WorkflowBuilderDialogProps {
   open: boolean
@@ -97,6 +98,8 @@ export function WorkflowBuilderDialog({
   templateData,
   onSave,
 }: WorkflowBuilderDialogProps) {
+  // Policies that have a file can be linked from a workflow message.
+  const { data: policies } = usePolicies()
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState<FormData>({ ...DEFAULT_FORM })
   const [isSaving, setIsSaving] = useState(false)
@@ -808,6 +811,44 @@ export function WorkflowBuilderDialog({
                       activeFieldRef.current = { actionIndex: index, field: 'message' }
                     }}
                   />
+                </div>
+
+                {/* Point the recipient at a document. A link, not an attachment —
+                    see WorkflowActionConfig for why. */}
+                <div className="space-y-1.5 rounded-md border bg-muted/30 p-3">
+                  <Label className="text-xs">Link a document (optional)</Label>
+                  <Select
+                    value={action.config.document_url ?? 'none'}
+                    onValueChange={(v) => {
+                      if (v === 'none') {
+                        updateActionConfig(index, { document_url: undefined, document_label: undefined })
+                        return
+                      }
+                      const policy = (policies ?? []).find((pol) => pol.document_url === v)
+                      updateActionConfig(index, {
+                        document_url: v,
+                        document_label: policy ? `Read: ${policy.title}` : 'Open the document',
+                      })
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="No document" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No document</SelectItem>
+                      {(policies ?? [])
+                        .filter((pol) => pol.document_url)
+                        .map((pol) => (
+                          <SelectItem key={pol.id} value={pol.document_url as string}>
+                            {pol.title}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground">
+                    The message carries a link, so the document stays in one place, stays current,
+                    and is still behind a sign-in. Only policies that have a file are listed.
+                  </p>
                 </div>
 
                 {/* Show email-specific option */}

@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { Workflow, WorkflowAction, Employee } from '@/types/database.types'
+import type { Workflow, WorkflowAction, WorkflowActionConfig, Employee } from '@/types/database.types'
 import {
   createBulkNotifications,
   getProfileIdsByRole,
@@ -20,6 +20,22 @@ export async function executeWorkflowActions(
       await executeAction(action, employee, orgId)
     }
   }
+}
+
+
+/**
+ * Adds the document link to a message, if the action carries one.
+ *
+ * See WorkflowActionConfig: we link rather than attach, so the document stays
+ * behind the same sign-in as everything else and cannot go stale in an inbox.
+ */
+function withDocumentLink(body: string, config: WorkflowActionConfig, asHtml: boolean): string {
+  const url = config.document_url?.trim()
+  if (!url) return body
+  const label = config.document_label?.trim() || 'Open the document'
+  return asHtml
+    ? `${body}<p style="margin-top:16px"><a href="${url}">${label}</a></p>`
+    : `${body}\n\n${label}: ${url}`
 }
 
 async function executeAction(
@@ -79,7 +95,11 @@ async function executeAction(
 
   if (action.type === 'send_notification') {
     const title = resolveWorkflowPlaceholders(action.config.title, placeholderContext)
-    const message = resolveWorkflowPlaceholders(action.config.message, placeholderContext)
+    const message = withDocumentLink(
+      resolveWorkflowPlaceholders(action.config.message, placeholderContext),
+      action.config,
+      false
+    )
 
     const notifications = recipientProfileIds.map((profileId) => ({
       recipient_profile_id: profileId,
@@ -101,9 +121,10 @@ async function executeAction(
       action.config.subject ?? action.config.title,
       placeholderContext
     )
-    const body = resolveWorkflowPlaceholders(
-      action.config.body ?? action.config.message,
-      placeholderContext
+    const body = withDocumentLink(
+      resolveWorkflowPlaceholders(action.config.body ?? action.config.message, placeholderContext),
+      action.config,
+      true
     )
 
     // Fetch emails for recipient profile IDs
