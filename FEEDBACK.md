@@ -224,6 +224,35 @@ Signature mismatches I hit while driving the APIs (`offered_ctc` not
 category values like `pre_joining`) were my own errors reading the code, not
 defects.
 
+### Candidate portal login (24 Sep 2026)
+
+The candidate portal and its policies were built in F43, but nothing ever created
+a candidate account, so the screen could not be reached by anyone. Recruitment →
+Candidates now has **Create portal login** on each candidate: the candidate gets a
+login on the email already on their record, sets their own password through a
+link, and can follow their own application.
+
+Two holes found while testing it as a candidate, both now closed (00053):
+
+| Hole | Detail |
+|------|--------|
+| A candidate could read the whole staff directory | `org_members_read_employees` only asked that you belong to the organisation, and a candidate's profile carries the organisation id so their own application resolves. So somebody who had merely applied for a job could read all 11 employees' names, work emails, phone numbers, codes and designations. Measured before: 11 of 11. After: 0 |
+| A candidate could read every requisition | Including headcount and status on roles they had not applied for. They now see only the ones they applied for, which is what their portal shows |
+
+Alumni were in the same position on both counts and are covered by the same fix.
+Each keeps their own row, because that is how their own screens find them.
+
+Measured afterwards as a candidate with one application: 1 candidate record
+(their own), 1 application, 1 requisition (the role they applied for), 0
+employees, 0 interviews, 0 offers. An ordinary employee still sees the full
+directory, so nothing was taken from staff.
+
+The navigation was wrong for both too. A candidate or an alumnus would have been
+shown the staff menu — Assets, Departments, Employees, Helpdesk, Onboarding,
+Recognition, Self Service, Separation, Settings — with no link to their own page
+anywhere. They now get one item, their own screen, and land on it when they sign
+in.
+
 ### Test logins created during Phase 7
 
 To test the roles at all I had to create logins, because only `super_admin` and

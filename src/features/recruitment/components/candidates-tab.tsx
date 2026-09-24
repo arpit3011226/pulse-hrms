@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Plus, Pencil, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Plus, Pencil, Trash2, KeyRound, Copy, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -17,17 +17,48 @@ import { useCandidates, useDeleteCandidate } from '../hooks/use-recruitment'
 import { usePermissions } from '@/hooks/use-permissions'
 import type { Candidate } from '@/types/database.types'
 import { toast } from 'sonner'
+import { useCreateLogin } from '@/features/auth/hooks/use-user-admin'
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog'
 
 export function CandidatesTab() {
   const { canManageRecruitment, isAdmin, isHR } = usePermissions()
   const canManage = canManageRecruitment || isAdmin || isHR
 
-  const { data: candidates, isLoading } = useCandidates()
+  const { data: candidates, isLoading, refetch } = useCandidates()
   const deleteCandidate = useDeleteCandidate()
 
   const [formOpen, setFormOpen] = useState(false)
   const [editingCandidate, setEditingCandidate] = useState<Candidate | undefined>()
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  const [portalFor, setPortalFor] = useState<Candidate | null>(null)
+  const [portalLink, setPortalLink] = useState<string | null>(null)
+  const createLogin = useCreateLogin()
+
+  /**
+   * Gives a candidate a login so they can follow their own application. They get
+   * the candidate role, which reaches nothing but their own record — see the
+   * candidate_reads_own_* policies.
+   */
+  async function handleCreatePortalLogin() {
+    if (!portalFor) return
+    try {
+      const result = await createLogin.mutateAsync({
+        email: portalFor.email,
+        first_name: portalFor.first_name,
+        last_name: portalFor.last_name,
+        role: 'candidate',
+        candidate_id: portalFor.id,
+      })
+      setPortalLink(result.set_password_link)
+      toast.success(result.linked_existing ? 'Existing login linked' : 'Portal login created')
+      refetch()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not create the login')
+    }
+  }
 
   const columns: ColumnDef<Candidate>[] = [
     {
@@ -85,6 +116,16 @@ export function CandidatesTab() {
               <DropdownMenuItem onClick={() => { setEditingCandidate(candidate); setFormOpen(true) }}>
                 <Pencil className="mr-2 h-4 w-4" /> Edit
               </DropdownMenuItem>
+              {/* Without this the candidate portal exists but nobody can reach it. */}
+              {candidate.profile_id ? (
+                <DropdownMenuItem disabled>
+                  <KeyRound className="mr-2 h-4 w-4" /> Portal login created
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={() => setPortalFor(candidate)}>
+                  <KeyRound className="mr-2 h-4 w-4" /> Create portal login
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(candidate.id)}>
                 <Trash2 className="mr-2 h-4 w-4" /> Delete
@@ -118,6 +159,55 @@ export function CandidatesTab() {
         onOpenChange={(open) => { setFormOpen(open); if (!open) setEditingCandidate(undefined) }}
         candidate={editingCandidate}
       />
+
+      {/* Create a portal login, then hand the recruiter the link to send on. */}
+      <Dialog
+        open={!!portalFor}
+        onOpenChange={() => { setPortalFor(null); setPortalLink(null) }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create a portal login</DialogTitle>
+            <DialogDescription>
+              {portalFor
+                ? `${portalFor.first_name} ${portalFor.last_name} will be able to sign in with ${portalFor.email} and follow their own application. They see nothing else.`
+                : ''}
+            </DialogDescription>
+          </DialogHeader>
+
+          {portalLink ? (
+            <div className="space-y-3 py-2">
+              <p className="text-sm">Send this link so they can set a password.</p>
+              <div className="rounded-md border bg-muted p-2">
+                <p className="break-all font-mono text-xs">{portalLink}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { navigator.clipboard.writeText(portalLink); toast.success('Link copied') }}
+              >
+                <Copy className="mr-2 h-3.5 w-3.5" /> Copy link
+              </Button>
+            </div>
+          ) : (
+            <p className="py-2 text-sm text-muted-foreground">
+              They will set their own password, so you never handle it.
+            </p>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setPortalFor(null); setPortalLink(null) }}>
+              {portalLink ? 'Done' : 'Cancel'}
+            </Button>
+            {!portalLink && (
+              <Button onClick={handleCreatePortalLogin} disabled={createLogin.isPending}>
+                {createLogin.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create login
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog
         open={!!deleteId}

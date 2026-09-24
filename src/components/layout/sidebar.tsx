@@ -276,6 +276,18 @@ const HOME_ITEM: NavItem = {
   title: 'Home', href: '/dashboard', icon: DashboardIcon, visible: true,
 }
 
+/**
+ * A candidate and an alumnus are not staff. They sign in to one screen about
+ * themselves, so they get that screen and nothing else — not a company menu with
+ * everything greyed out or silently empty.
+ */
+const CANDIDATE_HOME: NavItem = {
+  title: 'My Application', href: '/my-application', icon: RecruitmentIcon, visible: true,
+}
+const ALUMNI_HOME: NavItem = {
+  title: 'My Records', href: '/my-records', icon: SelfServiceIcon, visible: true,
+}
+
 export function Sidebar() {
   const { sidebarOpen, toggleSidebar } = useUIStore()
   const { signOut } = useAuth()
@@ -285,6 +297,10 @@ export function Sidebar() {
   const { organization } = useAuth()
   const modules = (organization?.settings as Record<string, unknown> | undefined)?.modules as Record<string, boolean> | undefined
   const isModuleEnabled = (key: string) => modules?.[key] !== false
+
+  // A candidate or an alumnus gets only their own screen.
+  const isOutsider = permissions.isCandidate || permissions.isAlumni
+  const outsiderItem = permissions.isCandidate ? CANDIDATE_HOME : ALUMNI_HOME
 
   const navItems: NavItem[] = [
     { title: 'Alumni', href: '/alumni', icon: AlumniIcon, visible: permissions.isAdmin || permissions.isHR || permissions.isPayrollAdmin },
@@ -331,28 +347,34 @@ export function Sidebar() {
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="space-y-1">
-          <NavLink item={HOME_ITEM} sidebarOpen={sidebarOpen} matchRoute={matchRoute} />
+          <NavLink
+            item={isOutsider ? outsiderItem : HOME_ITEM}
+            sidebarOpen={sidebarOpen}
+            matchRoute={matchRoute}
+          />
         </nav>
 
-        <Separator className="my-3" />
+        {!isOutsider && <Separator className="my-3" />}
 
-        <nav className="space-y-1">
-          {navItems.map((item) => (
-            <NavLink key={item.href} item={item} sidebarOpen={sidebarOpen} matchRoute={matchRoute} />
-          ))}
-        </nav>
+        {!isOutsider && (
+          <nav className="space-y-1">
+            {navItems.map((item) => (
+              <NavLink key={item.href} item={item} sidebarOpen={sidebarOpen} matchRoute={matchRoute} />
+            ))}
+          </nav>
+        )}
       </ScrollArea>
 
       {/* Bottom */}
       <div className="border-t px-3 py-3">
         <nav className="space-y-1">
           {bottomItems
-            .filter((item) => item.visible)
+            .filter((item) => item.visible && !isOutsider)
             .map((item) => (
               <NavLink key={item.href} item={item} sidebarOpen={sidebarOpen} matchRoute={matchRoute} />
             ))}
         </nav>
-        <Separator className="my-2" />
+        {!isOutsider && <Separator className="my-2" />}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

@@ -1,4 +1,4 @@
-import { Outlet, Navigate } from '@tanstack/react-router'
+import { Outlet, Navigate, useLocation } from '@tanstack/react-router'
 import { Sidebar } from './sidebar'
 import { Topbar } from './topbar'
 import { useAuth } from '@/features/auth/hooks/use-auth'
@@ -6,6 +6,7 @@ import { Loader2 } from 'lucide-react'
 
 export function AppLayout() {
   const { session, isLoading, profile } = useAuth()
+  const location = useLocation()
 
   if (isLoading) {
     return (
@@ -22,6 +23,15 @@ export function AppLayout() {
   // If user has no organization, redirect to onboarding
   if (profile && !profile.organization_id) {
     return <Navigate to="/onboarding" />
+  }
+
+  // A candidate or an alumnus has one screen. Landing them on the staff
+  // dashboard shows them a page built for employees, so send them to theirs.
+  if (profile?.role === 'candidate' && location.pathname !== '/my-application') {
+    return <Navigate to="/my-application" />
+  }
+  if (profile?.role === 'alumni' && location.pathname !== '/my-records') {
+    return <Navigate to="/my-records" />
   }
 
   return (

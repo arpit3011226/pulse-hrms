@@ -161,6 +161,10 @@ export function usePermissions() {
       isManager: role === 'manager',
       isLeadership: role === 'leadership',
       isEmployee: role === 'employee',
+      // Neither of these is a member of staff. They sign in to see their own
+      // records and nothing else, so the navigation is built for them separately.
+      isCandidate: role === 'candidate',
+      isAlumni: role === 'alumni',
       role,
 
       // ── Generic permission checkers ──

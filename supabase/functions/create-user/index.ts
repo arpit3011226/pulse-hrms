@@ -21,7 +21,7 @@ const corsHeaders = {
 const ROLES_THAT_MAY_CREATE = ['super_admin', 'hr_admin', 'leadership']
 
 /** Roles a new login may be given. Nobody can mint a super admin from here. */
-const ASSIGNABLE_ROLES = ['hr_admin', 'payroll_admin', 'manager', 'leadership', 'employee', 'alumni']
+const ASSIGNABLE_ROLES = ['hr_admin', 'payroll_admin', 'manager', 'leadership', 'employee', 'alumni', 'candidate']
 
 interface CreateUserRequest {
   email: string
@@ -30,6 +30,11 @@ interface CreateUserRequest {
   role: string
   /** Employee this login belongs to, when there is one. */
   employee_id?: string | null
+  /**
+   * Candidate this login belongs to, for the application portal. A candidate is
+   * not an employee, so they are linked through the candidates table instead.
+   */
+  candidate_id?: string | null
   /** Identity anchor that survives leaving the company. */
   personal_email?: string | null
   /**
@@ -91,6 +96,26 @@ Deno.serve(async (req) => {
     if (existing) {
       // A login already exists. If it is not yet attached to an employee record and
       // we were told which one, attach it rather than making HR give up.
+      if (body.candidate_id) {
+        const { data: candLinked } = await admin
+          .from('candidates')
+          .select('id')
+          .eq('profile_id', existing.id)
+          .maybeSingle()
+        if (!candLinked) {
+          const { error: linkCandErr } = await admin
+            .from('candidates')
+            .update({ profile_id: existing.id })
+            .eq('id', body.candidate_id)
+            .eq('organization_id', callerProfile.organization_id)
+          if (linkCandErr) return json({ error: linkCandErr.message }, 400)
+          return json({
+            user_id: existing.id, email, set_password_link: null,
+            link_error: null, linked_existing: true,
+          })
+        }
+      }
+
       if (body.employee_id) {
         const { data: alreadyLinked } = await admin
           .from('employees')
@@ -157,6 +182,18 @@ Deno.serve(async (req) => {
       if (linkErr) {
         await admin.auth.admin.deleteUser(created.user.id)
         return json({ error: linkErr.message }, 400)
+      }
+    }
+
+    if (body.candidate_id) {
+      const { error: candErr } = await admin
+        .from('candidates')
+        .update({ profile_id: created.user.id })
+        .eq('id', body.candidate_id)
+        .eq('organization_id', callerProfile.organization_id)
+      if (candErr) {
+        await admin.auth.admin.deleteUser(created.user.id)
+        return json({ error: candErr.message }, 400)
       }
     }
 

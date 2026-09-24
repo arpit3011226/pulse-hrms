@@ -10,6 +10,8 @@ export interface CreateLoginInput {
   last_name?: string
   role: string
   employee_id?: string | null
+  /** Links the login to a candidate record, for the application portal. */
+  candidate_id?: string | null
   personal_email?: string | null
 }
 
