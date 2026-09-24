@@ -24,9 +24,12 @@ interface Requisition {
   title: string
   requisition_code: string
   headcount: number
-  min_salary?: number | null
-  max_salary?: number | null
-  budget_amount?: number | null
+  /** Present only for HR, an admin, leadership or the hiring manager — see 00046. */
+  budget?: {
+    min_salary?: number | null
+    max_salary?: number | null
+    budget_amount?: number | null
+  } | null
   approval_status?: string | null
   approval_notes?: string | null
 }
@@ -61,8 +64,10 @@ export function RequisitionApprovalDialog({ open, onOpenChange, requisition, mod
     setNotes('')
     // Suggest the budget from the top of the salary band times headcount
     const suggested =
-      requisition.budget_amount ??
-      (requisition.max_salary ? requisition.max_salary * (requisition.headcount || 1) : null)
+      requisition.budget?.budget_amount ??
+      (requisition.budget?.max_salary
+        ? requisition.budget.max_salary * (requisition.headcount || 1)
+        : null)
     setBudget(suggested != null ? String(suggested) : '')
   }, [open, requisition])
 
@@ -100,8 +105,8 @@ export function RequisitionApprovalDialog({ open, onOpenChange, requisition, mod
   }
 
   const band =
-    requisition?.min_salary && requisition?.max_salary
-      ? `${formatCurrency(requisition.min_salary)} – ${formatCurrency(requisition.max_salary)}`
+    requisition?.budget?.min_salary && requisition?.budget?.max_salary
+      ? `${formatCurrency(requisition.budget.min_salary)} – ${formatCurrency(requisition.budget.max_salary)}`
       : null
 
   return (
@@ -162,10 +167,10 @@ export function RequisitionApprovalDialog({ open, onOpenChange, requisition, mod
             </>
           ) : (
             <>
-              {requisition?.budget_amount != null && (
+              {requisition?.budget?.budget_amount != null && (
                 <div className="rounded-md border bg-muted/30 p-3 text-sm">
                   <span className="text-muted-foreground">Budget requested </span>
-                  <span className="font-medium">{formatCurrency(requisition.budget_amount)}</span>
+                  <span className="font-medium">{formatCurrency(requisition.budget.budget_amount)}</span>
                 </div>
               )}
               <div className="space-y-1.5">

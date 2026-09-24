@@ -92,6 +92,47 @@ sensitive columns, so the change is contained.
 
 Awaiting a decision on whether to do this before the October rollout.
 
+### P7-7 — Hiring: who sees the candidate, and for how long
+
+Verified against the live database before and after the change, by putting a real
+interview on a real application and then marking the candidate hired.
+
+Before: "Org members can read candidates" and "Org members can read interviews"
+meant all fifty employees could read the whole pipeline — names, phone numbers,
+CVs, interviewer notes, rejection reasons — and see who was being interviewed for
+what. Applications were org-wide too. Requisitions carried `min_salary`,
+`max_salary` and `budget_amount` and were readable by everyone, so the pay band
+for every open role was public inside the company.
+
+The rule now, matching what the business asked for:
+
+| Who | While the application is open | After the person is hired or rejected |
+|-----|------------------------------|----------------------------------------|
+| Interviewer on the panel | The candidate's basic details and CV, their own interviews, their own feedback | Their own interviews and feedback, and the outcome of that application. **Not** the candidate's contact details or CV |
+| Hiring manager for the requisition | Everything for their own requisitions, including the pay band | Same |
+| HR, admin, leadership | The whole pipeline | Same |
+| Any other employee | Nothing | Nothing |
+| The candidate | Their own record and application | Same |
+
+Measured as the interviewer after the hire: candidate contact details 0, their own
+interview 1, their own feedback 1, application 1 showing status "hired", pay bands
+0. Measured as an employee not on the panel: 0 everywhere.
+
+Two further changes, in line with normal practice:
+
+- Interview feedback was readable by **every** manager in the company. It is now
+  the hiring manager for that requisition, plus HR, admin and leadership.
+- Feedback could be edited or deleted by its author for ever. It can now be
+  corrected until it is submitted, after which it stands as the record of a
+  judgement made at the time.
+
+### P7-8 — Applications were org-wide readable
+
+Found while testing P7-7: after the hire the panel correctly lost the candidate's
+details but could still read every application in the company. Now scoped to the
+applications a person interviewed for, the requisitions they are hiring manager
+for, and HR, admin and leadership.
+
 ### Still to do by hand, in the Supabase dashboard
 
 | Item | Where | Why |

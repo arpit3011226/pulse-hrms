@@ -1205,13 +1205,22 @@ export interface JobRequisition {
   requirements: string | null
   min_experience: number | null
   max_experience: number | null
-  min_salary: number | null
-  max_salary: number | null
+  /**
+   * Pay band and budget moved to job_requisition_budget in 00046. Present only
+   * for HR, an admin, leadership or the hiring manager; otherwise null.
+   */
+  budget?: JobRequisitionBudget | null
   location: string | null
   status: 'draft' | 'open' | 'on_hold' | 'closed' | 'filled' | 'cancelled'
   created_by: string | null
   created_at: string
   updated_at: string
+}
+
+export interface JobRequisitionBudget {
+  min_salary: number | null
+  max_salary: number | null
+  budget_amount: number | null
 }
 
 export interface Candidate {

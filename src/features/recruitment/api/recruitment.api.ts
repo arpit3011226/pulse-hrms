@@ -61,31 +61,81 @@ export async function deleteInterviewStage(id: string) {
 export async function getJobRequisitions(orgId: string) {
   const { data, error } = await supabase
     .from('job_requisitions')
-    .select('*, department:departments(id, name), hiring_manager:employees!job_requisitions_hiring_manager_id_fkey(id, first_name, last_name)')
+    .select('*, department:departments(id, name), hiring_manager:employees!job_requisitions_hiring_manager_id_fkey(id, first_name, last_name), budget:job_requisition_budget(min_salary, max_salary, budget_amount)')
     .eq('organization_id', orgId)
     .order('created_at', { ascending: false })
   if (error) throw error
   return data
 }
 
+/** The pay band lives in its own table since 00046; see upsertRequisitionBudget. */
+const BUDGET_FIELDS = ['min_salary', 'max_salary', 'budget_amount'] as const
+
+function splitBudget(data: Record<string, unknown>) {
+  const requisition: Record<string, unknown> = { ...data }
+  const budget: Record<string, unknown> = {}
+  for (const f of BUDGET_FIELDS) {
+    if (f in requisition) { budget[f] = requisition[f]; delete requisition[f] }
+  }
+  return { requisition, budget }
+}
+
+export async function upsertRequisitionBudget(
+  requisitionId: string,
+  organizationId: string,
+  budget: Record<string, unknown>
+) {
+  const { error } = await supabase
+    .from('job_requisition_budget')
+    .upsert(
+      { ...budget, job_requisition_id: requisitionId, organization_id: organizationId },
+      { onConflict: 'job_requisition_id' }
+    )
+  if (error) throw error
+}
+
 export async function createJobRequisition(data: Partial<JobRequisition>) {
+  const { requisition, budget } = splitBudget(data as Record<string, unknown>)
   const { data: newData, error } = await supabase
     .from('job_requisitions')
-    .insert(data)
+    .insert(requisition)
     .select()
     .single()
   if (error) throw error
+  if (Object.keys(budget).length > 0 && newData?.organization_id) {
+    await upsertRequisitionBudget(newData.id, newData.organization_id, budget)
+  }
   return newData
 }
 
 export async function updateJobRequisition(id: string, updates: Partial<JobRequisition>) {
-  const { data, error } = await supabase
-    .from('job_requisitions')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single()
-  if (error) throw error
+  const { requisition, budget } = splitBudget(updates as Record<string, unknown>)
+
+  // An edit that only touches the pay band leaves nothing for the requisition
+  // itself. Updating with an empty object matches no rows, so read it instead.
+  let data
+  if (Object.keys(requisition).length > 0) {
+    const res = await supabase
+      .from('job_requisitions')
+      .update(requisition)
+      .eq('id', id)
+      .select()
+      .single()
+    if (res.error) throw res.error
+    data = res.data
+  } else {
+    const res = await supabase
+      .from('job_requisitions')
+      .select()
+      .eq('id', id)
+      .single()
+    if (res.error) throw res.error
+    data = res.data
+  }
+
+  if (Object.keys(budget).length > 0 && data?.organization_id) {
+    await upsertRequisitionBudget(id, data.organization_id, budget)
+  }
   return data
 }
 
@@ -395,12 +445,16 @@ export async function submitRequisitionForApproval(params: {
       approver_id: params.approverId,
       submitted_by: params.submittedBy,
       submitted_at: new Date().toISOString(),
-      budget_amount: params.budgetAmount ?? null,
     })
     .eq('id', params.id)
     .select()
     .single()
   if (error) throw error
+  if (params.budgetAmount != null && data?.organization_id) {
+    await upsertRequisitionBudget(params.id, data.organization_id, {
+      budget_amount: params.budgetAmount,
+    })
+  }
   return data
 }
 

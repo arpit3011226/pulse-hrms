@@ -52,7 +52,7 @@ export function RequisitionDetailDialog({ open, onOpenChange, requisition }: Req
             </div>
 
             {/* Experience & Salary */}
-            {(requisition.min_experience != null || requisition.max_experience != null || requisition.min_salary != null || requisition.max_salary != null) && (
+            {(requisition.min_experience != null || requisition.max_experience != null || requisition.budget?.min_salary != null || requisition.budget?.max_salary != null) && (
               <>
                 <Separator />
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -62,10 +62,12 @@ export function RequisitionDetailDialog({ open, onOpenChange, requisition }: Req
                       value={`${requisition.min_experience ?? 0} - ${requisition.max_experience ?? 'Any'} years`}
                     />
                   )}
-                  {(requisition.min_salary != null || requisition.max_salary != null) && (
+                  {/* The pay band is only present for HR, an admin, leadership
+                      or the hiring manager — see migration 00046. */}
+                  {(requisition.budget?.min_salary != null || requisition.budget?.max_salary != null) && (
                     <DetailField
                       label="Salary Range"
-                      value={`${requisition.min_salary ? formatCurrency(requisition.min_salary) : 'N/A'} - ${requisition.max_salary ? formatCurrency(requisition.max_salary) : 'N/A'}`}
+                      value={`${requisition.budget.min_salary ? formatCurrency(requisition.budget.min_salary) : 'N/A'} - ${requisition.budget.max_salary ? formatCurrency(requisition.budget.max_salary) : 'N/A'}`}
                     />
                   )}
                 </div>

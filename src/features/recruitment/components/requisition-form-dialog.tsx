@@ -124,8 +124,8 @@ export function RequisitionFormDialog({ open, onOpenChange, requisition }: Requi
         requirements: requisition.requirements || '',
         min_experience: requisition.min_experience ?? '',
         max_experience: requisition.max_experience ?? '',
-        min_salary: requisition.min_salary ?? '',
-        max_salary: requisition.max_salary ?? '',
+        min_salary: requisition.budget?.min_salary ?? '',
+        max_salary: requisition.budget?.max_salary ?? '',
         location: requisition.location || '',
       })
     } else {
