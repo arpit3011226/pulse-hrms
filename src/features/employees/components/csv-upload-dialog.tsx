@@ -12,7 +12,10 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
 import { useAuth } from '@/features/auth/hooks/use-auth'
-import { createEmployee, generateNextEmployeeCode } from '../api/employees.api'
+import {
+  createEmployee, generateNextEmployeeCode,
+  upsertEmployeeStatutory, upsertEmployeePersonal,
+} from '../api/employees.api'
 import { useQueryClient } from '@tanstack/react-query'
 
 interface CsvUploadDialogProps {
@@ -44,6 +47,10 @@ const CSV_TEMPLATE_HEADERS = [
 ]
 
 const REQUIRED_FIELDS = ['first_name', 'last_name', 'email']
+
+/** Columns that go to the private tables rather than the directory — see 00045. */
+const CSV_STATUTORY_FIELDS = ['pan_number', 'aadhar_number']
+const CSV_PERSONAL_FIELDS = ['date_of_birth', 'father_name', 'mother_name']
 
 function downloadTemplate() {
   const header = CSV_TEMPLATE_HEADERS.join(',')
@@ -151,12 +158,22 @@ export function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogProps) {
           employee_code: currentCode,
           status: 'active',
         }
+        const statutory: Record<string, unknown> = {}
+        const personal: Record<string, unknown> = {}
         for (const [key, val] of Object.entries(row.data)) {
-          if (val && CSV_TEMPLATE_HEADERS.includes(key)) {
-            payload[key] = val
-          }
+          if (!val || !CSV_TEMPLATE_HEADERS.includes(key)) continue
+          if (CSV_STATUTORY_FIELDS.includes(key)) statutory[key] = val
+          else if (CSV_PERSONAL_FIELDS.includes(key)) personal[key] = val
+          else payload[key] = val
         }
-        await createEmployee(payload as any)
+        const created = await createEmployee(payload as any)
+        const newId = (created as { id: string }).id
+        if (Object.keys(statutory).length > 0) {
+          await upsertEmployeeStatutory(newId, organization.id, statutory)
+        }
+        if (Object.keys(personal).length > 0) {
+          await upsertEmployeePersonal(newId, organization.id, personal)
+        }
         success++
         // Increment the code number
         const num = parseInt(currentCode.replace('EMP-', ''), 10)

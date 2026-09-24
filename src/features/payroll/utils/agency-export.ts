@@ -48,7 +48,7 @@ export async function exportPayrollForAgency(
   // Payslips carry the final figures for the month
   const { data: payslips, error } = await supabase
     .from('payslips')
-    .select('payslip_number, payroll_month, payroll_year, gross_earnings, total_deductions, net_pay, employee:employees!payslips_employee_id_fkey(id, first_name, last_name, employee_code, date_of_joining, pan_number, uan_number, personal_email, department:departments!department_id(name), designation:designations!designation_id(title))')
+    .select('payslip_number, payroll_month, payroll_year, gross_earnings, total_deductions, net_pay, employee:employees!payslips_employee_id_fkey(id, first_name, last_name, employee_code, date_of_joining, personal_email, statutory:employee_statutory(pan_number, uan_number), department:departments!department_id(name), designation:designations!designation_id(title))')
     .eq('organization_id', orgId)
     .eq('payroll_month', month)
     .eq('payroll_year', year)
@@ -91,8 +91,8 @@ export async function exportPayrollForAgency(
       e ? `${e.first_name} ${e.last_name}` : '',
       (e?.department as Record<string, unknown> | null)?.name ?? '',
       (e?.designation as Record<string, unknown> | null)?.title ?? '',
-      e?.pan_number ?? '',
-      e?.uan_number ?? '',
+      (e?.statutory as Record<string, unknown> | null)?.pan_number ?? '',
+      (e?.statutory as Record<string, unknown> | null)?.uan_number ?? '',
       e?.date_of_joining ?? '',
       p.payslip_number ?? '',
       p.gross_earnings ?? 0,

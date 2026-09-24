@@ -40,7 +40,16 @@ import {
 import { StatusBadge } from '@/components/shared/status-badge'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 
+import { useQueryClient } from '@tanstack/react-query'
 import { useEmployee, useUpdateEmployee, useEmployees } from '../hooks/use-employees'
+import { upsertEmployeeStatutory, upsertEmployeePersonal } from '../api/employees.api'
+
+/**
+ * Fields that live outside `employees` since 00045, because they are not part of
+ * the staff directory everyone can read.
+ */
+const STATUTORY_FIELDS = ['pan_number', 'aadhar_number', 'passport_number', 'uan_number'] as const
+const PERSONAL_FIELDS = ['date_of_birth', 'religion', 'father_name', 'mother_name', 'spouse_name'] as const
 import {
   useEmployeeAddresses,
   useEmergencyContacts,
@@ -263,9 +272,35 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
   // Inline save handler
   // ---------------------------------------------------------------------------
 
-  async function handleSaveSection(sectionData: Partial<Employee>) {
+  const queryClient = useQueryClient()
+
+  async function handleSaveSection(sectionData: Record<string, unknown>) {
     try {
-      await updateEmployee.mutateAsync({ id: employeeId, ...sectionData } as Partial<Employee> & { id: string })
+      // The form is one flat object, but it now writes to three tables.
+      const directory: Record<string, unknown> = { ...sectionData }
+      const statutory: Record<string, unknown> = {}
+      const personal: Record<string, unknown> = {}
+      for (const f of STATUTORY_FIELDS) {
+        if (f in directory) { statutory[f] = directory[f]; delete directory[f] }
+      }
+      for (const f of PERSONAL_FIELDS) {
+        if (f in directory) { personal[f] = directory[f]; delete directory[f] }
+      }
+
+      if (Object.keys(directory).length > 0) {
+        await updateEmployee.mutateAsync({ id: employeeId, ...directory } as Partial<Employee> & { id: string })
+      }
+      if (emp?.organization_id) {
+        if (Object.keys(statutory).length > 0) {
+          await upsertEmployeeStatutory(employeeId, emp.organization_id, statutory)
+        }
+        if (Object.keys(personal).length > 0) {
+          await upsertEmployeePersonal(employeeId, emp.organization_id, personal)
+        }
+        if (Object.keys(statutory).length > 0 || Object.keys(personal).length > 0) {
+          await queryClient.invalidateQueries({ queryKey: ['employee', employeeId] })
+        }
+      }
       toast.success('Updated successfully')
       setEditingSection(null)
     } catch (err: unknown) {
@@ -373,12 +408,12 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
                 <InfoField label="Personal Email" value={emp.personal_email} />
                 <InfoField label="Phone" value={emp.phone} />
                 <InfoField label="Official Phone" value={emp.official_phone} />
-                <InfoField label="Date of Birth" value={emp.date_of_birth ? formatDate(emp.date_of_birth) : null} />
+                <InfoField label="Date of Birth" value={emp.personal?.date_of_birth ? formatDate(emp.personal.date_of_birth) : null} />
                 <InfoField label="Gender" value={emp.gender} />
                 <InfoField label="Marital Status" value={emp.marital_status} />
                 <InfoField label="Blood Group" value={emp.blood_group} />
                 <InfoField label="Nationality" value={emp.nationality} />
-                <InfoField label="Religion" value={emp.religion} />
+                <InfoField label="Religion" value={emp.personal?.religion} />
               </div>
             )}
           </AccordionContent>
@@ -457,9 +492,9 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
               <FamilyEditForm employee={emp} onSave={handleSaveSection} onCancel={() => setEditingSection(null)} isPending={updateEmployee.isPending} />
             ) : (
               <div className="grid gap-4 sm:grid-cols-3">
-                <InfoField label="Father Name" value={emp.father_name} />
-                <InfoField label="Mother Name" value={emp.mother_name} />
-                <InfoField label="Spouse Name" value={emp.spouse_name} />
+                <InfoField label="Father Name" value={emp.personal?.father_name} />
+                <InfoField label="Mother Name" value={emp.personal?.mother_name} />
+                <InfoField label="Spouse Name" value={emp.personal?.spouse_name} />
               </div>
             )}
           </AccordionContent>
@@ -483,9 +518,9 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
               <ComplianceEditForm employee={emp} onSave={handleSaveSection} onCancel={() => setEditingSection(null)} isPending={updateEmployee.isPending} />
             ) : (
               <div className="grid gap-4 sm:grid-cols-3">
-                <InfoField label="PAN Number" value={emp.pan_number} />
-                <InfoField label="Aadhar Number" value={emp.aadhar_number} />
-                <InfoField label="UAN Number" value={emp.uan_number} />
+                <InfoField label="PAN Number" value={emp.statutory?.pan_number} />
+                <InfoField label="Aadhar Number" value={emp.statutory?.aadhar_number} />
+                <InfoField label="UAN Number" value={emp.statutory?.uan_number} />
               </div>
             )}
           </AccordionContent>
@@ -1101,12 +1136,12 @@ function PersonalEditForm({ employee, onSave, onCancel, isPending }: InlineEditF
       personal_email: employee.personal_email || '',
       phone: employee.phone || '',
       official_phone: employee.official_phone || '',
-      date_of_birth: employee.date_of_birth || '',
+      date_of_birth: employee.personal?.date_of_birth || '',
       gender: employee.gender || '',
       marital_status: employee.marital_status || '',
       blood_group: employee.blood_group || '',
       nationality: employee.nationality || '',
-      religion: employee.religion || '',
+      religion: employee.personal?.religion || '',
     },
   })
 
@@ -1199,7 +1234,7 @@ function PersonalEditForm({ employee, onSave, onCancel, isPending }: InlineEditF
         </div>
         <div className="space-y-1">
           <Label>Religion</Label>
-          <Select onValueChange={(v) => setValue('religion', v)} defaultValue={employee.religion || undefined}>
+          <Select onValueChange={(v) => setValue('religion', v)} defaultValue={employee.personal?.religion || undefined}>
             <SelectTrigger><SelectValue placeholder="Select religion" /></SelectTrigger>
             <SelectContent>
               {RELIGION_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
@@ -1319,9 +1354,9 @@ function EmploymentEditForm({ employee, departments, designations, managers, onS
 function FamilyEditForm({ employee, onSave, onCancel, isPending }: InlineEditFormProps) {
   const { register, handleSubmit } = useForm({
     defaultValues: {
-      father_name: employee.father_name || '',
-      mother_name: employee.mother_name || '',
-      spouse_name: employee.spouse_name || '',
+      father_name: employee.personal?.father_name || '',
+      mother_name: employee.personal?.mother_name || '',
+      spouse_name: employee.personal?.spouse_name || '',
     },
   })
 
@@ -1359,9 +1394,9 @@ function FamilyEditForm({ employee, onSave, onCancel, isPending }: InlineEditFor
 function ComplianceEditForm({ employee, onSave, onCancel, isPending }: InlineEditFormProps) {
   const { register, handleSubmit } = useForm({
     defaultValues: {
-      pan_number: employee.pan_number || '',
-      aadhar_number: employee.aadhar_number || '',
-      uan_number: employee.uan_number || '',
+      pan_number: employee.statutory?.pan_number || '',
+      aadhar_number: employee.statutory?.aadhar_number || '',
+      uan_number: employee.statutory?.uan_number || '',
     },
   })
 

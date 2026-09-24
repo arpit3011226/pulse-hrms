@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { Employee } from '@/types/database.types'
+import type { Employee, EmployeePersonal, EmployeeStatutory } from '@/types/database.types'
 
 export interface EmployeeFilters {
   search?: string
@@ -29,14 +29,49 @@ export async function getEmployees(orgId: string, filters?: EmployeeFilters) {
 }
 
 export async function getEmployee(id: string) {
+  // The two private records come back as nested objects. Anyone without the
+  // right to read them simply gets null, so the screen degrades rather than
+  // failing — see migration 00045.
   const { data, error } = await supabase
     .from('employees')
-    .select('*, department:departments!department_id(id, name), designation:designations!designation_id(id, title)')
+    .select('*, department:departments!department_id(id, name), designation:designations!designation_id(id, title), statutory:employee_statutory(*), personal:employee_personal(*)')
     .eq('id', id)
     .single()
 
   if (error) throw new Error(error.message)
   return data
+}
+
+/**
+ * Government identifiers and bank details live in their own table with their own
+ * policy, so they are written separately from the directory record.
+ */
+export async function upsertEmployeeStatutory(
+  employeeId: string,
+  organizationId: string,
+  updates: Partial<EmployeeStatutory>
+) {
+  const { error } = await supabase
+    .from('employee_statutory')
+    .upsert(
+      { ...updates, employee_id: employeeId, organization_id: organizationId },
+      { onConflict: 'employee_id' }
+    )
+  if (error) throw new Error(error.message)
+}
+
+export async function upsertEmployeePersonal(
+  employeeId: string,
+  organizationId: string,
+  updates: Partial<EmployeePersonal>
+) {
+  const { error } = await supabase
+    .from('employee_personal')
+    .upsert(
+      { ...updates, employee_id: employeeId, organization_id: organizationId },
+      { onConflict: 'employee_id' }
+    )
+  if (error) throw new Error(error.message)
 }
 
 export async function createEmployee(employee: Partial<Employee>) {

@@ -649,7 +649,7 @@ export async function getPayslipDetail(payslipId: string) {
   // Fetch payslip with employee details
   const { data: payslip, error: psError } = await supabase
     .from('payslips')
-    .select('*, employee:employees!employee_id(id, first_name, last_name, email, employee_code, date_of_joining, pan_number, uan_number, bank_details, department:departments!department_id(id, name), designation:designations!designation_id(id, title))')
+    .select('*, employee:employees!employee_id(id, first_name, last_name, email, employee_code, date_of_joining, statutory:employee_statutory(pan_number, uan_number, bank_details), department:departments!department_id(id, name), designation:designations!designation_id(id, title))')
     .eq('id', payslipId)
     .single()
   if (psError) throw psError

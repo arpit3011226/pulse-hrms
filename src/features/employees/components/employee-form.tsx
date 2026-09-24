@@ -12,11 +12,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/page-header'
 import { useCreateEmployee, useUpdateEmployee, useNextEmployeeCode } from '../hooks/use-employees'
+import { upsertEmployeeStatutory, upsertEmployeePersonal } from '../api/employees.api'
+import { useAuth } from '@/features/auth/hooks/use-auth'
 import {
   EMPLOYMENT_TYPES, GENDER_OPTIONS, MARITAL_STATUS_OPTIONS, BLOOD_GROUPS,
   SALUTATION_OPTIONS, RELIGION_OPTIONS, NATIONALITY_OPTIONS,
 } from '@/lib/constants'
-import type { Employee, Department, Designation } from '@/types/database.types'
+import type { Employee, EmployeeWithRelations, Department, Designation } from '@/types/database.types'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -69,8 +71,15 @@ const WIZARD_STEPS = [
   { title: 'Family Details', description: 'Family & emergency info', icon: Heart, color: 'text-rose-500', bg: 'bg-rose-50', border: 'border-rose-200', activeBg: 'bg-rose-500' },
 ]
 
+/**
+ * Fields that live outside `employees` since 00045, because they are not part of
+ * the staff directory everyone can read.
+ */
+const STATUTORY_FIELDS = ['pan_number', 'aadhar_number', 'passport_number', 'uan_number'] as const
+const PERSONAL_FIELDS = ['date_of_birth', 'religion', 'father_name', 'mother_name', 'spouse_name'] as const
+
 interface EmployeeFormProps {
-  employee?: Employee
+  employee?: EmployeeWithRelations
   departments: Department[]
   designations: Designation[]
   managers: Pick<Employee, 'id' | 'first_name' | 'last_name'>[]
@@ -78,6 +87,7 @@ interface EmployeeFormProps {
 
 export function EmployeeForm({ employee, departments, designations, managers }: EmployeeFormProps) {
   const navigate = useNavigate()
+  const { organization } = useAuth()
   const createEmployee = useCreateEmployee()
   const updateEmployee = useUpdateEmployee()
   const isEditing = !!employee
@@ -96,15 +106,15 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
       phone: employee.phone || '',
       official_phone: employee.official_phone || '',
       employee_code: employee.employee_code || '',
-      date_of_birth: employee.date_of_birth || '',
+      date_of_birth: employee.personal?.date_of_birth || '',
       gender: employee.gender || '',
       marital_status: employee.marital_status || '',
       blood_group: employee.blood_group || '',
       nationality: employee.nationality || '',
-      religion: employee.religion || '',
-      father_name: employee.father_name || '',
-      mother_name: employee.mother_name || '',
-      spouse_name: employee.spouse_name || '',
+      religion: employee.personal?.religion || '',
+      father_name: employee.personal?.father_name || '',
+      mother_name: employee.personal?.mother_name || '',
+      spouse_name: employee.personal?.spouse_name || '',
       department_id: employee.department_id || '',
       designation_id: employee.designation_id || '',
       employment_type: employee.employment_type,
@@ -115,9 +125,9 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
       probation_end_date: employee.probation_end_date || '',
       confirmation_date: employee.confirmation_date || '',
       reporting_manager_id: employee.reporting_manager_id || '',
-      pan_number: employee.pan_number || '',
-      aadhar_number: employee.aadhar_number || '',
-      uan_number: employee.uan_number || '',
+      pan_number: employee.statutory?.pan_number || '',
+      aadhar_number: employee.statutory?.aadhar_number || '',
+      uan_number: employee.statutory?.uan_number || '',
     } : {
       employment_type: 'full_time',
       nationality: 'Indian',
@@ -152,13 +162,31 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
         Object.entries(dbData).map(([k, v]) => [k, v === '' ? null : v])
       )
 
+      // Split the form back out into the three tables it now writes to.
+      const statutory: Record<string, unknown> = {}
+      const personal: Record<string, unknown> = {}
+      for (const f of STATUTORY_FIELDS) {
+        if (f in cleaned) { statutory[f] = cleaned[f]; delete cleaned[f] }
+      }
+      for (const f of PERSONAL_FIELDS) {
+        if (f in cleaned) { personal[f] = cleaned[f]; delete cleaned[f] }
+      }
+
+      let employeeId: string
       if (isEditing) {
         await updateEmployee.mutateAsync({ id: employee.id, ...cleaned })
-        toast.success('Employee updated successfully')
+        employeeId = employee.id
       } else {
-        await createEmployee.mutateAsync(cleaned)
-        toast.success('Employee created successfully')
+        const created = await createEmployee.mutateAsync(cleaned)
+        employeeId = (created as { id: string }).id
       }
+
+      if (organization) {
+        await upsertEmployeeStatutory(employeeId, organization.id, statutory)
+        await upsertEmployeePersonal(employeeId, organization.id, personal)
+      }
+
+      toast.success(isEditing ? 'Employee updated successfully' : 'Employee created successfully')
       navigate({ to: '/employees' })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Something went wrong')
@@ -271,7 +299,7 @@ export function EmployeeForm({ employee, departments, designations, managers }: 
       </div>
       <div className="space-y-2">
         <Label>Religion</Label>
-        <Select onValueChange={(v) => setValue('religion', v)} defaultValue={employee?.religion || undefined}>
+        <Select onValueChange={(v) => setValue('religion', v)} defaultValue={employee?.personal?.religion || undefined}>
           <SelectTrigger><SelectValue placeholder="Select religion" /></SelectTrigger>
           <SelectContent>
             {RELIGION_OPTIONS.map((opt) => (

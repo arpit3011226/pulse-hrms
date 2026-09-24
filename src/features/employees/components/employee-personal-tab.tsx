@@ -15,11 +15,11 @@ import {
 } from '../hooks/use-employee-lifecycle'
 import { EmployeeAddressForm } from './employee-address-form'
 import { EmployeeContactForm } from './employee-contact-form'
-import type { Employee, EmployeeAddress, EmployeeEmergencyContact } from '@/types/database.types'
+import type { EmployeeWithRelations, EmployeeAddress, EmployeeEmergencyContact } from '@/types/database.types'
 import { toast } from 'sonner'
 
 interface EmployeePersonalTabProps {
-  employee: Employee
+  employee: EmployeeWithRelations
 }
 
 export function EmployeePersonalTab({ employee }: EmployeePersonalTabProps) {
@@ -62,15 +62,28 @@ export function EmployeePersonalTab({ employee }: EmployeePersonalTabProps) {
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <InfoItem label="Nationality" value={employee.nationality} />
-            <InfoItem label="Religion" value={employee.religion} />
-            <InfoItem label="Father's Name" value={employee.father_name} />
-            <InfoItem label="Mother's Name" value={employee.mother_name} />
-            <InfoItem label="Spouse's Name" value={employee.spouse_name} />
-            <InfoItem label="Date of Birth" value={employee.date_of_birth ? formatDate(employee.date_of_birth) : null} />
             <InfoItem label="Gender" value={employee.gender} />
             <InfoItem label="Marital Status" value={employee.marital_status} />
             <InfoItem label="Blood Group" value={employee.blood_group} />
+            {employee.personal ? (
+              <>
+                <InfoItem label="Religion" value={employee.personal.religion} />
+                <InfoItem label="Father's Name" value={employee.personal.father_name} />
+                <InfoItem label="Mother's Name" value={employee.personal.mother_name} />
+                <InfoItem label="Spouse's Name" value={employee.personal.spouse_name} />
+                <InfoItem
+                  label="Date of Birth"
+                  value={employee.personal.date_of_birth ? formatDate(employee.personal.date_of_birth) : null}
+                />
+              </>
+            ) : null}
           </div>
+          {!employee.personal && (
+            <p className="mt-4 text-xs text-muted-foreground">
+              Date of birth, religion and family details are visible to the person themselves,
+              HR, an admin and leadership only.
+            </p>
+          )}
         </CardContent>
       </Card>
 

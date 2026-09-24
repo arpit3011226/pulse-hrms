@@ -321,13 +321,17 @@ export function evaluateTargetRules(
     employment_type?: string | null
     status?: string | null
     date_of_joining?: string | null
-    date_of_birth?: string | null
+    /** Comes from employee_personal now; a person can always read their own. */
+    personal?: { date_of_birth?: string | null } | null
   }
 ): boolean {
   if (!rules || rules.length === 0) return true // No rules = all employees
 
   return rules.every((rule) => {
-    const fieldValue = employee[rule.field as keyof typeof employee]
+    const fieldValue =
+      rule.field === 'date_of_birth'
+        ? employee.personal?.date_of_birth
+        : employee[rule.field as keyof typeof employee]
 
     switch (rule.operator) {
       case 'is':
@@ -370,7 +374,7 @@ export async function getActiveSurveysForEmployee(
     employment_type?: string | null
     status?: string | null
     date_of_joining?: string | null
-    date_of_birth?: string | null
+    personal?: { date_of_birth?: string | null } | null
   }
 ) {
   const today = new Date().toISOString().split('T')[0]

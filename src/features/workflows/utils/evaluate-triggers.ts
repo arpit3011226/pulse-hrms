@@ -122,14 +122,12 @@ async function getEventMatchedEmployees(
 
   switch (event) {
     case 'employee_birthday': {
-      // Match employees whose date_of_birth month and day match today
+      // Day and month only. The full date of birth is private now — see 00045.
       const { data, error } = await query
       if (error || !data) return []
-      return (data as Employee[]).filter((emp) => {
-        if (!emp.date_of_birth) return false
-        const dob = new Date(emp.date_of_birth)
-        return dob.getMonth() + 1 === month && dob.getDate() === day
-      })
+      return (data as Employee[]).filter(
+        (emp) => emp.birth_month === month && emp.birth_day === day
+      )
     }
 
     case 'employee_work_anniversary': {

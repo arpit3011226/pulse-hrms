@@ -171,10 +171,10 @@ export async function fetchRecentActivity(organizationId: string): Promise<Recen
 export async function fetchUpcomingBirthdays(organizationId: string): Promise<UpcomingPerson[]> {
   const { data } = await supabase
     .from('employees')
-    .select('id, first_name, last_name, avatar_url, date_of_birth, department_id, department:departments!department_id(name)')
+    .select('id, first_name, last_name, avatar_url, birth_day, birth_month, department_id, department:departments!department_id(name)')
     .eq('organization_id', organizationId)
     .eq('status', 'active')
-    .not('date_of_birth', 'is', null)
+    .not('birth_month', 'is', null)
 
   if (!data) return []
 
@@ -182,9 +182,9 @@ export async function fetchUpcomingBirthdays(organizationId: string): Promise<Up
   const results: UpcomingPerson[] = []
 
   for (const emp of data) {
-    if (!emp.date_of_birth) continue
-    const dob = new Date(emp.date_of_birth)
-    const thisYear = new Date(today.getFullYear(), dob.getMonth(), dob.getDate())
+    if (!emp.birth_month || !emp.birth_day) continue
+    // Day and month only — the year is private, see migration 00045.
+    const thisYear = new Date(today.getFullYear(), emp.birth_month - 1, emp.birth_day)
     // If already passed this year, look at next year
     if (thisYear < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
       thisYear.setFullYear(today.getFullYear() + 1)
@@ -200,7 +200,7 @@ export async function fetchUpcomingBirthdays(organizationId: string): Promise<Up
         avatar_url: emp.avatar_url,
         department_id: emp.department_id,
         department_name: dept?.name ?? null,
-        date: emp.date_of_birth,
+        date: `${String(emp.birth_month).padStart(2, '0')}-${String(emp.birth_day).padStart(2, '0')}`,
         upcoming_date: thisYear.toISOString().split('T')[0],
         days_away: daysAway,
       })
@@ -485,7 +485,7 @@ export async function deleteAnnouncement(id: string) {
 export async function getCurrentEmployee(profileId: string) {
   const { data } = await supabase
     .from('employees')
-    .select('id, first_name, last_name, department_id, reporting_manager_id, date_of_birth, date_of_joining, avatar_url, status')
+    .select('id, first_name, last_name, department_id, reporting_manager_id, date_of_joining, avatar_url, status, gender, designation_id, employment_type, personal:employee_personal(date_of_birth)')
     .eq('profile_id', profileId)
     .eq('status', 'active')
     .single()

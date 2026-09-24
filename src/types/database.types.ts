@@ -102,7 +102,12 @@ export interface Employee {
   email: string
   personal_email: string | null
   phone: string | null
-  date_of_birth: string | null
+  /**
+   * Day and month of birth only, so the birthday greeting works without exposing
+   * anyone's age. The full date lives on EmployeePersonal.
+   */
+  birth_day: number | null
+  birth_month: number | null
   gender: string | null
   marital_status: string | null
   blood_group: string | null
@@ -114,13 +119,6 @@ export interface Employee {
   date_of_leaving: string | null
   probation_end_date: string | null
   status: string
-  current_address: Record<string, string> | null
-  permanent_address: Record<string, string> | null
-  pan_number: string | null
-  aadhar_number: string | null
-  passport_number: string | null
-  uan_number: string | null
-  bank_details: Record<string, string> | null
   emergency_contact: Record<string, string> | null
   avatar_url: string | null
   salutation: string | null
@@ -128,7 +126,37 @@ export interface Employee {
   official_phone: string | null
   confirmation_date: string | null
   nationality: string | null
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * Government identifiers and bank details, split off the org-wide readable
+ * employees table. Readable by the person, HR, admin, leadership and payroll.
+ */
+export interface EmployeeStatutory {
+  employee_id: string
+  organization_id: string
+  pan_number: string | null
+  aadhar_number: string | null
+  passport_number: string | null
+  uan_number: string | null
+  bank_details: Record<string, string> | null
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * Date of birth, religion, addresses and family names.
+ * Readable by the person, HR, admin and leadership.
+ */
+export interface EmployeePersonal {
+  employee_id: string
+  organization_id: string
+  date_of_birth: string | null
   religion: string | null
+  current_address: Record<string, string> | null
+  permanent_address: Record<string, string> | null
   father_name: string | null
   mother_name: string | null
   spouse_name: string | null
@@ -137,6 +165,9 @@ export interface Employee {
 }
 
 export interface EmployeeWithRelations extends Employee {
+  /** Present only for someone allowed to read it; otherwise null. */
+  statutory?: EmployeeStatutory | null
+  personal?: EmployeePersonal | null
   department?: Department | null
   designation?: Designation | null
   reporting_manager?: Pick<Employee, 'id' | 'first_name' | 'last_name'> | null
@@ -1665,6 +1696,8 @@ export interface Database {
       departments: { Row: Department; Insert: Partial<Department>; Update: Partial<Department> }
       designations: { Row: Designation; Insert: Partial<Designation>; Update: Partial<Designation> }
       employees: { Row: Employee; Insert: Partial<Employee>; Update: Partial<Employee> }
+      employee_statutory: { Row: EmployeeStatutory; Insert: Partial<EmployeeStatutory>; Update: Partial<EmployeeStatutory> }
+      employee_personal: { Row: EmployeePersonal; Insert: Partial<EmployeePersonal>; Update: Partial<EmployeePersonal> }
       leave_types: { Row: LeaveType; Insert: Partial<LeaveType>; Update: Partial<LeaveType> }
       leave_policies: { Row: LeavePolicy; Insert: Partial<LeavePolicy>; Update: Partial<LeavePolicy> }
       leave_policy_details: { Row: LeavePolicyDetail; Insert: Partial<LeavePolicyDetail>; Update: Partial<LeavePolicyDetail> }

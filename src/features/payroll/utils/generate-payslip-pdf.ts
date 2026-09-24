@@ -26,9 +26,12 @@ interface PayslipEmployee {
   email: string
   employee_code: string | null
   date_of_joining: string | null
-  pan_number: string | null
-  uan_number: string | null
-  bank_details: Record<string, string> | null
+  /** Identifiers and bank details moved to their own table in 00045. */
+  statutory: {
+    pan_number: string | null
+    uan_number: string | null
+    bank_details: Record<string, string> | null
+  } | null
   department: { name: string } | null
   designation: { title: string } | null
 }
@@ -188,13 +191,13 @@ export function generatePayslipPdf(data: PayslipPdfData, organization: Organizat
   const r2vy = r1vy + 9
   drawField('Designation', emp?.designation?.title || '-', col1x, r2ly, r2vy)
   drawField('Date of Joining', formatDateShort(emp?.date_of_joining || null), col2x, r2ly, r2vy)
-  drawField('PAN', emp?.pan_number || '-', col3x, r2ly, r2vy)
+  drawField('PAN', emp?.statutory?.pan_number || '-', col3x, r2ly, r2vy)
 
   // Row 3
   const r3ly = r2ly + 9
   const r3vy = r2vy + 9
-  drawField('Bank A/C', maskBankAccount(emp?.bank_details?.account_number), col1x, r3ly, r3vy)
-  drawField('UAN', emp?.uan_number || '-', col2x, r3ly, r3vy)
+  drawField('Bank A/C', maskBankAccount(emp?.statutory?.bank_details?.account_number), col1x, r3ly, r3vy)
+  drawField('UAN', emp?.statutory?.uan_number || '-', col2x, r3ly, r3vy)
   drawField('Working Days', String(data.working_days ?? '-'), col3x, r3ly, r3vy)
 
   y += 46

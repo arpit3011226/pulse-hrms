@@ -4,6 +4,9 @@ interface PlaceholderContext {
   employee: Employee & {
     department?: { name: string } | null
     designation?: { title: string } | null
+    // PAN and the home address moved to their own tables in 00045.
+    statutory?: { pan_number: string | null } | null
+    personal?: { current_address: Record<string, string> | null } | null
   }
   organization: Organization
   compensation?: { annual_ctc: number } | null
@@ -45,8 +48,8 @@ export function resolvePlaceholders(template: string, ctx: PlaceholderContext): 
     '{{company_address}}': formatAddress(ctx.organization.address),
     '{{current_date}}': formatDate(new Date().toISOString()),
     '{{salary}}': ctx.compensation ? formatCurrency(ctx.compensation.annual_ctc) : '',
-    '{{pan_number}}': ctx.employee.pan_number || '',
-    '{{current_address}}': '',
+    '{{pan_number}}': ctx.employee.statutory?.pan_number || '',
+    '{{current_address}}': formatAddress(ctx.employee.personal?.current_address),
   }
 
   let result = template

@@ -18,7 +18,7 @@ interface Props {
     employment_type?: string | null
     status?: string | null
     date_of_joining?: string | null
-    date_of_birth?: string | null
+    personal?: { date_of_birth?: string | null } | null
   } | null
 }
 
