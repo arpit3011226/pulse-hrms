@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { one } from '@/lib/supabase-embed'
 import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -33,7 +34,7 @@ export function AttendanceReportsTab() {
     if (!records) return []
     const map = new Map<string, { present: number; absent: number; halfDay: number }>()
     for (const r of records) {
-      const dept = (r.employee as any)?.department?.name ?? 'Unassigned'
+      const dept = one(one(r.employee)?.department)?.name ?? 'Unassigned'
       const existing = map.get(dept) ?? { present: 0, absent: 0, halfDay: 0 }
       if (r.status === 'present') existing.present++
       else if (r.status === 'absent') existing.absent++
@@ -64,11 +65,11 @@ export function AttendanceReportsTab() {
               exportToCSV(
                 records ?? [],
                 [
-                  { header: 'Date', accessor: (r: any) => r.date },
-                  { header: 'Employee', accessor: (r: any) => `${r.employee?.first_name} ${r.employee?.last_name}` },
-                  { header: 'Code', accessor: (r: any) => r.employee?.employee_code },
-                  { header: 'Department', accessor: (r: any) => r.employee?.department?.name },
-                  { header: 'Status', accessor: (r: any) => r.status },
+                  { header: 'Date', accessor: (r) => r.date },
+                  { header: 'Employee', accessor: (r) => `${one(r.employee)?.first_name} ${one(r.employee)?.last_name}` },
+                  { header: 'Code', accessor: (r) => one(r.employee)?.employee_code },
+                  { header: 'Department', accessor: (r) => one(one(r.employee)?.department)?.name },
+                  { header: 'Status', accessor: (r) => r.status },
                 ],
                 `attendance-report-${startDate}-to-${endDate}`
               )

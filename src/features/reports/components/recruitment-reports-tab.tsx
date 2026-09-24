@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { one } from '@/lib/supabase-embed'
 import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -60,12 +61,12 @@ export function RecruitmentReportsTab() {
               exportToCSV(
                 requisitions ?? [],
                 [
-                  { header: 'Code', accessor: (r: any) => r.requisition_code },
-                  { header: 'Title', accessor: (r: any) => r.title },
-                  { header: 'Department', accessor: (r: any) => r.department?.name },
-                  { header: 'Headcount', accessor: (r: any) => r.headcount },
-                  { header: 'Status', accessor: (r: any) => r.status },
-                  { header: 'Created', accessor: (r: any) => r.created_at?.split('T')[0] },
+                  { header: 'Code', accessor: (r) => r.requisition_code },
+                  { header: 'Title', accessor: (r) => r.title },
+                  { header: 'Department', accessor: (r) => one(r.department)?.name },
+                  { header: 'Headcount', accessor: (r) => r.headcount },
+                  { header: 'Status', accessor: (r) => r.status },
+                  { header: 'Created', accessor: (r) => r.created_at?.split('T')[0] },
                 ],
                 'recruitment-report'
               )

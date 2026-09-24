@@ -1,4 +1,5 @@
 import { CalendarDays } from 'lucide-react'
+import { one } from '@/lib/supabase-embed'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useMyLeaveBalances } from '@/features/leave/hooks/use-leave'
@@ -12,7 +13,7 @@ export function LeaveBalanceWidget({ employeeId }: LeaveBalanceWidgetProps) {
   const { data: balances } = useMyLeaveBalances(employeeId ?? '', currentYear)
 
   const items = (balances ?? []).filter((b) => {
-    const lt = b.leave_type as any
+    const lt = one(b.leave_type)
     return lt // only show if leave type info is available
   })
 
@@ -33,7 +34,7 @@ export function LeaveBalanceWidget({ employeeId }: LeaveBalanceWidgetProps) {
           <div className="overflow-y-auto max-h-[200px]">
             <div className="space-y-3">
               {items.map((b) => {
-                const lt = b.leave_type as any
+                const lt = one(b.leave_type)
                 const total = (b.total_days ?? 0) + (b.carried_forward_days ?? 0)
                 const used = b.used_days ?? 0
                 const available = Math.max(0, total - used - (b.pending_days ?? 0))

@@ -1,4 +1,5 @@
 import { Download } from 'lucide-react'
+import { one } from '@/lib/supabase-embed'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -26,17 +27,18 @@ export function AllLettersTab() {
   const { data: requests, isLoading } = useAllLetterRequests()
 
   function handleDownload(req: LetterRequestWithRelations) {
-    if (!organization || !req.template || !req.employee) return
+    const employee = one(req.employee)
+    if (!organization || !req.template || !employee) return
 
     const resolved = req.resolved_body_html || resolvePlaceholders(req.template.body_html, {
-      employee: req.employee as any,
+      employee,
       organization,
     })
     generateLetterPdf(
       resolved,
       req.template.name,
       organization,
-      `${req.employee.first_name} ${req.employee.last_name}`,
+      `${employee.first_name} ${employee.last_name}`,
       req.created_at
     )
   }

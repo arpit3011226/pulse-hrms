@@ -206,8 +206,8 @@ export function PayrollRunsTab() {
     try {
       await computePayroll.mutateAsync(runId)
       toast.success('Payroll computed successfully')
-    } catch (err: any) {
-      const msg = err?.message || err?.toString() || 'Unknown error'
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error')
       console.error('Failed to compute payroll:', err)
       toast.error(`Failed to compute payroll: ${msg}`)
     }
@@ -235,8 +235,8 @@ export function PayrollRunsTab() {
     try {
       await executePayroll.mutateAsync(cycleId)
       toast.success('Payroll executed — CSV downloaded')
-    } catch (err: any) {
-      const msg = err?.message || err?.toString() || 'Unknown error'
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error')
       console.error('Failed to execute payroll:', err)
       toast.error(`Failed to execute payroll: ${msg}`)
     }

@@ -57,8 +57,8 @@ export function PayrollProcessingView({ runId, runStatus, onStatusChange }: Payr
       setProgress(100)
       toast.success('Payroll computed successfully')
       onStatusChange?.()
-    } catch (err: any) {
-      const msg = err?.message || err?.toString() || 'Unknown error'
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error')
       console.error('Failed to compute payroll:', err)
       toast.error(`Failed to compute payroll: ${msg}`)
       setProgress(0)

@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { one } from '@/lib/supabase-embed'
 import type { AnnouncementWithCreator } from '@/types/database.types'
 
 export interface DashboardStats {
@@ -141,7 +142,7 @@ export async function fetchRecentActivity(organizationId: string): Promise<Recen
 
   if (recentLeaves) {
     for (const lr of recentLeaves) {
-      const emp = lr.employee as any
+      const emp = one(lr.employee)
       if (emp) {
         const action = lr.status === 'pending'
           ? 'applied for leave'
@@ -192,7 +193,7 @@ export async function fetchUpcomingBirthdays(organizationId: string): Promise<Up
     const diffMs = thisYear.getTime() - new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
     const daysAway = Math.round(diffMs / (1000 * 60 * 60 * 24))
     if (daysAway <= 30) {
-      const dept = emp.department as any
+      const dept = one(emp.department)
       results.push({
         id: emp.id,
         first_name: emp.first_name,
@@ -241,7 +242,7 @@ export async function fetchUpcomingAnniversaries(organizationId: string): Promis
 
     // Only show if completing at least 1 year and within 30 days
     if (daysAway <= 30 && years >= 1) {
-      const dept = emp.department as any
+      const dept = one(emp.department)
       results.push({
         id: emp.id,
         first_name: emp.first_name,
@@ -293,14 +294,14 @@ async function fetchOnLeave(organizationId: string, employeeIds?: string[]): Pro
   if (!data) return []
 
   return data.map((lr) => {
-    const emp = lr.employee as any
-    const lt = lr.leave_type as any
+    const emp = one(lr.employee)
+    const lt = one(lr.leave_type)
     return {
       id: lr.id,
       employee_id: lr.employee_id,
       employee_name: emp ? `${emp.first_name} ${emp.last_name}` : 'Unknown',
       avatar_url: emp?.avatar_url ?? null,
-      department_name: emp?.department?.name ?? null,
+      department_name: one(emp?.department)?.name ?? null,
       leave_type_name: lt?.name ?? 'Leave',
       start_date: lr.start_date,
       end_date: lr.end_date,

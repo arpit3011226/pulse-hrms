@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { one } from '@/lib/supabase-embed'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -300,7 +301,7 @@ export function SurveyResultsView({ surveyId, onBack }: SurveyResultsViewProps) 
         employeeName: r.is_anonymous ? 'Anonymous' : `${r.employee?.first_name ?? ''} ${r.employee?.last_name ?? ''}`.trim(),
         employeeCode: r.is_anonymous ? null : r.employee?.employee_code,
         employeeEmail: r.is_anonymous ? null : r.employee?.email,
-        department: r.is_anonymous ? null : (r.employee?.department as any)?.name,
+        department: r.is_anonymous ? null : (one(r.employee?.department))?.name,
         answers: answersByResponse.get(r.id) ?? [],
       }))
     },

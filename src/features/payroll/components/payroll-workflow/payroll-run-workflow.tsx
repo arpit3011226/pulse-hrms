@@ -110,8 +110,8 @@ export function PayrollRunWorkflow({ cycleId, onBack }: PayrollRunWorkflowProps)
     try {
       await executePayroll.mutateAsync(cycleId)
       toast.success('Payroll executed — CSV downloaded')
-    } catch (err: any) {
-      const msg = err?.message || 'Unknown error'
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error')
       toast.error(`Failed to execute payroll: ${msg}`)
     }
   }

@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { one } from '@/lib/supabase-embed'
 import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -34,7 +35,7 @@ export function PayrollReportsTab() {
     if (!payslips) return []
     const map = new Map<string, { gross: number; net: number; count: number }>()
     for (const p of payslips) {
-      const dept = (p.employee as any)?.department?.name ?? 'Unassigned'
+      const dept = one(one(p.employee)?.department)?.name ?? 'Unassigned'
       const existing = map.get(dept) ?? { gross: 0, net: 0, count: 0 }
       map.set(dept, {
         gross: existing.gross + (p.gross_earnings ?? 0),
@@ -61,15 +62,15 @@ export function PayrollReportsTab() {
               exportToCSV(
                 payslips ?? [],
                 [
-                  { header: 'Employee', accessor: (r: any) => `${r.employee?.first_name} ${r.employee?.last_name}` },
-                  { header: 'Code', accessor: (r: any) => r.employee?.employee_code },
-                  { header: 'Department', accessor: (r: any) => r.employee?.department?.name },
-                  { header: 'Month', accessor: (r: any) => r.payroll_month },
-                  { header: 'Year', accessor: (r: any) => r.payroll_year },
-                  { header: 'Gross', accessor: (r: any) => r.gross_earnings },
-                  { header: 'Deductions', accessor: (r: any) => r.total_deductions },
-                  { header: 'Net Pay', accessor: (r: any) => r.net_pay },
-                  { header: 'Status', accessor: (r: any) => (r.published_flag ? 'Published' : 'Draft') },
+                  { header: 'Employee', accessor: (r) => `${one(r.employee)?.first_name} ${one(r.employee)?.last_name}` },
+                  { header: 'Code', accessor: (r) => one(r.employee)?.employee_code },
+                  { header: 'Department', accessor: (r) => one(one(r.employee)?.department)?.name },
+                  { header: 'Month', accessor: (r) => r.payroll_month },
+                  { header: 'Year', accessor: (r) => r.payroll_year },
+                  { header: 'Gross', accessor: (r) => r.gross_earnings },
+                  { header: 'Deductions', accessor: (r) => r.total_deductions },
+                  { header: 'Net Pay', accessor: (r) => r.net_pay },
+                  { header: 'Status', accessor: (r) => (r.published_flag ? 'Published' : 'Draft') },
                 ],
                 'payroll-report'
               )

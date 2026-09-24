@@ -1,7 +1,14 @@
 import type { Employee, Organization } from '@/types/database.types'
 
 interface PlaceholderContext {
-  employee: Employee & {
+  /**
+   * Only the fields the placeholders actually read. A letter request does not
+   * load a whole employee record, and asking for one here just forces a cast at
+   * every call site.
+   */
+  employee: Partial<Employee> & {
+    first_name: string
+    last_name: string
     department?: { name: string } | null
     designation?: { title: string } | null
     // PAN and the home address moved to their own tables in 00045.

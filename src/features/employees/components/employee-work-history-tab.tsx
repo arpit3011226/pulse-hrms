@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { one } from '@/lib/supabase-embed'
 import { ArrowUpRight, ArrowRightLeft, UserCog, Briefcase, Calendar, Plus, Pencil, Trash2, Building2, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -93,17 +94,17 @@ export function EmployeeWorkHistoryTab({ employee, departments, designations, ma
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <p className="text-xs text-muted-foreground">Department</p>
-                <p className="text-sm font-medium">{(workProfiles?.[0] as any)?.department?.name || '-'}</p>
+                <p className="text-sm font-medium">{one(workProfiles?.[0]?.department)?.name || '-'}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Designation</p>
-                <p className="text-sm font-medium">{(workProfiles?.[0] as any)?.designation?.title || '-'}</p>
+                <p className="text-sm font-medium">{one(workProfiles?.[0]?.designation)?.title || '-'}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Reporting Manager</p>
                 <p className="text-sm font-medium">
                   {(workProfiles?.[0] as any)?.reporting_manager
-                    ? `${(workProfiles?.[0] as any)?.reporting_manager?.first_name} ${(workProfiles?.[0] as any)?.reporting_manager?.last_name}`
+                    ? `${one(workProfiles?.[0]?.reporting_manager)?.first_name} ${one(workProfiles?.[0]?.reporting_manager)?.last_name}`
                     : '-'}
                 </p>
               </div>

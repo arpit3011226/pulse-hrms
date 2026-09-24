@@ -228,8 +228,8 @@ export function GoalFormDialog({ open, onOpenChange, goal, employeeId, cycleId }
         toast.success('Goal created')
       }
       onOpenChange(false)
-    } catch (err: any) {
-      const msg = err?.message || err?.toString() || 'Unknown error'
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error')
       console.error('Failed to save goal:', err)
       toast.error(`Failed to save goal: ${msg}`)
     }

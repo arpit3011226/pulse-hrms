@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { one } from '@/lib/supabase-embed'
 import type { SurveyTargetRule, SurveyCategory, SurveyQuestionType, SurveyQuestionOption, SurveyDisplayAs } from '@/types/database.types'
 import { computeAnswerScore } from '../utils/survey-score'
 
@@ -270,7 +271,7 @@ export async function getSentimentByDepartment(
   // Build a map: response_id → department_name
   const responseDeptMap = new Map<string, string>()
   for (const r of responses) {
-    const deptName = (r.employee as any)?.department?.name ?? 'Unassigned'
+    const deptName = one(one(r.employee)?.department)?.name ?? 'Unassigned'
     responseDeptMap.set(r.id, deptName)
   }
 

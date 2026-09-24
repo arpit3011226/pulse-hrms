@@ -65,8 +65,11 @@ const LETTER_REQUEST_SELECT = `
   template:letter_templates!template_id(*),
   employee:employees!employee_id(
     id, first_name, last_name, email, employee_code, department_id,
+    date_of_joining, date_of_leaving,
     department:departments!department_id(id, name),
-    designation:designations!designation_id(id, title)
+    designation:designations!designation_id(id, title),
+    statutory:employee_statutory(pan_number),
+    personal:employee_personal(current_address)
   )
 `
 

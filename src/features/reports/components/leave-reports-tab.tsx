@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { one } from '@/lib/supabase-embed'
 import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -29,7 +30,7 @@ export function LeaveReportsTab() {
     if (!leaves) return []
     const map = new Map<string, { count: number; days: number }>()
     for (const l of leaves) {
-      const name = (l.leave_type as any)?.name ?? 'Unknown'
+      const name = (one(l.leave_type))?.name ?? 'Unknown'
       const existing = map.get(name) ?? { count: 0, days: 0 }
       map.set(name, { count: existing.count + 1, days: existing.days + (l.total_days ?? 0) })
     }
@@ -52,13 +53,13 @@ export function LeaveReportsTab() {
               exportToCSV(
                 leaves ?? [],
                 [
-                  { header: 'Employee', accessor: (r: any) => `${r.employee?.first_name} ${r.employee?.last_name}` },
-                  { header: 'Code', accessor: (r: any) => r.employee?.employee_code },
-                  { header: 'Leave Type', accessor: (r: any) => r.leave_type?.name },
-                  { header: 'Start', accessor: (r: any) => r.start_date },
-                  { header: 'End', accessor: (r: any) => r.end_date },
-                  { header: 'Days', accessor: (r: any) => r.total_days },
-                  { header: 'Status', accessor: (r: any) => r.status },
+                  { header: 'Employee', accessor: (r) => `${one(r.employee)?.first_name} ${one(r.employee)?.last_name}` },
+                  { header: 'Code', accessor: (r) => one(r.employee)?.employee_code },
+                  { header: 'Leave Type', accessor: (r) => one(r.leave_type)?.name },
+                  { header: 'Start', accessor: (r) => r.start_date },
+                  { header: 'End', accessor: (r) => r.end_date },
+                  { header: 'Days', accessor: (r) => r.total_days },
+                  { header: 'Status', accessor: (r) => r.status },
                 ],
                 'leave-report'
               )

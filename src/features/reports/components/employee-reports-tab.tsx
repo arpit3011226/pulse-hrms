@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { one } from '@/lib/supabase-embed'
 import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,7 +18,7 @@ export function EmployeeReportsTab() {
     if (!employees) return []
     const map = new Map<string, number>()
     for (const e of employees) {
-      const dept = (e.department as any)?.name ?? 'Unassigned'
+      const dept = (one(e.department))?.name ?? 'Unassigned'
       map.set(dept, (map.get(dept) ?? 0) + 1)
     }
     return Array.from(map.entries())

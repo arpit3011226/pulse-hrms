@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { one } from '@/lib/supabase-embed'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -374,7 +375,7 @@ export function PeopleAnalyticsTab() {
     if (!activeEmployees) return []
     const map = new Map<string, number>()
     for (const e of activeEmployees) {
-      const dept = (e.department as any)?.name ?? 'Unassigned'
+      const dept = (one(e.department))?.name ?? 'Unassigned'
       map.set(dept, (map.get(dept) ?? 0) + 1)
     }
     return Array.from(map.entries())
