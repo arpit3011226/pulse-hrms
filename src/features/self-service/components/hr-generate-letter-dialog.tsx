@@ -75,7 +75,7 @@ export function HrGenerateLetterDialog({ open, onOpenChange }: Props) {
 
       if (template && employee && organization) {
         const resolved = resolvePlaceholders(template.body_html, {
-          employee: employee as any,
+          employee,
           organization,
         })
         generateLetterPdf(

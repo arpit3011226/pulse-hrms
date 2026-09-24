@@ -1677,7 +1677,7 @@ export interface GeneralRequest {
   request_type: GeneralRequestType
   title: string
   description: string | null
-  custom_fields: Record<string, any>
+  custom_fields: Record<string, unknown>
   status: GeneralRequestStatus
   manager_approved_by: string | null
   manager_approved_at: string | null

@@ -104,9 +104,9 @@ export function StructureFormDialog({ open, onOpenChange, structure }: Structure
       })
     }
 
-    const rows: ComponentRow[] = (allComponents as any[])
-      .filter((c: any) => c.is_active)
-      .map((comp: any, index: number) => {
+    const rows: ComponentRow[] = allComponents
+      .filter((c) => c.is_active)
+      .map((comp, index: number) => {
         const existing = existingMap.get(comp.id)
         if (existing) {
           return {
@@ -168,17 +168,17 @@ export function StructureFormDialog({ open, onOpenChange, structure }: Structure
   }
 
   const getComponentName = (componentId: string) => {
-    const comp = (allComponents as any[])?.find((c: any) => c.id === componentId)
+    const comp = allComponents?.find((c) => c.id === componentId)
     return comp?.component_name || 'Unknown'
   }
 
   const getComponentCode = (componentId: string) => {
-    const comp = (allComponents as any[])?.find((c: any) => c.id === componentId)
+    const comp = allComponents?.find((c) => c.id === componentId)
     return comp?.component_code || ''
   }
 
   const getComponentType = (componentId: string) => {
-    const comp = (allComponents as any[])?.find((c: any) => c.id === componentId)
+    const comp = allComponents?.find((c) => c.id === componentId)
     return comp?.component_type || ''
   }
 

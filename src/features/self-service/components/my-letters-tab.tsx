@@ -79,7 +79,7 @@ export function MyLettersTab({ employeeId }: Props) {
 
       // Generate PDF immediately
       const resolved = resolvePlaceholders(template.body_html, {
-        employee: fullEmployee as any,
+        employee: fullEmployee,
         organization,
       })
       generateLetterPdf(
@@ -100,7 +100,7 @@ export function MyLettersTab({ employeeId }: Props) {
     if (!organization || !fullEmployee || !request.template) return
 
     const resolved = request.resolved_body_html || resolvePlaceholders(request.template.body_html, {
-      employee: fullEmployee as any,
+      employee: fullEmployee,
       organization,
     })
     generateLetterPdf(

@@ -75,7 +75,7 @@ export function ManagerReviewDialog({ open, onOpenChange, review }: ManagerRevie
         development_plan: data.development_plan || null,
         comments: data.comments || null,
         submitted_at: new Date().toISOString(),
-      } as any)
+      })
 
       toast.success('Manager review submitted successfully')
       reset()

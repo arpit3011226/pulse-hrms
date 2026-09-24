@@ -16,7 +16,7 @@ import { REIMBURSEMENT_CATEGORIES } from '@/lib/constants'
 import { toast } from 'sonner'
 
 const schema = z.object({
-  category: z.string().min(1, 'Category is required'),
+  category: z.enum(['travel', 'medical', 'mobile_internet', 'relocation', 'training', 'meal_food']),
   amount: z.coerce.number().positive('Amount must be greater than 0'),
   expense_date: z.string().min(1, 'Expense date is required'),
   description: z.string().min(1, 'Description is required'),
@@ -39,8 +39,8 @@ export function ReimbursementFormDialog({ open, onOpenChange, employeeId }: Prop
   const form = useForm<z.input<typeof schema>, unknown, FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      category: '',
-      amount: undefined as any,
+      category: undefined,
+      amount: undefined,
       expense_date: '',
       description: '',
     },
@@ -72,7 +72,7 @@ export function ReimbursementFormDialog({ open, onOpenChange, employeeId }: Prop
         organization_id: organization.id,
         employee_id: employeeId,
         requested_by: profile.id,
-        category: data.category as any,
+        category: data.category,
         amount: data.amount,
         description: data.description,
         expense_date: data.expense_date,

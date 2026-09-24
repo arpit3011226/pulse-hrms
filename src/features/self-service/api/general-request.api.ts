@@ -18,7 +18,7 @@ export interface CreateGeneralRequestData {
   request_type: GeneralRequest['request_type']
   title: string
   description?: string
-  custom_fields?: Record<string, any>
+  custom_fields?: Record<string, unknown>
 }
 
 export async function createGeneralRequest(data: CreateGeneralRequestData) {

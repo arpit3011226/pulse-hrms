@@ -14,7 +14,7 @@ import { GENERAL_REQUEST_TYPES } from '@/lib/constants'
 import { toast } from 'sonner'
 
 const schema = z.object({
-  request_type: z.string().min(1, 'Request type is required'),
+  request_type: z.enum(['id_card_request', 'asset_request', 'wfh_request', 'shift_change_request', 'overtime_request']),
   description: z.string().optional(),
   // Dynamic fields stored in custom_fields
   reason: z.string().optional(),
@@ -57,7 +57,7 @@ function generateTitle(type: string, data: FormData): string {
   }
 }
 
-function buildCustomFields(type: string, data: FormData): Record<string, any> {
+function buildCustomFields(type: string, data: FormData): Record<string, unknown> {
   switch (type) {
     case 'id_card_request':
       return { reason: data.reason || '' }
@@ -86,7 +86,7 @@ export function GeneralRequestFormDialog({ open, onOpenChange, employeeId }: Pro
   const form = useForm<z.input<typeof schema>, unknown, FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      request_type: '',
+      request_type: undefined,
       description: '',
       reason: '',
       asset_type: '',
@@ -97,7 +97,7 @@ export function GeneralRequestFormDialog({ open, onOpenChange, employeeId }: Pro
       requested_shift: '',
       effective_date: '',
       overtime_date: '',
-      hours: undefined as any,
+      hours: undefined,
     },
   })
 
@@ -120,7 +120,7 @@ export function GeneralRequestFormDialog({ open, onOpenChange, employeeId }: Pro
         organization_id: organization.id,
         employee_id: employeeId,
         requested_by: profile.id,
-        request_type: data.request_type as any,
+        request_type: data.request_type,
         title,
         description: data.description,
         custom_fields,

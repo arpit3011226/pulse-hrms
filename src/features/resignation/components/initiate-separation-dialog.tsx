@@ -19,7 +19,7 @@ import { toast } from 'sonner'
 
 const separationSchema = z.object({
   employee_id: z.string().min(1, 'Please select an employee'),
-  exit_type: z.string().min(1, 'Please select an exit type'),
+  exit_type: z.enum(['resignation', 'termination', 'retirement', 'absconding', 'contract_end', 'mutual_separation']),
   resignation_date: z.string().min(1, 'Date is required'),
   exit_reason: z.string().min(10, 'Please provide at least 10 characters'),
   notice_period_days: z.coerce.number().min(0),
@@ -50,13 +50,13 @@ export function InitiateSeparationDialog({ open, onOpenChange }: InitiateSeparat
   // Manager sees only direct reports, HR/Admin/Leadership sees all active employees
   const employees = useMemo(() => {
     if (!allEmployees) return []
-    const active = allEmployees.filter((e: any) => e.status === 'active')
+    const active = allEmployees.filter((e) => e.status === 'active')
     if (isHR || isAdmin) return active
     // Manager: only direct reports
     if (isManager) {
-      const myEmployeeRecord = allEmployees.find((e: any) => e.profile_id === profile?.id)
+      const myEmployeeRecord = allEmployees.find((e) => e.profile_id === profile?.id)
       if (myEmployeeRecord) {
-        return active.filter((e: any) => e.reporting_manager_id === myEmployeeRecord.id)
+        return active.filter((e) => e.reporting_manager_id === myEmployeeRecord.id)
       }
     }
     return active
@@ -92,7 +92,7 @@ export function InitiateSeparationDialog({ open, onOpenChange }: InitiateSeparat
     if (open) {
       reset({
         employee_id: '',
-        exit_type: '',
+        exit_type: undefined,
         resignation_date: new Date().toISOString().split('T')[0],
         exit_reason: '',
         notice_period_days: noticeDays,
@@ -112,7 +112,7 @@ export function InitiateSeparationDialog({ open, onOpenChange }: InitiateSeparat
         notice_period_days: Number(data.notice_period_days),
         last_working_date: lastWorkingDate,
         initiated_by: profile.id,
-        exit_type: data.exit_type as any,
+        exit_type: data.exit_type,
       })
       try {
         await flagAssets.mutateAsync(data.employee_id)
@@ -147,7 +147,7 @@ export function InitiateSeparationDialog({ open, onOpenChange }: InitiateSeparat
                 <SelectValue placeholder="Select employee" />
               </SelectTrigger>
               <SelectContent>
-                {employees.map((emp: any) => (
+                {employees.map((emp) => (
                   <SelectItem key={emp.id} value={emp.id}>
                     {emp.first_name} {emp.last_name} ({emp.employee_code})
                   </SelectItem>
@@ -159,7 +159,7 @@ export function InitiateSeparationDialog({ open, onOpenChange }: InitiateSeparat
 
           <div className="space-y-2">
             <Label>Exit Type *</Label>
-            <Select onValueChange={(v) => setValue('exit_type', v)}>
+            <Select onValueChange={(v) => setValue('exit_type', v as SeparationFormData['exit_type'])}>
               <SelectTrigger>
                 <SelectValue placeholder="Select exit type" />
               </SelectTrigger>

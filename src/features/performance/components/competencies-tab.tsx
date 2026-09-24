@@ -133,7 +133,7 @@ export function CompetenciesTab() {
         onConfirm={async () => {
           if (deactivateId) {
             try {
-              await updateCompetency.mutateAsync({ id: deactivateId, is_active: false } as any)
+              await updateCompetency.mutateAsync({ id: deactivateId, is_active: false })
               toast.success('Competency deactivated')
             } catch {
               toast.error('Failed to deactivate competency')

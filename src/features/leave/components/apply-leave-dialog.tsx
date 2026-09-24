@@ -63,6 +63,12 @@ export function ApplyLeaveDialog({ open, onOpenChange }: ApplyLeaveDialogProps) 
   } = useForm<z.input<typeof applyLeaveSchema>, unknown, ApplyLeaveFormData>({
     resolver: zodResolver(applyLeaveSchema),
     defaultValues: {
+      // Without these the fields start undefined, so zod reports its own type
+      // error ("expected string, received undefined") instead of the message
+      // written on the schema.
+      leave_type_id: '',
+      start_date: '',
+      end_date: '',
       is_half_day: false,
     },
   })

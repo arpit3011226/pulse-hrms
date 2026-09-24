@@ -22,12 +22,12 @@ import { toast } from 'sonner'
 const componentSchema = z.object({
   component_name: z.string().min(1, 'Component name is required'),
   component_code: z.string().min(1, 'Component code is required'),
-  component_type: z.string().min(1, 'Type is required'),
-  category: z.string().min(1, 'Category is required'),
+  component_type: z.enum(['earning', 'deduction', 'employer_contribution']),
+  category: z.enum(['fixed', 'variable', 'statutory', 'reimbursement']),
   is_taxable: z.boolean(),
   is_statutory: z.boolean(),
-  statutory_type: z.string().optional().nullable(),
-  calculation_type: z.string().min(1, 'Calculation type is required'),
+  statutory_type: z.enum(['pf_employee', 'pf_employer', 'esi_employee', 'esi_employer', 'pt', 'tds']).optional().nullable(),
+  calculation_type: z.enum(['flat', 'percentage_of_basic', 'percentage_of_gross']),
   default_value: z.number().min(0, 'Must be 0 or greater'),
   description: z.string().optional(),
   display_order: z.number().optional(),
@@ -100,12 +100,12 @@ export function ComponentFormDialog({ open, onOpenChange, component }: Component
         reset({
           component_name: '',
           component_code: '',
-          component_type: '',
-          category: '',
+          component_type: 'earning',
+          category: 'fixed',
           is_taxable: true,
           is_statutory: false,
           statutory_type: undefined,
-          calculation_type: '',
+          calculation_type: undefined,
           default_value: 0,
           description: '',
           display_order: 0,
@@ -125,10 +125,10 @@ export function ComponentFormDialog({ open, onOpenChange, component }: Component
       }
 
       if (isEditing) {
-        await updateMutation.mutateAsync({ id: component.id, ...payload } as any)
+        await updateMutation.mutateAsync({ id: component.id, ...payload })
         toast.success('Salary component updated')
       } else {
-        await createMutation.mutateAsync(payload as any)
+        await createMutation.mutateAsync(payload)
         toast.success('Salary component created')
       }
       onOpenChange(false)
@@ -174,7 +174,7 @@ export function ComponentFormDialog({ open, onOpenChange, component }: Component
             <div className="space-y-2">
               <Label>Type *</Label>
               <Select
-                onValueChange={(v) => setValue('component_type', v)}
+                onValueChange={(v) => setValue('component_type', v as ComponentFormValues['component_type'])}
                 defaultValue={component?.component_type}
               >
                 <SelectTrigger>
@@ -195,7 +195,7 @@ export function ComponentFormDialog({ open, onOpenChange, component }: Component
             <div className="space-y-2">
               <Label>Category *</Label>
               <Select
-                onValueChange={(v) => setValue('category', v)}
+                onValueChange={(v) => setValue('category', v as ComponentFormValues['category'])}
                 defaultValue={component?.category}
               >
                 <SelectTrigger>
@@ -238,7 +238,7 @@ export function ComponentFormDialog({ open, onOpenChange, component }: Component
             <div className="space-y-2">
               <Label>Statutory Type</Label>
               <Select
-                onValueChange={(v) => setValue('statutory_type', v)}
+                onValueChange={(v) => setValue('statutory_type', v as ComponentFormValues['statutory_type'])}
                 defaultValue={component?.statutory_type ?? undefined}
               >
                 <SelectTrigger>
@@ -260,7 +260,7 @@ export function ComponentFormDialog({ open, onOpenChange, component }: Component
             <div className="space-y-2">
               <Label>Calculation Type *</Label>
               <Select
-                onValueChange={(v) => setValue('calculation_type', v)}
+                onValueChange={(v) => setValue('calculation_type', v as ComponentFormValues['calculation_type'])}
                 defaultValue={component?.calculation_type}
               >
                 <SelectTrigger>

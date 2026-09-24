@@ -121,10 +121,10 @@ export function PeopleAnalyticsTab() {
       if (error) throw error
       // Exit details live in employee_exit_records, not on employees.
       // Flatten the latest non-withdrawn exit into termination_date.
-      return (data ?? []).map((e: any) => {
+      return (data ?? []).map((e) => {
         const exit = (e.exit ?? [])
-          .filter((x: any) => x.status !== 'withdrawn')
-          .map((x: any) => x.hr_override_last_working_date ?? x.last_working_date)
+          .filter((x) => x.status !== 'withdrawn')
+          .map((x) => x.hr_override_last_working_date ?? x.last_working_date)
           .filter(Boolean)
           .sort()
           .pop()

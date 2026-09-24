@@ -246,7 +246,7 @@ export function CyclesTab() {
         onConfirm={async () => {
           if (statusAction) {
             try {
-              await updateStatus.mutateAsync(statusAction as any)
+              await updateStatus.mutateAsync(statusAction)
               toast.success('Cycle status updated')
             } catch {
               toast.error('Failed to update cycle status')

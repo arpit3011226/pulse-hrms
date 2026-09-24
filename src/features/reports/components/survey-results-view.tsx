@@ -280,7 +280,7 @@ export function SurveyResultsView({ surveyId, onBack }: SurveyResultsViewProps) 
         .order('submitted_at', { ascending: false })
       if (!responses?.length) return []
 
-      const responseIds = responses.map((r: any) => r.id)
+      const responseIds = responses.map((r) => r.id)
       const { data: allAnswers } = await supabase
         .from('survey_answers')
         .select('response_id, question_id, rating, comment, selected_options, text_value')
@@ -293,15 +293,15 @@ export function SurveyResultsView({ surveyId, onBack }: SurveyResultsViewProps) 
         answersByResponse.get(a.response_id)!.push(a)
       }
 
-      return responses.map((r: any) => ({
+      return responses.map((r) => ({
         id: r.id,
         employeeId: r.employee_id,
         submittedAt: r.submitted_at,
         isAnonymous: r.is_anonymous,
-        employeeName: r.is_anonymous ? 'Anonymous' : `${r.employee?.first_name ?? ''} ${r.employee?.last_name ?? ''}`.trim(),
-        employeeCode: r.is_anonymous ? null : r.employee?.employee_code,
-        employeeEmail: r.is_anonymous ? null : r.employee?.email,
-        department: r.is_anonymous ? null : (one(r.employee?.department))?.name,
+        employeeName: r.is_anonymous ? 'Anonymous' : `${one(r.employee)?.first_name ?? ''} ${one(r.employee)?.last_name ?? ''}`.trim(),
+        employeeCode: r.is_anonymous ? null : one(r.employee)?.employee_code,
+        employeeEmail: r.is_anonymous ? null : one(r.employee)?.email,
+        department: r.is_anonymous ? null : one(one(r.employee)?.department)?.name,
         answers: answersByResponse.get(r.id) ?? [],
       }))
     },

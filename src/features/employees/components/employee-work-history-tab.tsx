@@ -132,7 +132,7 @@ export function EmployeeWorkHistoryTab({ employee, departments, designations, ma
               {/* Timeline line */}
               <div className="absolute left-4 top-2 bottom-2 w-px bg-border" />
 
-              {orgHistory.map((record: any) => {
+              {orgHistory.map((record) => {
                 const Icon = changeTypeIcons[record.change_type] || Calendar
                 const colorClass = changeTypeColors[record.change_type] || 'text-gray-600 bg-gray-50'
 
@@ -176,7 +176,7 @@ export function EmployeeWorkHistoryTab({ employee, departments, designations, ma
             <p className="text-sm text-muted-foreground">No work profiles recorded.</p>
           ) : (
             <div className="space-y-3">
-              {workProfiles.map((profile: any) => (
+              {workProfiles.map((profile) => (
                 <div key={profile.id} className="flex items-start justify-between rounded-lg border p-3">
                   <div>
                     <div className="flex items-center gap-2">

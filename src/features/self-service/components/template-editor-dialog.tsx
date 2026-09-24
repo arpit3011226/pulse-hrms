@@ -17,7 +17,7 @@ import type { LetterTemplate, LetterApprovalType } from '@/types/database.types'
 
 const schema = z.object({
   name: z.string().min(1, 'Name is required'),
-  category: z.string().min(1, 'Category is required'),
+  category: z.enum(['experience_letter', 'salary_certificate', 'address_proof', 'bonafide_certificate', 'relieving_letter', 'noc', 'reference_letter', 'offer_letter', 'appointment_letter', 'confirmation_letter', 'warning_letter', 'termination_letter', 'salary_revision_letter']),
   description: z.string().optional(),
   body_html: z.string().min(1, 'Letter body is required'),
   approval_type: z.string().min(1),
@@ -40,7 +40,7 @@ export function TemplateEditorDialog({ open, onOpenChange, template }: Props) {
     resolver: zodResolver(schema),
     defaultValues: {
       name: '',
-      category: '',
+      category: undefined,
       description: '',
       body_html: '',
       approval_type: 'auto',
@@ -59,7 +59,7 @@ export function TemplateEditorDialog({ open, onOpenChange, template }: Props) {
     } else {
       form.reset({
         name: '',
-        category: '',
+        category: undefined,
         description: '',
         body_html: '',
         approval_type: 'auto',
@@ -86,7 +86,7 @@ export function TemplateEditorDialog({ open, onOpenChange, template }: Props) {
           id: template!.id,
           data: {
             name: data.name,
-            category: data.category as any,
+            category: data.category,
             description: data.description || null,
             body_html: data.body_html,
             approval_type: data.approval_type as LetterApprovalType,
@@ -97,7 +97,7 @@ export function TemplateEditorDialog({ open, onOpenChange, template }: Props) {
         await createTemplate.mutateAsync({
           organization_id: organization!.id,
           name: data.name,
-          category: data.category as any,
+          category: data.category,
           description: data.description || null,
           body_html: data.body_html,
           approval_type: data.approval_type as LetterApprovalType,

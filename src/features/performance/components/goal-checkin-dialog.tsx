@@ -55,7 +55,7 @@ export function GoalCheckinDialog({ open, onOpenChange, goal }: GoalCheckinDialo
         progress_value: data.progress_value,
         comments: data.comments || null,
         checkin_date: data.checkin_date,
-      } as any)
+      })
       toast.success('Check-in submitted')
       reset({ progress_value: data.progress_value, comments: '', checkin_date: today })
       onOpenChange(false)

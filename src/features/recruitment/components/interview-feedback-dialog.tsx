@@ -16,7 +16,7 @@ import { toast } from 'sonner'
 
 const feedbackSchema = z.object({
   rating: z.coerce.number().min(1, 'Rating must be at least 1').max(5, 'Rating must be at most 5'),
-  recommendation: z.string().min(1, 'Recommendation is required'),
+  recommendation: z.enum(['strong_hire', 'hire', 'maybe', 'no_hire', 'strong_no_hire']),
   strengths: z.string().optional(),
   areas_for_improvement: z.string().optional(),
   comments: z.string().optional(),
@@ -51,7 +51,7 @@ export function InterviewFeedbackDialog({ open, onOpenChange, interview }: Inter
     resolver: zodResolver(feedbackSchema),
     defaultValues: {
       rating: 3,
-      recommendation: '',
+      recommendation: undefined,
       strengths: '',
       areas_for_improvement: '',
       comments: '',
@@ -72,7 +72,7 @@ export function InterviewFeedbackDialog({ open, onOpenChange, interview }: Inter
     } else {
       reset({
         rating: 3,
-        recommendation: '',
+        recommendation: undefined,
         strengths: '',
         areas_for_improvement: '',
         comments: '',
@@ -91,7 +91,7 @@ export function InterviewFeedbackDialog({ open, onOpenChange, interview }: Inter
         interview_id: interview.id,
         interviewer_id: interview.interviewer_id || '',
         rating: data.rating,
-        recommendation: data.recommendation as any,
+        recommendation: data.recommendation,
         strengths: data.strengths || undefined,
         areas_for_improvement: data.areas_for_improvement || undefined,
         comments: data.comments || undefined,
@@ -139,7 +139,7 @@ export function InterviewFeedbackDialog({ open, onOpenChange, interview }: Inter
             </div>
             <div className="space-y-2">
               <Label>Recommendation *</Label>
-              <Select value={recommendation} onValueChange={(v) => setValue('recommendation', v)}>
+              <Select value={recommendation} onValueChange={(v) => setValue('recommendation', v as FeedbackFormData['recommendation'])}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select recommendation" />
                 </SelectTrigger>

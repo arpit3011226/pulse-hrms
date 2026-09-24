@@ -1,4 +1,5 @@
 import { Download } from 'lucide-react'
+import type { ColumnDef } from '@tanstack/react-table'
 import { one } from '@/lib/supabase-embed'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -47,11 +48,11 @@ export function AllLettersTab() {
     return <Skeleton className="h-64" />
   }
 
-  const columns = [
+  const columns: ColumnDef<LetterRequestWithRelations>[] = [
     {
       accessorKey: 'employee',
       header: 'Employee',
-      cell: ({ row }: any) => {
+      cell: ({ row }) => {
         const emp = row.original.employee
         return emp ? (
           <div>
@@ -64,14 +65,14 @@ export function AllLettersTab() {
     {
       accessorKey: 'template',
       header: 'Letter Type',
-      cell: ({ row }: any) => (
+      cell: ({ row }) => (
         <span className="text-sm">{row.original.template?.name || '-'}</span>
       ),
     },
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ row }: any) => {
+      cell: ({ row }) => {
         const s = STATUS_STYLES[row.original.status] || STATUS_STYLES.draft
         return <Badge variant="outline" className={s.color}>{s.label}</Badge>
       },
@@ -79,7 +80,7 @@ export function AllLettersTab() {
     {
       accessorKey: 'created_at',
       header: 'Requested On',
-      cell: ({ row }: any) => (
+      cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
           {new Date(row.original.created_at).toLocaleDateString('en-IN', {
             day: '2-digit', month: 'short', year: 'numeric',
@@ -90,7 +91,7 @@ export function AllLettersTab() {
     {
       accessorKey: 'remarks',
       header: 'Remarks',
-      cell: ({ row }: any) => (
+      cell: ({ row }) => (
         <span className="text-sm text-muted-foreground truncate max-w-[200px] block">
           {row.original.remarks || '-'}
         </span>
@@ -99,7 +100,7 @@ export function AllLettersTab() {
     {
       id: 'actions',
       header: '',
-      cell: ({ row }: any) => {
+      cell: ({ row }) => {
         if (row.original.status === 'completed') {
           return (
             <Button

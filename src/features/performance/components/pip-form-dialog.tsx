@@ -117,14 +117,14 @@ export function PipFormDialog({ open, onOpenChange, pip }: PipFormDialogProps) {
   const onSubmit = async (data: FormData) => {
     try {
       if (isEditing) {
-        await updatePIP.mutateAsync({ id: pip.id, ...data } as any)
+        await updatePIP.mutateAsync({ id: pip.id, ...data })
         toast.success('PIP updated')
       } else {
         await createPIP.mutateAsync({
           ...data,
           initiated_by: currentEmployee?.id ?? null,
           status: 'draft',
-        } as any)
+        })
         toast.success('PIP created')
       }
       onOpenChange(false)

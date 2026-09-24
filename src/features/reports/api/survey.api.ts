@@ -223,9 +223,9 @@ export async function getSentimentAggregation(
   // 4. Aggregate by category using normalized scores
   const categoryMap = new Map<string, { total: number; count: number }>()
   for (const answer of answers ?? []) {
-    const q = answer.question as any
-    const category = q?.category as string
-    if (!category) continue
+    const q = one(answer.question)
+    if (!q?.category) continue
+    const category = q.category as string
     const score = computeAnswerScore(answer, q)
     if (score == null) continue // skip text answers or invalid
     const existing = categoryMap.get(category) ?? { total: 0, count: 0 }
@@ -288,9 +288,9 @@ export async function getSentimentByDepartment(
   const deptCatMap = new Map<string, Map<string, { total: number; count: number }>>()
   for (const answer of answers ?? []) {
     const dept = responseDeptMap.get(answer.response_id) ?? 'Unassigned'
-    const q = answer.question as any
-    const category = q?.category as string
-    if (!category) continue
+    const q = one(answer.question)
+    if (!q?.category) continue
+    const category = q.category as string
     const score = computeAnswerScore(answer, q)
     if (score == null) continue // skip text answers or invalid
 

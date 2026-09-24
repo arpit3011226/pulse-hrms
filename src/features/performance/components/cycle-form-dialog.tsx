@@ -23,7 +23,7 @@ import type { PerformanceCycle, SkipCriteria } from '@/types/database.types'
 const cycleSchema = z.object({
   cycle_name: z.string().min(1, 'Cycle name is required'),
   cycle_code: z.string().min(1, 'Cycle code is required'),
-  cycle_type: z.string().min(1, 'Cycle type is required'),
+  cycle_type: z.enum(['quarterly', 'half_yearly', 'annual', 'custom']),
   start_date: z.string().min(1, 'Start date is required'),
   end_date: z.string().min(1, 'End date is required'),
   goal_setting_deadline: z.string().optional().or(z.literal('')),
@@ -133,10 +133,10 @@ export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogPr
 
     try {
       if (isEditing) {
-        await updateCycle.mutateAsync({ id: cycle.id, ...basePayload } as any)
+        await updateCycle.mutateAsync({ id: cycle.id, ...basePayload })
         toast.success('Cycle updated')
       } else {
-        await createCycle.mutateAsync(basePayload as any)
+        await createCycle.mutateAsync(basePayload)
         toast.success('Cycle created')
       }
       onOpenChange(false)
@@ -177,7 +177,7 @@ export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogPr
 
           <div className="space-y-2">
             <Label>Cycle Type *</Label>
-            <Select value={watch('cycle_type')} onValueChange={(v) => setValue('cycle_type', v)}>
+            <Select value={watch('cycle_type')} onValueChange={(v) => setValue('cycle_type', v as CycleFormData['cycle_type'])}>
               <SelectTrigger>
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>

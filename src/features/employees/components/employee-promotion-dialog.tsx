@@ -14,7 +14,9 @@ import type { Employee } from '@/types/database.types'
 import { toast } from 'sonner'
 
 const promotionSchema = z.object({
-  change_type: z.string().min(1, 'Change type is required'),
+  change_type: z.enum(['promotion', 'transfer', 'redesignation', 'manager_change', 'initial_assignment'], {
+    error: 'Change type is required',
+  }),
   department_id: z.string().optional(),
   designation_id: z.string().optional(),
   reporting_manager_id: z.string().optional(),
@@ -62,7 +64,7 @@ export function EmployeePromotionDialog({ open, onOpenChange, employee, departme
         change_reason: data.change_reason || null,
         orgHistory: {
           employee_id: employee.id,
-          change_type: data.change_type as any,
+          change_type: data.change_type,
           old_department_id: employee.department_id,
           new_department_id: cleanVal(data.department_id) || employee.department_id,
           old_designation_id: employee.designation_id,
@@ -95,7 +97,7 @@ export function EmployeePromotionDialog({ open, onOpenChange, employee, departme
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label>Change Type *</Label>
-            <Select onValueChange={(v) => setValue('change_type', v)}>
+            <Select onValueChange={(v) => setValue('change_type', v as PromotionFormData['change_type'])}>
               <SelectTrigger><SelectValue placeholder="Select change type" /></SelectTrigger>
               <SelectContent>
                 {ORG_CHANGE_TYPES.map((t) => (

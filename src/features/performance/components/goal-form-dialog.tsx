@@ -183,7 +183,7 @@ export function GoalFormDialog({ open, onOpenChange, goal, employeeId, cycleId }
           target_value: data.target_value ?? null,
           start_date: data.start_date || null,
           due_date: data.due_date || null,
-        } as any)
+        })
 
         if (keyResults.length > 0) {
           await upsertKRs.mutateAsync({
@@ -212,7 +212,7 @@ export function GoalFormDialog({ open, onOpenChange, goal, employeeId, cycleId }
           due_date: data.due_date || null,
           status: 'not_started',
           current_value: 0,
-        } as any)
+        })
 
         if (keyResults.length > 0 && newGoal?.id) {
           await upsertKRs.mutateAsync({

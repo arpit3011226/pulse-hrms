@@ -183,7 +183,7 @@ export function PipTab() {
         onConfirm={async () => {
           if (statusAction) {
             try {
-              await updateStatus.mutateAsync(statusAction as any)
+              await updateStatus.mutateAsync(statusAction)
               toast.success('PIP status updated')
             } catch {
               toast.error('Failed to update PIP status')

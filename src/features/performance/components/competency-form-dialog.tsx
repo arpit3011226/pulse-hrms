@@ -20,7 +20,7 @@ import type { ReviewCompetency } from '@/types/database.types'
 const competencySchema = z.object({
   competency_name: z.string().min(1, 'Competency name is required'),
   competency_code: z.string().min(1, 'Competency code is required'),
-  category: z.string().min(1, 'Category is required'),
+  category: z.enum(['core', 'functional', 'leadership'], { error: 'Category is required' }),
   description: z.string().optional().or(z.literal('')),
   display_order: z.coerce.number().int().min(0).default(0),
   is_active: z.boolean().default(true),
@@ -94,10 +94,10 @@ export function CompetencyFormDialog({ open, onOpenChange, competency }: Compete
 
     try {
       if (isEditing) {
-        await updateCompetency.mutateAsync({ id: competency.id, ...payload } as any)
+        await updateCompetency.mutateAsync({ id: competency.id, ...payload })
         toast.success('Competency updated')
       } else {
-        await createCompetency.mutateAsync(payload as any)
+        await createCompetency.mutateAsync(payload)
         toast.success('Competency created')
       }
       onOpenChange(false)
@@ -143,7 +143,7 @@ export function CompetencyFormDialog({ open, onOpenChange, competency }: Compete
 
           <div className="space-y-2">
             <Label>Category *</Label>
-            <Select value={watch('category')} onValueChange={(v) => setValue('category', v)}>
+            <Select value={watch('category')} onValueChange={(v) => setValue('category', v as CompetencyFormData['category'])}>
               <SelectTrigger>
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>

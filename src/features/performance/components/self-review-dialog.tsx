@@ -62,7 +62,7 @@ export function SelfReviewDialog({ open, onOpenChange, reviewId, existing }: Sel
         achievements: data.achievements || null,
         comments: data.comments || null,
         submitted_at: new Date().toISOString(),
-      } as any)
+      })
 
       toast.success('Self review submitted successfully')
       reset()

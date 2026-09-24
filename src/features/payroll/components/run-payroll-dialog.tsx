@@ -64,7 +64,7 @@ export function RunPayrollDialog({ open, onOpenChange }: RunPayrollDialogProps) 
   useEffect(() => {
     if (open) {
       reset({
-        payroll_month: undefined as any,
+        payroll_month: undefined,
         payroll_year: new Date().getFullYear(),
         start_date: '',
         end_date: '',
