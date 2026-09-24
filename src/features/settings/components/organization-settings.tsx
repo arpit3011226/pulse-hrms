@@ -84,20 +84,83 @@ export function OrganizationSettings() {
   /**
    * The signature is stored as a data URI on the organisation record because the
    * PDF is built in the browser and needs the bytes without a second round trip.
-   * A signature is a few kilobytes, so the limit below is generous.
+   *
+   * People upload a scan or a photo of a signature on paper, which means a mostly
+   * blank image with the signature somewhere in the middle, often as a JPEG with
+   * no transparency. Dropped straight onto a letter that shows up as a small mark
+   * inside a visible white box. So before storing it we trim away the blank
+   * border and make the paper transparent, and keep the result as a PNG.
    */
+  const prepareSignature = (dataUrl: string): Promise<string> =>
+    new Promise((resolve) => {
+      const img = new Image()
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas')
+          canvas.width = img.naturalWidth
+          canvas.height = img.naturalHeight
+          const ctx = canvas.getContext('2d')
+          if (!ctx) return resolve(dataUrl)
+          ctx.drawImage(img, 0, 0)
+          const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height)
+
+          // Anything this light counts as paper rather than ink.
+          const PAPER = 230
+          let minX = width, minY = height, maxX = -1, maxY = -1
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const i = (y * width + x) * 4
+              const isInk = data[i + 3] > 20 && (data[i] < PAPER || data[i + 1] < PAPER || data[i + 2] < PAPER)
+              if (!isInk) {
+                data[i + 3] = 0   // paper disappears
+              } else {
+                if (x < minX) minX = x
+                if (x > maxX) maxX = x
+                if (y < minY) minY = y
+                if (y > maxY) maxY = y
+              }
+            }
+          }
+          // Nothing found — an already-clean transparent image, or a blank scan.
+          if (maxX < 0) return resolve(dataUrl)
+
+          ctx.putImageData(new ImageData(data, width, height), 0, 0)
+          const pad = 4
+          const sx = Math.max(0, minX - pad)
+          const sy = Math.max(0, minY - pad)
+          const sw = Math.min(width - sx, maxX - minX + pad * 2)
+          const sh = Math.min(height - sy, maxY - minY + pad * 2)
+
+          const out = document.createElement('canvas')
+          out.width = sw
+          out.height = sh
+          const octx = out.getContext('2d')
+          if (!octx) return resolve(dataUrl)
+          octx.drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh)
+          resolve(out.toDataURL('image/png'))
+        } catch {
+          resolve(dataUrl)   // never block on a signature we could not tidy
+        }
+      }
+      img.onerror = () => resolve(dataUrl)
+      img.src = dataUrl
+    })
+
   const onSignatureChosen = (file: File | undefined) => {
     if (!file) return
     if (!file.type.startsWith('image/')) {
       toast.error('Please choose an image file')
       return
     }
-    if (file.size > 500_000) {
-      toast.error('That image is too large. Please use one under 500 KB.')
+    if (file.size > 2_000_000) {
+      toast.error('That image is too large. Please use one under 2 MB.')
       return
     }
     const reader = new FileReader()
-    reader.onload = () => setSignature(String(reader.result))
+    reader.onload = async () => {
+      const cleaned = await prepareSignature(String(reader.result))
+      setSignature(cleaned)
+    }
     reader.onerror = () => toast.error('Could not read that file')
     reader.readAsDataURL(file)
   }
@@ -218,7 +281,8 @@ export function OrganizationSettings() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                A PNG with a transparent background works best. Under 500 KB.
+                A scan or a clear photo of a signature on white paper is fine. The blank
+                border is trimmed off and the paper made see-through automatically. Under 2 MB.
               </p>
             </div>
           </div>

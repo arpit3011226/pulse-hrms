@@ -233,7 +233,7 @@ export function stampFooters(
 }
 
 /** Height reserved for the signature block, so a generator can keep it on one page. */
-export const SIGNATURE_BLOCK_HEIGHT = 34
+export const SIGNATURE_BLOCK_HEIGHT = 42
 
 /**
  * "For <company>", the signature itself, then the ruled line and the signatory's
@@ -256,28 +256,35 @@ export function drawSignatureBlock(
   doc.setFont('helvetica', 'bold')
   doc.text(`For ${companyName(org)}`, x, y)
 
-  // The signature sits in the gap between that line and the rule.
+  // The signature sits between that line and the rule.
   const gapTop = y + 3
-  const gapHeight = 15
+  // A signature is as tall as it is wide about as often as it is long and thin —
+  // a descender loop alone can make it square. So fit by width first and let the
+  // height follow, capped, rather than squeezing everything into a short strip.
+  const maxWidth = 50
+  const maxHeight = 22
+  const minGap = 13
+  let drawnHeight = minGap
+
   const image = org?.signature_image?.trim()
   if (image) {
     try {
       const props = doc.getImageProperties(image)
       const ratio = props.width / props.height
-      // Fit inside the gap, never wider than the rule it sits on.
-      let h = gapHeight
-      let w = h * ratio
-      if (w > lineWidth) {
-        w = lineWidth
-        h = w / ratio
+      let w = Math.min(maxWidth, lineWidth)
+      let h = w / ratio
+      if (h > maxHeight) {
+        h = maxHeight
+        w = h * ratio
       }
-      doc.addImage(image, x, gapTop + (gapHeight - h), w, h)
+      doc.addImage(image, x, gapTop, w, h)
+      drawnHeight = Math.max(h, minGap)
     } catch {
       // A corrupt or unsupported image must not stop the document being issued.
     }
   }
 
-  let ly = gapTop + gapHeight + 2
+  let ly = gapTop + drawnHeight + 2
   doc.setLineWidth(0.3)
   doc.setDrawColor(...DOC_COLORS.border)
   doc.line(x, ly, x + lineWidth, ly)
