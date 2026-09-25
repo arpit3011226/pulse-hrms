@@ -38,19 +38,50 @@ const tabsListVariants = cva(
   }
 )
 
+
+/**
+ * The visible text of a trigger, digging through icons and nested spans so a tab
+ * labelled with an icon plus a word still sorts on the word.
+ */
+function tabLabel(node: React.ReactNode): string {
+  if (node === null || node === undefined || typeof node === "boolean") return ""
+  if (typeof node === "string" || typeof node === "number") return String(node)
+  if (Array.isArray(node)) return node.map(tabLabel).join("")
+  if (React.isValidElement(node)) {
+    return tabLabel((node.props as { children?: React.ReactNode }).children)
+  }
+  return ""
+}
+
 function TabsList({
   className,
   variant = "default",
+  children,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.List> &
   VariantProps<typeof tabsListVariants>) {
+  // Every set of tabs in the app reads alphabetically, so nobody has to hunt for
+  // one. Sorting here rather than in each screen means it holds for tabs added
+  // later, and it survives tabs that are shown only to certain roles — those
+  // simply are not in the list to begin with.
+  //
+  // Which tab opens first is unaffected: that is chosen by value, not position.
+  const sorted = React.useMemo(() => {
+    const items = React.Children.toArray(children)
+    return [...items].sort((a, b) =>
+      tabLabel(a).trim().localeCompare(tabLabel(b).trim(), "en")
+    )
+  }, [children])
+
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
       data-variant={variant}
       className={cn(tabsListVariants({ variant }), className)}
       {...props}
-    />
+    >
+      {sorted}
+    </TabsPrimitive.List>
   )
 }
 
