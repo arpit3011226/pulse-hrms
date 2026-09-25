@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Loader2, Users, CheckCircle2, AlertCircle, Database, ShieldCheck, Copy } from 'lucide-react'
+import { Loader2, Users, CheckCircle2, AlertCircle, Database, ShieldCheck, Copy, KeyRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,7 @@ import { useAuth } from '@/features/auth/hooks/use-auth'
 import { toast } from 'sonner'
 import { generateNextEmployeeCode } from '@/features/employees/api/employees.api'
 import { useCreateLogin } from '@/features/auth/hooks/use-user-admin'
+import { setLoginPassword } from '@/features/auth/api/user-admin.api'
 import { humanizeLabel } from '@/lib/utils'
 
 // ── Demo Users ────────────────────────────────────────────────────────
@@ -168,6 +169,7 @@ export function SeedDemoData() {
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [isDone, setIsDone] = useState(false)
   const [credentials, setCredentials] = useState<DemoCredential[]>([])
+  const [resetting, setResetting] = useState<string | null>(null)
   const createLogin = useCreateLogin()
 
   const log = (message: string, type: LogEntry['type'] = 'info') => {
@@ -230,6 +232,30 @@ export function SeedDemoData() {
       }
     }
     return map
+  }
+
+  /**
+   * Give one demo login a fresh password.
+   *
+   * These accounts use a made-up domain, so no email ever arrives and "Forgot
+   * password" cannot rescue them. Without this, one mistyped character locks
+   * the account away for good.
+   */
+  const handleReset = async (email: string) => {
+    setResetting(email)
+    try {
+      const password = generatePassword()
+      await setLoginPassword(email, password)
+      setCredentials((prev) => {
+        const rest = prev.filter((c) => c.email !== email)
+        return [...rest, { email, password }]
+      })
+      toast.success('New password ready — copy it now')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not reset the password')
+    } finally {
+      setResetting(null)
+    }
   }
 
   const handleSeed = async () => {
@@ -349,13 +375,17 @@ export function SeedDemoData() {
         <CardContent className="space-y-4">
           {/* Demo accounts table */}
           <div className="rounded-lg border">
-            <div className="grid grid-cols-3 gap-2 border-b bg-muted/50 p-3 text-xs font-medium text-muted-foreground">
+            <div className="grid grid-cols-[1fr_1.4fr_1fr_auto] gap-2 border-b bg-muted/50 p-3 text-xs font-medium text-muted-foreground">
               <span>Name</span>
               <span>Email</span>
               <span>Role</span>
+              <span className="text-right">Password</span>
             </div>
             {DEMO_USERS.map((user) => (
-              <div key={user.email} className="grid grid-cols-3 gap-2 border-b last:border-0 p-3 text-sm">
+              <div
+                key={user.email}
+                className="grid grid-cols-[1fr_1.4fr_1fr_auto] items-center gap-2 border-b p-3 text-sm last:border-0"
+              >
                 <span className="font-medium">{user.first_name} {user.last_name}</span>
                 <span className="text-xs text-muted-foreground">{user.email}</span>
                 <span>
@@ -363,6 +393,20 @@ export function SeedDemoData() {
                     {humanizeLabel(user.role)}
                   </Badge>
                 </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  disabled={resetting === user.email}
+                  onClick={() => handleReset(user.email)}
+                >
+                  {resetting === user.email ? (
+                    <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                  ) : (
+                    <KeyRound className="mr-1.5 h-3 w-3" />
+                  )}
+                  Reset
+                </Button>
               </div>
             ))}
           </div>
@@ -407,8 +451,9 @@ export function SeedDemoData() {
                 </Button>
               </div>
               <p className="text-xs text-emerald-800 dark:text-emerald-300">
-                These are not saved anywhere. Once you leave this page they cannot be shown again —
-                you would have to reset the password from Settings.
+                These are not saved anywhere, so they cannot be shown again once you leave this
+                page. If you lose one, press Reset on that row for a fresh password — these
+                accounts use a made-up email domain, so "Forgot password" will never reach them.
               </p>
               <div className="space-y-1">
                 {credentials.map((c) => (

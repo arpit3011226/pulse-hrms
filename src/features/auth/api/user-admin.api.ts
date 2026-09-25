@@ -58,3 +58,29 @@ export async function createLogin(input: CreateLoginInput): Promise<CreateLoginR
   if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error)
   return data as CreateLoginResult
 }
+
+/**
+ * Set a new password on an existing login and hand it back once.
+ *
+ * The demo logins use a made-up domain, so no email reaches them and "Forgot
+ * password" cannot work. This is the only way back into one.
+ */
+export async function setLoginPassword(email: string, password: string): Promise<void> {
+  const { data, error } = await supabase.functions.invoke('set-password', {
+    body: { email, password },
+  })
+  if (error) {
+    let message = error.message
+    const ctx = (error as { context?: Response }).context
+    if (ctx && typeof ctx.json === 'function') {
+      try {
+        const body = await ctx.json()
+        if (body?.error) message = body.error
+      } catch {
+        // keep the original message
+      }
+    }
+    throw new Error(message)
+  }
+  if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error)
+}
