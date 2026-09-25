@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/layout/page-header'
+import { DateRangeFilter } from '@/components/shared/date-range-filter'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { usePermissions } from '@/hooks/use-permissions'
 import { MyLeavesTab } from './my-leaves-tab'
@@ -32,6 +33,7 @@ export function LeavePage() {
       <PageHeader
         title="Leave Management"
         description="Manage leave requests, policies, holidays, and balances."
+        actions={<DateRangeFilter />}
       />
 
       <Tabs defaultValue="my-leaves">

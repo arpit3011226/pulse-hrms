@@ -12,6 +12,7 @@ import { formatTime, formatWorkHours, getMonthDateRange } from '../utils/attenda
 import { formatDate } from '@/lib/utils'
 import { MONTH_OPTIONS } from '@/lib/constants'
 import type { AttendanceRecord, AttendanceRegularizationRequest } from '@/types/database.types'
+import { useDateFiltered } from '@/hooks/use-date-range'
 
 export function MyAttendanceTab() {
   const { data: employee } = useCurrentEmployee()
@@ -86,6 +87,9 @@ export function MyAttendanceTab() {
     )},
   ]
 
+  // Narrowed by the module's date filter, which sits beside the page title.
+  const visibleRecords = useDateFiltered((records || []) as AttendanceRecord[], 'date')
+
   return (
     <div className="space-y-6">
       <ClockInOutCard />
@@ -106,7 +110,7 @@ export function MyAttendanceTab() {
 
       <DataTable
         columns={columns}
-        data={(records || []) as AttendanceRecord[]}
+        data={visibleRecords}
         isLoading={isLoading}
         searchKey="date"
         searchPlaceholder="Search by date..."

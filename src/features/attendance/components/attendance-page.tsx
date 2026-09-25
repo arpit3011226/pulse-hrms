@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/layout/page-header'
+import { DateRangeFilter } from '@/components/shared/date-range-filter'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { usePermissions } from '@/hooks/use-permissions'
 import { MyAttendanceTab } from './my-attendance-tab'
@@ -26,6 +27,7 @@ export function AttendancePage() {
       <PageHeader
         title="Attendance"
         description="Track attendance, manage shifts, and handle regularization requests."
+        actions={<DateRangeFilter />}
       />
 
       <Tabs defaultValue="my-attendance">

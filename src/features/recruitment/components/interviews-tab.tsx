@@ -26,6 +26,7 @@ import { formatDate } from '@/lib/utils'
 import { INTERVIEW_MODES } from '@/lib/constants'
 import type { InterviewWithRelations } from '@/types/database.types'
 import { toast } from 'sonner'
+import { useDateFiltered } from '@/hooks/use-date-range'
 
 function formatTime(dateStr: string) {
   const d = new Date(dateStr)
@@ -195,11 +196,17 @@ export function InterviewsTab() {
     })
   }
 
+  // Narrowed by the module's date filter, which sits beside the page title.
+  const visibleInterviews = useDateFiltered(
+    (interviews || []) as InterviewWithRelations[],
+    'scheduled_start'
+  )
+
   return (
     <>
       <DataTable
         columns={columns}
-        data={(interviews || []) as InterviewWithRelations[]}
+        data={visibleInterviews}
         searchKey="candidate"
         searchPlaceholder="Search interviews..."
         isLoading={isLoading}

@@ -24,6 +24,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
 import type { CandidateApplicationWithRelations } from '@/types/database.types'
 import { toast } from 'sonner'
+import { useDateFiltered } from '@/hooks/use-date-range'
 
 export function ApplicationsTab() {
   const { canManageRecruitment, isAdmin, isHR } = usePermissions()
@@ -163,11 +164,17 @@ export function ApplicationsTab() {
     return `Are you sure you want to change this application's status to "${statusChange.label}"?`
   }
 
+  // Narrowed by the module's date filter, which sits beside the page title.
+  const visibleApplications = useDateFiltered(
+    (applications || []) as CandidateApplicationWithRelations[],
+    'applied_date'
+  )
+
   return (
     <>
       <DataTable
         columns={columns}
-        data={(applications || []) as CandidateApplicationWithRelations[]}
+        data={visibleApplications}
         searchKey="candidate_name"
         searchPlaceholder="Search applications..."
         isLoading={isLoading}

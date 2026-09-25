@@ -13,6 +13,7 @@ import { LeaveActionDialog } from './leave-action-dialog'
 import { useCurrentEmployee, useTeamLeaveRequests, useAllLeaveBalances, useApproveLeave, useRejectLeave } from '../hooks/use-leave'
 import { formatDate } from '@/lib/utils'
 import type { LeaveRequestWithRelations, LeaveBalanceWithRelations } from '@/types/database.types'
+import { useDateFiltered } from '@/hooks/use-date-range'
 
 export function TeamLeavesTab() {
   const { data: employee } = useCurrentEmployee()
@@ -167,6 +168,12 @@ export function TeamLeavesTab() {
     },
   ]
 
+  // Narrowed by the module's date filter, which sits beside the page title.
+  const visibleRequests = useDateFiltered(
+    (requests || []) as LeaveRequestWithRelations[],
+    'start_date'
+  )
+
   return (
     <>
       {selected.size > 0 && (
@@ -196,7 +203,7 @@ export function TeamLeavesTab() {
 
       <DataTable
         columns={columns}
-        data={(requests || []) as LeaveRequestWithRelations[]}
+        data={visibleRequests}
         searchKey="employee"
         searchPlaceholder="Search team members..."
         isLoading={isLoading}

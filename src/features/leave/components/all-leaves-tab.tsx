@@ -15,6 +15,7 @@ import {
 import { formatDate } from '@/lib/utils'
 import { LEAVE_STATUSES } from '@/lib/constants'
 import type { LeaveRequestWithRelations, LeaveBalanceWithRelations } from '@/types/database.types'
+import { useDateFiltered } from '@/hooks/use-date-range'
 
 export function AllLeavesTab() {
   const { data: employee } = useCurrentEmployee()
@@ -96,11 +97,17 @@ export function AllLeavesTab() {
     },
   ]
 
+  // Narrowed by the module's date filter, which sits beside the page title.
+  const visibleRequests = useDateFiltered(
+    (requests || []) as LeaveRequestWithRelations[],
+    'start_date'
+  )
+
   return (
     <>
       <DataTable
         columns={columns}
-        data={(requests || []) as LeaveRequestWithRelations[]}
+        data={visibleRequests}
         searchKey="employee"
         searchPlaceholder="Search employees..."
         isLoading={isLoading}

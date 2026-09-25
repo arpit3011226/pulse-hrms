@@ -3,6 +3,7 @@ import { Sidebar } from './sidebar'
 import { Topbar } from './topbar'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { Loader2 } from 'lucide-react'
+import { DateRangeProvider } from '@/components/shared/date-range-filter'
 
 export function AppLayout() {
   const { session, isLoading, profile } = useAuth()
@@ -87,9 +88,14 @@ export function AppLayout() {
               <circle cx="660" cy="190" r="4.5" fill="#7B4CFF" opacity="0.06" />
             </svg>
           </div>
-          <div className="relative z-10">
-            <Outlet />
-          </div>
+          {/* One date filter per module. Keying on the path gives each module a
+              fresh range, so a period picked in Leave does not silently narrow
+              Attendance when you move across. */}
+          <DateRangeProvider key={location.pathname}>
+            <div className="relative z-10">
+              <Outlet />
+            </div>
+          </DateRangeProvider>
           <footer className="relative z-10 mt-8 flex items-center justify-between border-t border-border/40 px-2 py-4 text-xs text-muted-foreground">
             <span>&copy; {new Date().getFullYear()} | Augustinnovate Pvt. Ltd.</span>
             <a

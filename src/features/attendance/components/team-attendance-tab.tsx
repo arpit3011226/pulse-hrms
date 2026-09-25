@@ -11,6 +11,7 @@ import { useCurrentEmployee, useTeamAttendance, useTeamRegularizations } from '.
 import { formatTime, formatWorkHours, getTodayDateString } from '../utils/attendance-utils'
 import { getInitials, formatDate } from '@/lib/utils'
 import type { AttendanceRecordWithRelations, RegularizationRequestWithRelations } from '@/types/database.types'
+import { useDateFiltered } from '@/hooks/use-date-range'
 
 export function TeamAttendanceTab() {
   const { data: employee } = useCurrentEmployee()
@@ -98,6 +99,12 @@ export function TeamAttendanceTab() {
     },
   ]
 
+  // Narrowed by the module's date filter, which sits beside the page title.
+  const visibleRecords = useDateFiltered(
+    (records || []) as AttendanceRecordWithRelations[],
+    'date'
+  )
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -111,7 +118,7 @@ export function TeamAttendanceTab() {
 
       <DataTable
         columns={columns}
-        data={(records || []) as AttendanceRecordWithRelations[]}
+        data={visibleRecords}
         isLoading={isLoading}
         searchKey="employee"
         searchPlaceholder="Search team..."

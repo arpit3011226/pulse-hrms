@@ -11,6 +11,7 @@ import { useCurrentEmployee, useMyLeaveRequests, useMyLeaveBalances, useCancelLe
 import { formatDate } from '@/lib/utils'
 import type { LeaveRequestWithRelations, LeaveBalanceWithRelations } from '@/types/database.types'
 import { toast } from 'sonner'
+import { useDateFiltered } from '@/hooks/use-date-range'
 
 export function MyLeavesTab() {
   const { data: employee } = useCurrentEmployee()
@@ -92,6 +93,12 @@ export function MyLeavesTab() {
     ) || null
   }
 
+  // Narrowed by the module's date filter, which sits beside the page title.
+  const visibleRequests = useDateFiltered(
+    (requests || []) as LeaveRequestWithRelations[],
+    'start_date'
+  )
+
   return (
     <div className="space-y-6">
       <LeaveBalanceCards
@@ -101,7 +108,7 @@ export function MyLeavesTab() {
 
       <DataTable
         columns={columns}
-        data={(requests || []) as LeaveRequestWithRelations[]}
+        data={visibleRequests}
         searchKey="leave_type"
         searchPlaceholder="Search leave requests..."
         isLoading={requestsLoading}

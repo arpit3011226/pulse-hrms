@@ -14,6 +14,7 @@ import { formatTime, formatWorkHours } from '../utils/attendance-utils'
 import { getInitials, formatDate } from '@/lib/utils'
 import { ATTENDANCE_STATUSES } from '@/lib/constants'
 import type { AttendanceRecordWithRelations } from '@/types/database.types'
+import { useDateFiltered } from '@/hooks/use-date-range'
 
 export function AllAttendanceTab() {
   const [filters, setFilters] = useState<AttendanceFilters>({})
@@ -86,6 +87,12 @@ export function AllAttendanceTab() {
     },
   ]
 
+  // Narrowed by the module's date filter, which sits beside the page title.
+  const visibleRecords = useDateFiltered(
+    (records || []) as AttendanceRecordWithRelations[],
+    'date'
+  )
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -135,7 +142,7 @@ export function AllAttendanceTab() {
 
       <DataTable
         columns={columns}
-        data={(records || []) as AttendanceRecordWithRelations[]}
+        data={visibleRecords}
         isLoading={isLoading}
         searchKey="employee"
         searchPlaceholder="Search attendance..."

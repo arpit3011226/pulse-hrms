@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/layout/page-header'
+import { DateRangeFilter } from '@/components/shared/date-range-filter'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { usePermissions } from '@/hooks/use-permissions'
 import { RequisitionsTab } from './requisitions-tab'
@@ -23,6 +24,7 @@ export function RecruitmentPage() {
       <PageHeader
         title="Recruitment"
         description="Manage job requisitions, candidates, interviews, and offers."
+        actions={<DateRangeFilter />}
       />
 
       <Tabs defaultValue="requisitions">

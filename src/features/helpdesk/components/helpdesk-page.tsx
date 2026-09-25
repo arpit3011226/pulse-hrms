@@ -5,6 +5,7 @@ import {
   AlertTriangle, ArrowUpCircle, Clock, LifeBuoy, Loader2, Plus, Send, Ticket,
 } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
+import { DateRangeFilter } from '@/components/shared/date-range-filter'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -35,6 +36,7 @@ import {
 } from '../api/helpdesk.api'
 import { formatDate, humanizeLabel } from '@/lib/utils'
 import { toast } from 'sonner'
+import { useDateFiltered } from '@/hooks/use-date-range'
 
 const PRIORITY_STYLES: Record<string, string> = {
   low: 'bg-gray-100 text-gray-700',
@@ -100,7 +102,8 @@ export function HelpdeskPage() {
   }, [catOpen])
 
   // Memoised: a fresh [] each render would invalidate the lists built from it.
-  const all = useMemo(() => tickets ?? [], [tickets])
+  // Narrowed by the module's date filter; the other two lists derive from this.
+  const all = useDateFiltered(tickets, 'created_at')
   const mine = useMemo(() => all.filter((t) => t.raised_by === myId), [all, myId])
   const assigned = useMemo(() => all.filter((t) => t.assigned_to === myId), [all, myId])
   const openOverdue = all.filter(isOverdue).length
@@ -207,6 +210,7 @@ export function HelpdeskPage() {
       <PageHeader
         title="Helpdesk"
         description="Raise a request with HR and track it to resolution."
+        actions={<DateRangeFilter />}
       />
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
