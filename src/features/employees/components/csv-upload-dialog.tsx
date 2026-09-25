@@ -202,7 +202,7 @@ export function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] flex flex-col mx-auto">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5 text-primary" />

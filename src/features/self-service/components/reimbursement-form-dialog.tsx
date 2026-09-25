@@ -94,7 +94,7 @@ export function ReimbursementFormDialog({ open, onOpenChange, employeeId }: Prop
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>New Reimbursement Request</DialogTitle>
         </DialogHeader>

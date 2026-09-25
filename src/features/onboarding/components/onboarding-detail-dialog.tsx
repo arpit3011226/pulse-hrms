@@ -157,7 +157,7 @@ export function OnboardingDetailDialog({ open, onOpenChange, run, currentEmploye
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[88vh] max-w-2xl flex-col">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{name}</DialogTitle>
           <DialogDescription>

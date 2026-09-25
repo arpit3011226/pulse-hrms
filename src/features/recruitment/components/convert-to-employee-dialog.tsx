@@ -154,7 +154,7 @@ export function ConvertToEmployeeDialog({ open, onOpenChange, offer }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" /> Convert to employee

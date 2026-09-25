@@ -78,7 +78,7 @@ export function BlackoutFormDialog({ open, onOpenChange, period }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{period ? 'Edit blackout period' : 'Add blackout period'}</DialogTitle>
           <DialogDescription>

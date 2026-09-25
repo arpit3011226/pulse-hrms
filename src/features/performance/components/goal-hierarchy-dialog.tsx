@@ -27,7 +27,7 @@ export function GoalHierarchyDialog({ open, onOpenChange, goal }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <GitBranch className="h-5 w-5" /> Cascaded goals

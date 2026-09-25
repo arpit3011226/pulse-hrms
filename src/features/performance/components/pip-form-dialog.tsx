@@ -137,7 +137,7 @@ export function PipFormDialog({ open, onOpenChange, pip }: PipFormDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit PIP' : 'Create Performance Improvement Plan'}</DialogTitle>
           <DialogDescription>

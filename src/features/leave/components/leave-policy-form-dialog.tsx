@@ -171,7 +171,7 @@ export function LeavePolicyFormDialog({ open, onOpenChange, policy }: LeavePolic
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Leave Policy' : 'Create Leave Policy'}</DialogTitle>
         </DialogHeader>

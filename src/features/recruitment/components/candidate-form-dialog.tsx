@@ -128,7 +128,7 @@ export function CandidateFormDialog({ open, onOpenChange, candidate }: Candidate
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Candidate' : 'Add Candidate'}</DialogTitle>
         </DialogHeader>

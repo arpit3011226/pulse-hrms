@@ -121,7 +121,7 @@ export function CascadeGoalDialog({ open, onOpenChange, cycleId }: CascadeGoalDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <GitBranch className="h-5 w-5 text-orange-600" />

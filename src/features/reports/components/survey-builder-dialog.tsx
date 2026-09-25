@@ -398,7 +398,7 @@ export function SurveyBuilderDialog({ open, onOpenChange, survey }: SurveyBuilde
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent size="page">
           <DialogHeader>
             <DialogTitle>{isEditing ? 'Edit Survey' : 'Create Survey'}</DialogTitle>
           </DialogHeader>

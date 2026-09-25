@@ -112,7 +112,7 @@ export function CompetencyFormDialog({ open, onOpenChange, competency }: Compete
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Competency' : 'Add Competency'}</DialogTitle>
         </DialogHeader>

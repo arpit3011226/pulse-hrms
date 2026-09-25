@@ -295,7 +295,7 @@ export function HelpdeskPage() {
 
       {/* Raise */}
       <Dialog open={raiseOpen} onOpenChange={setRaiseOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent size="page">
           <DialogHeader>
             <DialogTitle>Raise a ticket</DialogTitle>
             <DialogDescription>
@@ -460,7 +460,7 @@ function TicketDetailDialog({
 
   return (
     <Dialog open={!!ticket} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[88vh] max-w-2xl flex-col">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
             {ticket.ticket_number} · {ticket.subject}

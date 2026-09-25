@@ -67,7 +67,7 @@ export function EmployeeExitDialog({ open, onOpenChange, employee }: EmployeeExi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>Initiate Exit</DialogTitle>
           <DialogDescription>

@@ -52,7 +52,7 @@ export function LetterRequestDialog({ open, onOpenChange, template, employeeId }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>Request {template?.name || 'Letter'}</DialogTitle>
         </DialogHeader>

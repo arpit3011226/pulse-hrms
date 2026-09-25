@@ -87,7 +87,7 @@ export function EmployeePromotionDialog({ open, onOpenChange, employee, departme
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>Promote / Transfer Employee</DialogTitle>
           <DialogDescription>

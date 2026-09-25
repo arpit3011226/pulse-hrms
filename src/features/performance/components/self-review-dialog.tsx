@@ -74,7 +74,7 @@ export function SelfReviewDialog({ open, onOpenChange, reviewId, existing }: Sel
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{existing?.submitted_at ? 'Update Self Review' : 'Submit Self Review'}</DialogTitle>
         </DialogHeader>

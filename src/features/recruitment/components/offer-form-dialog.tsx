@@ -117,7 +117,7 @@ export function OfferFormDialog({ open, onOpenChange, offer }: OfferFormDialogPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Offer Letter' : 'Create Offer Letter'}</DialogTitle>
         </DialogHeader>

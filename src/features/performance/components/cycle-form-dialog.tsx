@@ -150,7 +150,7 @@ export function CycleFormDialog({ open, onOpenChange, cycle }: CycleFormDialogPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-2xl mx-auto p-0 gap-0">
+      <DialogContent size="page">
         <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle>{isEditing ? 'Edit Cycle' : 'Add Cycle'}</DialogTitle>
         </DialogHeader>

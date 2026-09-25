@@ -239,7 +239,7 @@ export function GoalFormDialog({ open, onOpenChange, goal, employeeId, cycleId }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Goal' : 'Create Goal'}</DialogTitle>
         </DialogHeader>

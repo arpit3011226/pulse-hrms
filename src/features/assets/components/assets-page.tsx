@@ -409,7 +409,7 @@ export function AssetsPage() {
 
       {/* Add asset */}
       <Dialog open={assetFormOpen} onOpenChange={setAssetFormOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent size="page">
           <DialogHeader>
             <DialogTitle>Add asset</DialogTitle>
             <DialogDescription>Record something the company owns and can issue.</DialogDescription>

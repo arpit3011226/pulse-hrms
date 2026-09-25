@@ -117,7 +117,7 @@ export function InterviewFeedbackDialog({ open, onOpenChange, interview }: Inter
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{existingFeedback ? 'Edit Interview Feedback' : 'Submit Interview Feedback'}</DialogTitle>
         </DialogHeader>

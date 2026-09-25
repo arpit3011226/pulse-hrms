@@ -54,7 +54,7 @@ export function HolidayFormDialog({ open, onOpenChange, holiday, onSave, isLoadi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Holiday' : 'Add Holiday'}</DialogTitle>
         </DialogHeader>

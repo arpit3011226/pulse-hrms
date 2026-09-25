@@ -69,7 +69,7 @@ export function MarkAttendanceDialog({ open, onOpenChange }: MarkAttendanceDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>Mark Attendance</DialogTitle>
           <DialogDescription>Manually mark attendance for an employee.</DialogDescription>

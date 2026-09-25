@@ -194,7 +194,7 @@ export function SurveyTakeDialog({ open, onOpenChange, survey }: SurveyTakeDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{survey.title}</DialogTitle>
           {survey.description && (

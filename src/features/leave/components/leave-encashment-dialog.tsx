@@ -83,7 +83,7 @@ export function LeaveEncashmentDialog({ open, onOpenChange }: LeaveEncashmentDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>Request Leave Encashment</DialogTitle>
         </DialogHeader>

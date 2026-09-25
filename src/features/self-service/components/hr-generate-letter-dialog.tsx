@@ -109,7 +109,7 @@ export function HrGenerateLetterDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>Generate Letter for Employee</DialogTitle>
         </DialogHeader>

@@ -106,7 +106,7 @@ export function RunPayrollDialog({ open, onOpenChange }: RunPayrollDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-lg mx-auto">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>Create Payroll Cycle</DialogTitle>
         </DialogHeader>

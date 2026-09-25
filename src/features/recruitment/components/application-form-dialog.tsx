@@ -84,7 +84,7 @@ export function ApplicationFormDialog({ open, onOpenChange }: ApplicationFormDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>New Application</DialogTitle>
         </DialogHeader>

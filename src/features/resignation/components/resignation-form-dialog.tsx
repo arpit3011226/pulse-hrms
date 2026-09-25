@@ -86,7 +86,7 @@ export function ResignationFormDialog({ open, onOpenChange, employeeId }: Resign
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>Submit Resignation</DialogTitle>
           <DialogDescription>

@@ -220,7 +220,7 @@ export function StructureFormDialog({ open, onOpenChange, structure }: Structure
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Salary Structure' : 'Create Salary Structure'}</DialogTitle>
         </DialogHeader>

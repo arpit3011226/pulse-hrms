@@ -136,7 +136,7 @@ export function GeneralRequestFormDialog({ open, onOpenChange, employeeId }: Pro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>New Request</DialogTitle>
         </DialogHeader>

@@ -87,7 +87,7 @@ export function ManagerReviewDialog({ open, onOpenChange, review }: ManagerRevie
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>Review: {employeeName}</DialogTitle>
         </DialogHeader>

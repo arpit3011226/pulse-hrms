@@ -131,7 +131,7 @@ export function InitiateSeparationDialog({ open, onOpenChange }: InitiateSeparat
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>Initiate Separation</DialogTitle>
           <DialogDescription>

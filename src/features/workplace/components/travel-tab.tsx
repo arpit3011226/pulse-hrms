@@ -206,7 +206,7 @@ export function TravelTab({ employeeId, canApprove }: Props) {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent size="page">
           <DialogHeader>
             <DialogTitle>New travel request</DialogTitle>
             <DialogDescription>

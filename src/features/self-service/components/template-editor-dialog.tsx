@@ -132,7 +132,7 @@ export function TemplateEditorDialog({ open, onOpenChange, template }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Template' : 'Create Letter Template'}</DialogTitle>
         </DialogHeader>

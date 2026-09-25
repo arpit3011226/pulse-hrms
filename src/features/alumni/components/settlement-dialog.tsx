@@ -99,7 +99,7 @@ export function SettlementDialog({ open, onOpenChange, settlement }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[88vh] max-w-lg flex-col">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{settlement ? 'Edit settlement' : 'New full and final settlement'}</DialogTitle>
           <DialogDescription>

@@ -61,7 +61,7 @@ export function RegularizationDialog({ open, onOpenChange, record, employeeId }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>Request Regularization</DialogTitle>
           <DialogDescription>

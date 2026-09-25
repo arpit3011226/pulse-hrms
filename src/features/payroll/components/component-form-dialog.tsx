@@ -141,7 +141,7 @@ export function ComponentFormDialog({ open, onOpenChange, component }: Component
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Salary Component' : 'Add Salary Component'}</DialogTitle>
         </DialogHeader>

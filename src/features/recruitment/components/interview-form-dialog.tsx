@@ -161,7 +161,7 @@ export function InterviewFormDialog({ open, onOpenChange, interview }: Interview
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Interview' : 'Schedule Interview'}</DialogTitle>
         </DialogHeader>

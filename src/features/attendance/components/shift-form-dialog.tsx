@@ -84,7 +84,7 @@ export function ShiftFormDialog({ open, onOpenChange, shift }: ShiftFormDialogPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Shift' : 'Add Shift'}</DialogTitle>
           <DialogDescription>

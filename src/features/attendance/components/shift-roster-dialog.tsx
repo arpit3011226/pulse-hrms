@@ -78,7 +78,7 @@ export function ShiftRosterDialog({ open, onOpenChange, roster }: ShiftRosterDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit Roster' : 'Assign Shift'}</DialogTitle>
           <DialogDescription>

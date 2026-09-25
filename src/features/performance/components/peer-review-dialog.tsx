@@ -72,7 +72,7 @@ export function PeerReviewDialog({ open, onOpenChange, reviewId, peerId }: PeerR
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>Submit Peer Review</DialogTitle>
         </DialogHeader>

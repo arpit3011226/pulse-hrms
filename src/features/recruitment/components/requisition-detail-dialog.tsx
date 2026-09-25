@@ -32,7 +32,7 @@ export function RequisitionDetailDialog({ open, onOpenChange, requisition }: Req
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             {requisition.title}

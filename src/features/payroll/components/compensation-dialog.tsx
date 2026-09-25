@@ -254,7 +254,7 @@ export function CompensationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle>
             {isRevising ? 'Revise Compensation' : 'Assign Compensation'}

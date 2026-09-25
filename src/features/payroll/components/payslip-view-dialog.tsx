@@ -47,7 +47,7 @@ export function PayslipViewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px]">
+      <DialogContent size="page">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>

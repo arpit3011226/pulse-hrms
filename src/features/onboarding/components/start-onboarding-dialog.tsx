@@ -97,7 +97,7 @@ export function StartOnboardingDialog({ open, onOpenChange, employeeId, currentE
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent size="page">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Rocket className="h-5 w-5" /> Start onboarding
