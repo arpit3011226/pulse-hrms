@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Award, Heart, Loader2, Plus, Sparkles, Trophy } from 'lucide-react'
+import { Award, Loader2, Plus, Sparkles, Trophy } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -22,7 +22,7 @@ import { useEmployees } from '@/features/employees/hooks/use-employees'
 import {
   useRecognitions, useRecognitionValues, useGiveRecognition, useCreateRecognitionValue,
 } from '../hooks/use-workplace'
-import { formatDate } from '@/lib/utils'
+import { RecognitionCard } from './recognition-card'
 import { toast } from 'sonner'
 
 export function RecognitionPage() {
@@ -132,45 +132,14 @@ export function RecognitionPage() {
               </CardContent>
             </Card>
           ) : (
-            feed.map((r) => {
-              const giver = r.giver as Record<string, unknown> | null
-              const receiver = r.receiver as Record<string, unknown> | null
-              const value = r.value as Record<string, unknown> | null
-              return (
-                <Card key={r.id as string}>
-                  <CardContent className="py-4">
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 rounded-full bg-amber-50 p-2">
-                        <Heart className="h-4 w-4 text-amber-600" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm">
-                          <span className="font-medium">
-                            {giver ? `${giver.first_name} ${giver.last_name}` : 'Someone'}
-                          </span>
-                          {' recognised '}
-                          <span className="font-medium">
-                            {receiver ? `${receiver.first_name} ${receiver.last_name}` : 'someone'}
-                          </span>
-                        </p>
-                        <p className="mt-1 text-sm text-muted-foreground">{r.message as string}</p>
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                          {value && (
-                            <Badge variant="secondary" className="text-xs">
-                              {value.name as string}
-                            </Badge>
-                          )}
-                          {!r.is_public && <Badge variant="outline" className="text-xs">Private</Badge>}
-                          <span className="text-xs text-muted-foreground">
-                            {formatDate(r.created_at as string)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })
+            feed.map((r) => (
+              <RecognitionCard
+                key={r.id as string}
+                recognition={r}
+                myEmployeeId={myId}
+                canModerate={canManage}
+              />
+            ))
           )}
         </div>
 

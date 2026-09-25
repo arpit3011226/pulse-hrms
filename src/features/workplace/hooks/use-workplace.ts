@@ -64,6 +64,38 @@ export function useGiveRecognition() {
   })
 }
 
+export function useToggleRecognitionReaction() {
+  const qc = useQueryClient()
+  const { organization } = useAuth()
+  return useMutation({
+    mutationFn: (p: {
+      recognition_id: string
+      employee_id: string
+      emoji: string
+      existingId: string | null
+    }) => api.toggleRecognitionReaction({ ...p, organization_id: organization!.id }),
+    onSuccess: () => bust(qc, 'recognitions'),
+  })
+}
+
+export function useAddRecognitionComment() {
+  const qc = useQueryClient()
+  const { organization } = useAuth()
+  return useMutation({
+    mutationFn: (p: { recognition_id: string; employee_id: string; comment: string }) =>
+      api.addRecognitionComment({ ...p, organization_id: organization!.id }),
+    onSuccess: () => bust(qc, 'recognitions'),
+  })
+}
+
+export function useDeleteRecognitionComment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: api.deleteRecognitionComment,
+    onSuccess: () => bust(qc, 'recognitions'),
+  })
+}
+
 export function useCreateRecognitionValue() {
   const qc = useQueryClient()
   const { organization } = useAuth()

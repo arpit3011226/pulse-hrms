@@ -86,14 +86,73 @@ export async function updateTravelRequest(id: string, updates: Partial<TravelReq
 // ── F34: recognition ────────────────────────────────────────────────────────
 
 export async function getRecognitions(orgId: string) {
+  // Reactions and comments come along with the feed. They are small, they are
+  // needed for every card, and fetching them separately would mean a second
+  // round trip before the page could show whether anyone had clapped.
   const { data, error } = await supabase
     .from('recognitions')
-    .select('*, giver:employees!recognitions_given_by_fkey(id, first_name, last_name), receiver:employees!recognitions_given_to_fkey(id, first_name, last_name), value:recognition_values(id, name, icon)')
+    .select('*, giver:employees!recognitions_given_by_fkey(id, first_name, last_name), receiver:employees!recognitions_given_to_fkey(id, first_name, last_name), value:recognition_values(id, name, icon), reactions:recognition_reactions(id, emoji, employee_id), comments:recognition_comments(id, comment, created_at, employee_id, author:employees!recognition_comments_employee_id_fkey(id, first_name, last_name))')
     .eq('organization_id', orgId)
     .order('created_at', { ascending: false })
     .limit(100)
   if (error) throw error
   return data
+}
+
+/**
+ * Clap, or take the clap back.
+ *
+ * The unique index on (recognition, person, emoji) is what makes this safe to
+ * call twice quickly: the second insert fails rather than counting twice.
+ */
+export async function toggleRecognitionReaction(params: {
+  organization_id: string
+  recognition_id: string
+  employee_id: string
+  emoji: string
+  existingId: string | null
+}) {
+  if (params.existingId) {
+    const { error } = await supabase
+      .from('recognition_reactions')
+      .delete()
+      .eq('id', params.existingId)
+    if (error) throw error
+    return null
+  }
+
+  const { data, error } = await supabase
+    .from('recognition_reactions')
+    .insert({
+      organization_id: params.organization_id,
+      recognition_id: params.recognition_id,
+      employee_id: params.employee_id,
+      emoji: params.emoji,
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function addRecognitionComment(payload: {
+  organization_id: string
+  recognition_id: string
+  employee_id: string
+  comment: string
+}) {
+  const { data, error } = await supabase
+    .from('recognition_comments')
+    .insert(payload)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteRecognitionComment(id: string) {
+  const { error } = await supabase.from('recognition_comments').delete().eq('id', id)
+  if (error) throw error
 }
 
 export async function getRecognitionValues(orgId: string) {
