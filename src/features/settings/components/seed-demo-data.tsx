@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Loader2, Users, CheckCircle2, AlertCircle, Database, ShieldCheck } from 'lucide-react'
+import { Loader2, Users, CheckCircle2, AlertCircle, Database, ShieldCheck, Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -8,12 +8,13 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { toast } from 'sonner'
 import { generateNextEmployeeCode } from '@/features/employees/api/employees.api'
+import { useCreateLogin } from '@/features/auth/hooks/use-user-admin'
+import { humanizeLabel } from '@/lib/utils'
 
 // ── Demo Users ────────────────────────────────────────────────────────
 const DEMO_USERS = [
   {
     email: 'admin@pulsehrms.demo',
-    password: 'Demo@1234',
     first_name: 'Aarav',
     last_name: 'Sharma',
     role: 'super_admin' as const,
@@ -24,7 +25,6 @@ const DEMO_USERS = [
   },
   {
     email: 'hr@pulsehrms.demo',
-    password: 'Demo@1234',
     first_name: 'Priya',
     last_name: 'Patel',
     role: 'hr_admin' as const,
@@ -35,7 +35,6 @@ const DEMO_USERS = [
   },
   {
     email: 'payroll@pulsehrms.demo',
-    password: 'Demo@1234',
     first_name: 'Rohan',
     last_name: 'Gupta',
     role: 'payroll_admin' as const,
@@ -46,7 +45,6 @@ const DEMO_USERS = [
   },
   {
     email: 'manager@pulsehrms.demo',
-    password: 'Demo@1234',
     first_name: 'Ananya',
     last_name: 'Singh',
     role: 'manager' as const,
@@ -57,7 +55,6 @@ const DEMO_USERS = [
   },
   {
     email: 'lead@pulsehrms.demo',
-    password: 'Demo@1234',
     first_name: 'Vikram',
     last_name: 'Mehta',
     role: 'leadership' as const,
@@ -68,7 +65,6 @@ const DEMO_USERS = [
   },
   {
     email: 'employee1@pulsehrms.demo',
-    password: 'Demo@1234',
     first_name: 'Sneha',
     last_name: 'Reddy',
     role: 'employee' as const,
@@ -79,7 +75,6 @@ const DEMO_USERS = [
   },
   {
     email: 'employee2@pulsehrms.demo',
-    password: 'Demo@1234',
     first_name: 'Karan',
     last_name: 'Joshi',
     role: 'employee' as const,
@@ -90,7 +85,6 @@ const DEMO_USERS = [
   },
   {
     email: 'contractor@pulsehrms.demo',
-    password: 'Demo@1234',
     first_name: 'Meera',
     last_name: 'Nair',
     role: 'employee' as const,
@@ -126,11 +120,55 @@ interface LogEntry {
   type: 'success' | 'error' | 'info'
 }
 
+interface DemoCredential {
+  email: string
+  password: string
+}
+
+/**
+ * A strong password for one demo login, shown once and not stored anywhere.
+ *
+ * These used to share a fixed password printed on the screen. That is fine on a
+ * laptop and a bad idea on a deployed site — the set includes a super admin, so
+ * anyone who found the URL could guess their way in. Each account now gets its
+ * own, and the tester copies it when it is created.
+ *
+ * The alphabet leaves out characters that are easy to misread when copied by
+ * hand, and the pattern satisfies the usual upper/lower/digit/symbol rule.
+ */
+function generatePassword(): string {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+  const lower = 'abcdefghijkmnopqrstuvwxyz'
+  const digits = '23456789'
+  const symbols = '@#$%&*'
+
+  const pick = (set: string, n: number) => {
+    const bytes = new Uint32Array(n)
+    crypto.getRandomValues(bytes)
+    return Array.from(bytes, (b) => set[b % set.length]).join('')
+  }
+
+  const chars = (
+    pick(upper, 2) + pick(lower, 8) + pick(digits, 3) + pick(symbols, 2)
+  ).split('')
+
+  // Shuffle, so the shape of the password does not give away how it was built.
+  const order = new Uint32Array(chars.length)
+  crypto.getRandomValues(order)
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = order[i] % (i + 1)
+    ;[chars[i], chars[j]] = [chars[j], chars[i]]
+  }
+  return chars.join('')
+}
+
 export function SeedDemoData() {
   const { organization } = useAuth()
   const [isSeeding, setIsSeeding] = useState(false)
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [isDone, setIsDone] = useState(false)
+  const [credentials, setCredentials] = useState<DemoCredential[]>([])
+  const createLogin = useCreateLogin()
 
   const log = (message: string, type: LogEntry['type'] = 'info') => {
     setLogs((prev) => [...prev, { message, type }])
@@ -198,6 +236,7 @@ export function SeedDemoData() {
     if (!organization) return
     setIsSeeding(true)
     setLogs([])
+    setCredentials([])
     setIsDone(false)
 
     try {
@@ -221,54 +260,15 @@ export function SeedDemoData() {
           .maybeSingle()
 
         if (existingEmp) {
-          log(`  ${user.first_name} ${user.last_name} (${user.email}) — already exists, skipped`, 'info')
+          log(`  ${user.first_name} ${user.last_name} — already exists, skipped`, 'info')
           continue
         }
 
-        // 1. Sign up the user (creates auth.users + profiles via trigger)
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: user.email,
-          password: user.password,
-          options: {
-            data: {
-              first_name: user.first_name,
-              last_name: user.last_name,
-            },
-          },
-        })
-
-        if (authError || !authData.user) {
-          log(`  ${user.email} — auth failed: ${authError?.message || 'Unknown'}`, 'error')
-          continue
-        }
-
-        const userId = authData.user.id
-
-        // 2. Update profile with org and role
-        // Small delay for trigger to fire
-        await new Promise((r) => setTimeout(r, 500))
-
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            organization_id: organization.id,
-            role: user.role,
-            first_name: user.first_name,
-            last_name: user.last_name,
-          })
-          .eq('id', userId)
-
-        if (profileError) {
-          log(`  ${user.email} — profile update failed: ${profileError.message}`, 'error')
-          continue
-        }
-
-        // 3. Create employee record
-        const { error: empError } = await supabase
+        // 1. The employee record comes first, so the login can be attached to it.
+        const { data: employee, error: empError } = await supabase
           .from('employees')
           .insert({
             organization_id: organization.id,
-            profile_id: userId,
             employee_code: empCode,
             first_name: user.first_name,
             last_name: user.last_name,
@@ -281,11 +281,35 @@ export function SeedDemoData() {
             status: 'active',
             nationality: 'Indian',
           })
+          .select('id')
+          .single()
 
-        if (empError) {
-          log(`  ${user.email} — employee create failed: ${empError.message}`, 'error')
+        if (empError || !employee) {
+          log(`  ${user.first_name} ${user.last_name} — could not create the employee record: ${empError?.message ?? 'unknown'}`, 'error')
           continue
         }
+
+        // 2. Then the login, through the same edge function HR uses. It runs
+        //    with the service role, so it neither needs self sign-up to be open
+        //    nor disturbs the session of whoever pressed the button.
+        const password = generatePassword()
+        try {
+          await createLogin.mutateAsync({
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            role: user.role,
+            employee_id: employee.id,
+            password,
+          })
+        } catch (err) {
+          // Roll the employee row back rather than leaving one nobody can sign in as.
+          await supabase.from('employees').delete().eq('id', employee.id)
+          log(`  ${user.first_name} ${user.last_name} — login failed: ${err instanceof Error ? err.message : 'unknown'}`, 'error')
+          continue
+        }
+
+        setCredentials((prev) => [...prev, { email: user.email, password }])
 
         // Increment emp code
         const num = parseInt(empCode.replace('EMP-', ''), 10)
@@ -325,29 +349,31 @@ export function SeedDemoData() {
         <CardContent className="space-y-4">
           {/* Demo accounts table */}
           <div className="rounded-lg border">
-            <div className="grid grid-cols-4 gap-2 border-b bg-muted/50 p-3 text-xs font-medium text-muted-foreground">
+            <div className="grid grid-cols-3 gap-2 border-b bg-muted/50 p-3 text-xs font-medium text-muted-foreground">
               <span>Name</span>
               <span>Email</span>
               <span>Role</span>
-              <span>Password</span>
             </div>
             {DEMO_USERS.map((user) => (
-              <div key={user.email} className="grid grid-cols-4 gap-2 border-b last:border-0 p-3 text-sm">
+              <div key={user.email} className="grid grid-cols-3 gap-2 border-b last:border-0 p-3 text-sm">
                 <span className="font-medium">{user.first_name} {user.last_name}</span>
-                <span className="text-muted-foreground text-xs">{user.email}</span>
+                <span className="text-xs text-muted-foreground">{user.email}</span>
                 <span>
                   <Badge variant="outline" className={`text-[10px] ${ROLE_COLORS[user.role]}`}>
-                    {user.role.replace('_', ' ')}
+                    {humanizeLabel(user.role)}
                   </Badge>
                 </span>
-                <span className="font-mono text-xs text-muted-foreground">{user.password}</span>
               </div>
             ))}
           </div>
 
-          <div className="flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
-            <ShieldCheck className="h-4 w-4 flex-shrink-0" />
-            <span>These are demo accounts with shared passwords. Do not use in production.</span>
+          <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+            <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0" />
+            <span>
+              These are real logins on this database, one of them a super admin. Each gets its own
+              password, shown once here and nowhere else — copy them before you leave the page.
+              Remove the accounts when you are done testing.
+            </span>
           </div>
 
           <Button onClick={handleSeed} disabled={isSeeding || isDone} className="gap-2">
@@ -360,6 +386,43 @@ export function SeedDemoData() {
             )}
             {isSeeding ? 'Creating users...' : isDone ? 'Demo data created' : 'Create Demo Users'}
           </Button>
+
+          {/* Shown once. Nothing stores these, so there is no way to get them back. */}
+          {credentials.length > 0 && (
+            <div className="space-y-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900 dark:bg-emerald-900/20">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium text-emerald-900 dark:text-emerald-200">
+                  Sign-in details — copy them now
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const text = credentials.map((c) => `${c.email}  ${c.password}`).join('\n')
+                    navigator.clipboard.writeText(text)
+                    toast.success('Copied all sign-in details')
+                  }}
+                >
+                  <Copy className="mr-2 h-3.5 w-3.5" /> Copy all
+                </Button>
+              </div>
+              <p className="text-xs text-emerald-800 dark:text-emerald-300">
+                These are not saved anywhere. Once you leave this page they cannot be shown again —
+                you would have to reset the password from Settings.
+              </p>
+              <div className="space-y-1">
+                {credentials.map((c) => (
+                  <div
+                    key={c.email}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded border bg-background px-2 py-1.5"
+                  >
+                    <span className="font-mono text-xs">{c.email}</span>
+                    <span className="font-mono text-xs font-medium">{c.password}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Logs */}
           {logs.length > 0 && (

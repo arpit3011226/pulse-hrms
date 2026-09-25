@@ -13,6 +13,12 @@ export interface CreateLoginInput {
   /** Links the login to a candidate record, for the application portal. */
   candidate_id?: string | null
   personal_email?: string | null
+  /**
+   * Sets this password instead of sending a set-password link. Only a super
+   * admin may pass it, and only the demo seeder does — everyone real chooses
+   * their own password through the link.
+   */
+  password?: string | null
 }
 
 export interface CreateLoginResult {
@@ -24,6 +30,8 @@ export interface CreateLoginResult {
   link_error: string | null
   /** True when an existing login was attached rather than a new one created. */
   linked_existing?: boolean
+  /** True when a password was set directly, so there is no link to send. */
+  password_set?: boolean
 }
 
 export async function createLogin(input: CreateLoginInput): Promise<CreateLoginResult> {

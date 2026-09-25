@@ -20,8 +20,21 @@ const corsHeaders = {
 /** Roles allowed to create a login for someone else. */
 const ROLES_THAT_MAY_CREATE = ['super_admin', 'hr_admin', 'leadership']
 
-/** Roles a new login may be given. Nobody can mint a super admin from here. */
+/** Roles a new login may be given. HR and leadership cannot mint a super admin. */
 const ASSIGNABLE_ROLES = ['hr_admin', 'payroll_admin', 'manager', 'leadership', 'employee', 'alumni', 'candidate']
+
+/**
+ * A super admin may create another super admin. That is a sideways move, not an
+ * escalation — whoever is already a super admin can do everything anyway — and
+ * it is how the demo set gets its admin login. Everyone else is held to the
+ * list above, so a stolen HR account still cannot promote itself.
+ */
+function assignableRolesFor(callerRole: string): string[] {
+  return callerRole === 'super_admin' ? [...ASSIGNABLE_ROLES, 'super_admin'] : ASSIGNABLE_ROLES
+}
+
+/** Shortest password we will set on someone's behalf. */
+const MIN_PASSWORD_LENGTH = 12
 
 interface CreateUserRequest {
   email: string
@@ -42,6 +55,15 @@ interface CreateUserRequest {
    * project's redirect allow-list, so this cannot be turned into an open redirect.
    */
   redirect_to?: string | null
+  /**
+   * Set this password instead of sending a set-password link.
+   *
+   * Only a super admin may pass it, and it exists for seeded demo logins that
+   * have to be handed to a tester ready to use. Every real person still gets a
+   * link and chooses their own password, so the company never holds one it did
+   * not need to.
+   */
+  password?: string | null
 }
 
 function json(body: unknown, status = 200) {
@@ -82,8 +104,21 @@ Deno.serve(async (req) => {
     const body = (await req.json()) as CreateUserRequest
     const email = (body.email ?? '').trim().toLowerCase()
     if (!email) return json({ error: 'An email address is required' }, 400)
-    if (!ASSIGNABLE_ROLES.includes(body.role)) {
+    if (!assignableRolesFor(callerProfile.role).includes(body.role)) {
       return json({ error: `Role "${body.role}" cannot be assigned` }, 400)
+    }
+
+    const password = (body.password ?? '').trim()
+    if (password) {
+      if (callerProfile.role !== 'super_admin') {
+        return json({ error: 'Only a super admin may set a password directly' }, 403)
+      }
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        return json(
+          { error: `A password set this way must be at least ${MIN_PASSWORD_LENGTH} characters` },
+          400
+        )
+      }
     }
 
     // Reuse the identity if this person already has one, rather than creating a
@@ -146,6 +181,8 @@ Deno.serve(async (req) => {
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
       email_confirm: true,
+      // Empty string would be rejected, so the field is only sent when set.
+      ...(password ? { password } : {}),
       user_metadata: {
         first_name: body.first_name ?? '',
         last_name: body.last_name ?? '',
@@ -195,6 +232,18 @@ Deno.serve(async (req) => {
         await admin.auth.admin.deleteUser(created.user.id)
         return json({ error: candErr.message }, 400)
       }
+    }
+
+    // A login that was given a password needs no link, and issuing one anyway
+    // would hand out a way to change that password.
+    if (password) {
+      return json({
+        user_id: created.user.id,
+        email,
+        set_password_link: null,
+        link_error: null,
+        password_set: true,
+      })
     }
 
     // The person sets their own password through this link. We never handle it.
