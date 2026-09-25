@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import { type ColumnDef } from '@tanstack/react-table'
 import { MoreHorizontal, Plus, ArrowRightLeft, XCircle, PauseCircle, MinusCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -57,8 +58,17 @@ export function ApplicationsTab() {
       header: 'Candidate',
       cell: ({ row }) => {
         const c = row.original.candidate
+        // Opens the candidate's own page — background, CV, every interview and
+        // the panel's feedback — instead of leaving the reader to join this
+        // table with the Candidates tab by eye.
         return c ? (
-          <span className="font-medium">{c.first_name} {c.last_name}</span>
+          <Link
+            to="/recruitment/candidates/$candidateId"
+            params={{ candidateId: c.id }}
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            {c.first_name} {c.last_name}
+          </Link>
         ) : '-'
       },
       accessorFn: (row) =>

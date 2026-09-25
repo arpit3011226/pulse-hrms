@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useEmployeeReport } from '../hooks/use-reports'
 import { usePermissions } from '@/hooks/use-permissions'
 import { exportToCSV } from '../utils/export-csv'
+import { humanizeLabel } from '@/lib/utils'
 
 export function EmployeeReportsTab() {
   const { data: employees, isLoading } = useEmployeeReport()
@@ -41,7 +42,7 @@ export function EmployeeReportsTab() {
     if (!employees) return []
     const map = new Map<string, number>()
     for (const e of employees) {
-      const t = e.employment_type ?? 'Unknown'
+      const t = humanizeLabel(e.employment_type, 'Not recorded')
       map.set(t, (map.get(t) ?? 0) + 1)
     }
     return Array.from(map.entries())
@@ -128,7 +129,7 @@ export function EmployeeReportsTab() {
               <TableBody>
                 {byStatus.map((row) => (
                   <TableRow key={row.status}>
-                    <TableCell className="capitalize">{row.status.replace(/_/g, ' ')}</TableCell>
+                    <TableCell>{humanizeLabel(row.status)}</TableCell>
                     <TableCell className="text-right">{row.count}</TableCell>
                   </TableRow>
                 ))}
@@ -150,7 +151,7 @@ export function EmployeeReportsTab() {
               <TableBody>
                 {byType.map((row) => (
                   <TableRow key={row.type}>
-                    <TableCell className="capitalize">{row.type.replace(/_/g, ' ')}</TableCell>
+                    <TableCell>{humanizeLabel(row.type)}</TableCell>
                     <TableCell className="text-right">{row.count}</TableCell>
                   </TableRow>
                 ))}

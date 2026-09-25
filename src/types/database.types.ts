@@ -1238,6 +1238,13 @@ export interface Candidate {
   source: 'job_portal' | 'referral' | 'direct' | 'linkedin' | 'agency' | 'campus' | 'other'
   resume_url: string | null
   notes: string | null
+  /** Talent pool: someone worth coming back to when a similar role opens. */
+  tags: string[] | null
+  in_talent_pool: boolean | null
+  revisit_after: string | null
+  pool_notes: string | null
+  rejection_reason: string | null
+  rejection_stage: string | null
   created_at: string
   updated_at: string
 }

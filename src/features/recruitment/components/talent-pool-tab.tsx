@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Loader2, Search, Star, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -99,9 +100,13 @@ export function TalentPoolTab({ canManage }: { canManage: boolean }) {
       header: 'Candidate',
       cell: ({ row }) => (
         <div>
-          <p className="font-medium">
+          <Link
+            to="/recruitment/candidates/$candidateId"
+            params={{ candidateId: row.original.id }}
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
             {row.original.first_name} {row.original.last_name}
-          </p>
+          </Link>
           <p className="text-xs text-muted-foreground">{row.original.email}</p>
         </div>
       ),

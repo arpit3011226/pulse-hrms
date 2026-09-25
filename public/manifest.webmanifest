@@ -7,7 +7,7 @@
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#ffffff",
-  "theme_color": "#7C3AED",
+  "theme_color": "#7B4CFF",
   "icons": [
     { "src": "/pulse-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]

@@ -40,3 +40,52 @@ export function slugify(text: string): string {
     .replace(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '')
 }
+
+/**
+ * A database value written the way a person would read it.
+ *
+ * Columns hold values like `full_time`, `on_hold` or `wfh`, and those were
+ * reaching the screen unchanged — a chart legend reading "full_time 100%".
+ * Anything already written for people (a leave type called "Casual Leave") is
+ * left alone, because it has no underscores and is already capitalised.
+ *
+ * Abbreviations keep their usual spelling instead of becoming "Wfh" or "Ctc".
+ */
+const KNOWN_SPELLINGS: Record<string, string> = {
+  ctc: 'CTC',
+  esi: 'ESI',
+  hr: 'HR',
+  hra: 'HRA',
+  id: 'ID',
+  lop: 'LOP',
+  lwp: 'LWP',
+  pan: 'PAN',
+  pf: 'PF',
+  tds: 'TDS',
+  uan: 'UAN',
+  wfh: 'Work from home',
+}
+
+export function humanizeLabel(value: string | null | undefined, fallback = 'Not set'): string {
+  if (value === null || value === undefined) return fallback
+  const raw = value.trim()
+  if (raw === '') return fallback
+
+  const key = raw.toLowerCase()
+  if (KNOWN_SPELLINGS[key]) return KNOWN_SPELLINGS[key]
+
+  return raw
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .map((word, index) => {
+      const lower = word.toLowerCase()
+      if (KNOWN_SPELLINGS[lower]) return KNOWN_SPELLINGS[lower]
+      // A word the writer already capitalised their own way stays as it is.
+      if (/[A-Z]/.test(word.slice(1))) return word
+      if (index === 0) return lower.charAt(0).toUpperCase() + lower.slice(1)
+      return lower
+    })
+    .join(' ')
+}

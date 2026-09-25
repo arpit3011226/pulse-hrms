@@ -33,7 +33,7 @@ import {
   TICKET_PRIORITIES, TICKET_STATUSES, isOverdue,
   type HelpdeskTicket, type TicketPriority, type TicketStatus,
 } from '../api/helpdesk.api'
-import { formatDate } from '@/lib/utils'
+import { formatDate, humanizeLabel } from '@/lib/utils'
 import { toast } from 'sonner'
 
 const PRIORITY_STYLES: Record<string, string> = {
@@ -164,7 +164,7 @@ export function HelpdeskPage() {
         accessorKey: 'priority',
         header: 'Priority',
         cell: ({ row }) => (
-          <Badge className={PRIORITY_STYLES[row.original.priority]}>{row.original.priority}</Badge>
+          <Badge className={PRIORITY_STYLES[row.original.priority]}>{humanizeLabel(row.original.priority)}</Badge>
         ),
       },
       {

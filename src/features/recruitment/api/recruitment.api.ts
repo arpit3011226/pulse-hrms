@@ -788,3 +788,63 @@ export async function getMyCandidateView(profileId: string) {
     offers: offersRes.data ?? [],
   }
 }
+
+// ============================================
+// One candidate, in full
+// ============================================
+
+/**
+ * Everything the signed-in person is allowed to see about one candidate.
+ *
+ * Nothing here decides who may read what — row-level security does, and it is
+ * deliberately strict: HR, admin and leadership see any candidate, the hiring
+ * manager sees the candidates on their own requisitions, and an interviewer
+ * sees a candidate only while that application is still open. So a query that
+ * comes back empty is a normal answer, not a fault, and the screen says so.
+ *
+ * Interviews and feedback are fetched separately rather than embedded, because
+ * an interviewer keeps their own interviews after the person is hired even
+ * though the candidate row itself has closed to them.
+ */
+export async function getCandidateProfile(candidateId: string) {
+  const { data: candidate, error: candError } = await supabase
+    .from('candidates')
+    .select('*')
+    .eq('id', candidateId)
+    .maybeSingle()
+  if (candError) throw candError
+
+  const { data: applications, error: appError } = await supabase
+    .from('candidate_applications')
+    .select('*, job_requisition:job_requisitions(id, title, requisition_code, location, employment_type, hiring_manager_id, department:departments(id, name)), current_stage:interview_stages(id, stage_name, stage_order)')
+    .eq('candidate_id', candidateId)
+    .order('applied_date', { ascending: false })
+  if (appError) throw appError
+
+  const appIds = (applications ?? []).map((a) => a.id)
+  if (appIds.length === 0) {
+    return { candidate, applications: [], interviews: [], offers: [] }
+  }
+
+  const [interviewsRes, offersRes] = await Promise.all([
+    supabase
+      .from('interviews')
+      .select('*, interview_stage:interview_stages(id, stage_name), interviewer:employees!interviews_interviewer_id_fkey(id, first_name, last_name), interview_feedback:interview_feedback(*)')
+      .in('candidate_application_id', appIds)
+      .order('scheduled_start', { ascending: false }),
+    supabase
+      .from('offer_letters')
+      .select('*')
+      .in('candidate_application_id', appIds)
+      .order('created_at', { ascending: false }),
+  ])
+  if (interviewsRes.error) throw interviewsRes.error
+  if (offersRes.error) throw offersRes.error
+
+  return {
+    candidate,
+    applications: applications ?? [],
+    interviews: interviewsRes.data ?? [],
+    offers: offersRes.data ?? [],
+  }
+}

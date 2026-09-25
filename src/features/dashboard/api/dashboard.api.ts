@@ -8,7 +8,6 @@ export interface DashboardStats {
   pendingLeaves: number
   presentToday: number
   openRequisitions: number
-  activeCourses: number
 }
 
 export interface RecentActivityItem {
@@ -64,7 +63,7 @@ export interface PendingApprovalCounts {
 export async function fetchDashboardStats(organizationId: string): Promise<DashboardStats> {
   const today = new Date().toISOString().split('T')[0]
 
-  const [employees, departments, pendingLeaves, todayAttendance, openReqs, activeCourses] =
+  const [employees, departments, pendingLeaves, todayAttendance, openReqs] =
     await Promise.all([
       supabase
         .from('employees')
@@ -91,11 +90,6 @@ export async function fetchDashboardStats(organizationId: string): Promise<Dashb
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', organizationId)
         .eq('status', 'open'),
-      supabase
-        .from('training_courses')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', organizationId)
-        .eq('status', 'published'),
     ])
 
   return {
@@ -104,7 +98,6 @@ export async function fetchDashboardStats(organizationId: string): Promise<Dashb
     pendingLeaves: pendingLeaves.count ?? 0,
     presentToday: todayAttendance.count ?? 0,
     openRequisitions: openReqs.count ?? 0,
-    activeCourses: activeCourses.count ?? 0,
   }
 }
 

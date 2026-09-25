@@ -20,6 +20,7 @@ import { AttendancePage } from '@/features/attendance/components/attendance-page
 import { PayrollPage } from '@/features/payroll/components/payroll-page'
 import { PerformancePage } from '@/features/performance/components/performance-page'
 import { RecruitmentPage } from '@/features/recruitment/components/recruitment-page'
+import { CandidateDetailPage } from '@/features/recruitment/components/candidate-detail-page'
 import { ReportsPage } from '@/features/reports/components/reports-page'
 import { ResignationPage } from '@/features/resignation/components/resignation-page'
 import { SelfServicePage } from '@/features/self-service/components/self-service-page'
@@ -113,6 +114,17 @@ const departmentsRoute = createRoute({ getParentRoute: () => appRoute, path: '/d
 const leaveRoute = createRoute({ getParentRoute: () => appRoute, path: '/leave', component: LeavePage })
 const attendanceRoute = createRoute({ getParentRoute: () => appRoute, path: '/attendance', component: AttendancePage })
 const recruitmentRoute = createRoute({ getParentRoute: () => appRoute, path: '/recruitment', component: RecruitmentPage })
+
+// A candidate opens as a page of their own, the way an employee does, so their
+// background, applications and interview feedback are read in one place.
+const candidateDetailRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/recruitment/candidates/$candidateId',
+  component: function CandidateDetail() {
+    const { candidateId } = candidateDetailRoute.useParams()
+    return <CandidateDetailPage candidateId={candidateId} />
+  },
+})
 const payrollRoute = createRoute({ getParentRoute: () => appRoute, path: '/payroll', component: PayrollPage })
 const performanceRoute = createRoute({ getParentRoute: () => appRoute, path: '/performance', component: PerformancePage })
 const selfServiceRoute = createRoute({ getParentRoute: () => appRoute, path: '/self-service', component: SelfServicePage })
@@ -147,6 +159,7 @@ const routeTree = rootRoute.addChildren([
     leaveRoute,
     attendanceRoute,
     recruitmentRoute,
+    candidateDetailRoute,
     payrollRoute,
     performanceRoute,
     selfServiceRoute,

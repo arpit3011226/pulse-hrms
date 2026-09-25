@@ -20,6 +20,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from 'recharts'
+import { humanizeLabel } from '@/lib/utils'
 
 type TimePeriod = '12m' | '6m' | '3m' | 'ytd'
 
@@ -319,7 +320,7 @@ export function PeopleAnalyticsTab() {
     if (!activeEmployees || activeEmployees.length === 0) return []
     const map = new Map<string, number>()
     for (const e of activeEmployees) {
-      const type = e.employment_type ?? 'Unknown'
+      const type = humanizeLabel(e.employment_type, 'Not recorded')
       map.set(type, (map.get(type) ?? 0) + 1)
     }
     return Array.from(map.entries()).map(([name, value]) => ({ name, value }))
@@ -561,7 +562,7 @@ export function PeopleAnalyticsTab() {
             <CardTitle className="text-base">Employment Type Mix</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-64 flex items-center justify-center">
+            <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie

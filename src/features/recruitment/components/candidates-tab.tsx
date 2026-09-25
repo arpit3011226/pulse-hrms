@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import { type ColumnDef } from '@tanstack/react-table'
 import { MoreHorizontal, Plus, Pencil, Trash2, KeyRound, Copy, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -65,9 +66,13 @@ export function CandidatesTab() {
       id: 'name',
       header: 'Name',
       cell: ({ row }) => (
-        <span className="font-medium">
+        <Link
+          to="/recruitment/candidates/$candidateId"
+          params={{ candidateId: row.original.id }}
+          className="font-medium text-primary underline-offset-4 hover:underline"
+        >
           {row.original.first_name} {row.original.last_name}
-        </span>
+        </Link>
       ),
       accessorFn: (row) => `${row.first_name} ${row.last_name}`,
     },

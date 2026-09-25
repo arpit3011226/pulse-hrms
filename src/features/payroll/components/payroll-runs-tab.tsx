@@ -54,6 +54,7 @@ import {
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatCurrency, getMonthName } from '../utils/payroll-utils'
 import { toast } from 'sonner'
+import { humanizeLabel } from '@/lib/utils'
 
 // --------------------------------------------------
 // Types
@@ -462,7 +463,7 @@ export function PayrollRunsTab() {
       accessorKey: 'run_type',
       header: 'Type',
       cell: ({ row }) => (
-        <span className="capitalize">{row.original.run_type}</span>
+        <span>{humanizeLabel(row.original.run_type)}</span>
       ),
     },
     {

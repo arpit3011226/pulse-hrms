@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { getInitials, formatDate } from '@/lib/utils'
+import { formatDate, getInitials, humanizeLabel } from '@/lib/utils'
 import { useAnnouncements, useDeleteAnnouncement } from '../../hooks/use-dashboard'
 import { AnnouncementFormDialog } from './announcement-form-dialog'
 import type { AnnouncementWithCreator } from '@/types/database.types'
@@ -93,7 +93,7 @@ function AnnouncementCard({
           <div className="flex items-center gap-2 flex-wrap">
             {a.is_pinned && <Badge variant="outline" className="text-[10px] px-1.5 py-0">Pinned</Badge>}
             <Badge className={`text-[10px] px-1.5 py-0 ${PRIORITY_COLORS[a.priority] ?? PRIORITY_COLORS.normal}`}>
-              {a.priority}
+              {humanizeLabel(a.priority)}
             </Badge>
             {a.audience_type !== 'all' && (
               <Badge variant="outline" className="text-[10px] px-1.5 py-0">

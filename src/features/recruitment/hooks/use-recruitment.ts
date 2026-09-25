@@ -55,6 +55,7 @@ import {
   updateBackgroundCheck,
   rescheduleInterview,
   getMyCandidateView,
+  getCandidateProfile,
 } from '../api/recruitment.api'
 
 // ============================================
@@ -538,5 +539,14 @@ export function useMyCandidateView(profileId: string | undefined) {
     queryKey: ['my-candidate-view', profileId],
     queryFn: () => getMyCandidateView(profileId!),
     enabled: !!profileId,
+  })
+}
+
+/** One candidate's full record, for the detail page. */
+export function useCandidateProfile(candidateId: string | undefined) {
+  return useQuery({
+    queryKey: ['candidate-profile', candidateId],
+    queryFn: () => getCandidateProfile(candidateId!),
+    enabled: !!candidateId,
   })
 }

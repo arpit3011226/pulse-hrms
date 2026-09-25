@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import { type ColumnDef } from '@tanstack/react-table'
 import { MoreHorizontal, Plus, Pencil, CheckCircle, XCircle, MessageSquare, Star , CalendarClock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -55,7 +56,13 @@ export function InterviewsTab() {
       cell: ({ row }) => {
         const c = row.original.candidate_application?.candidate
         return c ? (
-          <span className="font-medium">{c.first_name} {c.last_name}</span>
+          <Link
+            to="/recruitment/candidates/$candidateId"
+            params={{ candidateId: c.id }}
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            {c.first_name} {c.last_name}
+          </Link>
         ) : '-'
       },
       accessorFn: (row) => {

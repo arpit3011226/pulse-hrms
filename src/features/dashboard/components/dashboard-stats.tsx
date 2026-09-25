@@ -1,4 +1,4 @@
-import { Users, Building2, CalendarDays, Clock, Briefcase, GraduationCap, ClipboardCheck, UserCheck } from 'lucide-react'
+import { Users, Building2, CalendarDays, Clock, Briefcase, ClipboardCheck, UserCheck } from 'lucide-react'
 import { StatCard } from '@/components/shared/stat-card'
 import type { DashboardStats as DashboardStatsData } from '../api/dashboard.api'
 
@@ -15,7 +15,6 @@ export function DashboardStats({ stats, isLoading, role }: DashboardStatsProps) 
     pendingLeaves: 0,
     presentToday: 0,
     openRequisitions: 0,
-    activeCourses: 0,
   }
 
   const isAdmin = role === 'super_admin' || role === 'hr_admin'
@@ -77,11 +76,6 @@ export function DashboardStats({ stats, isLoading, role }: DashboardStatsProps) 
       },
     )
   }
-
-  // Everyone gets active courses
-  cards.push(
-    { title: 'Active Courses', value: isLoading ? '—' : s.activeCourses, icon: GraduationCap, color: 'cyan', description: 'Published training courses' },
-  )
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
