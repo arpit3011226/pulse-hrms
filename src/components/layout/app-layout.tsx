@@ -17,13 +17,24 @@ export function AppLayout() {
     )
   }
 
+  // Each redirect below checks where we already are before sending anyone
+  // anywhere. <Navigate> commits a location while rendering, so a redirect to
+  // the page we are already on re-commits it, which re-renders this component,
+  // which redirects again — React stops it after fifty passes and reports
+  // "Maximum update depth exceeded". That was happening on every signed-out
+  // visit to any protected URL: a hundred-odd wasted renders and a burst of
+  // console errors before the login page finally settled.
+  //
+  // Returning null rather than a redirect is right when we are already there:
+  // the page for that path is rendered by the other branch of the route tree,
+  // not by this layout.
   if (!session) {
-    return <Navigate to="/login" />
+    return location.pathname === '/login' ? null : <Navigate to="/login" />
   }
 
   // If user has no organization, redirect to onboarding
   if (profile && !profile.organization_id) {
-    return <Navigate to="/onboarding" />
+    return location.pathname === '/onboarding' ? null : <Navigate to="/onboarding" />
   }
 
   // A candidate or an alumnus has one screen. Landing them on the staff
