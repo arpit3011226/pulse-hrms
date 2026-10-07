@@ -13,6 +13,7 @@ import { AlumniPage } from '@/features/alumni/components/alumni-page'
 import { MyRecordsPage } from '@/features/alumni/components/my-records-page'
 import { HelpdeskPage } from '@/features/helpdesk/components/helpdesk-page'
 import { RecognitionPage } from '@/features/workplace/components/recognition-page'
+import { MentorshipPage } from '@/features/mentorship/components/mentorship-page'
 import { EmployeeFormPage } from '@/features/employees/components/employee-form-page'
 import { DepartmentList } from '@/features/departments/components/department-list'
 import { LeavePage } from '@/features/leave/components/leave-page'
@@ -103,6 +104,7 @@ const alumniRoute = createRoute({ getParentRoute: () => appRoute, path: '/alumni
 
 const helpdeskRoute = createRoute({ getParentRoute: () => appRoute, path: '/helpdesk', component: HelpdeskPage })
 const recognitionRoute = createRoute({ getParentRoute: () => appRoute, path: '/recognition', component: RecognitionPage })
+const mentorshipRoute = createRoute({ getParentRoute: () => appRoute, path: '/mentorship', component: MentorshipPage })
 
 // F39 — an ex-employee signs in on their personal email and fetches their own
 // payslips, letters and settlement. Nothing else.
@@ -154,6 +156,7 @@ const routeTree = rootRoute.addChildren([
     alumniRoute,
     helpdeskRoute,
     recognitionRoute,
+    mentorshipRoute,
     myRecordsRoute,
     departmentsRoute,
     leaveRoute,

@@ -52,6 +52,18 @@ function HelpdeskIcon({ className }: { className?: string }) {
   )
 }
 
+function MentorshipIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none">
+      {/* Two people, the larger one turned towards the smaller. */}
+      <circle cx="8" cy="7" r="3" fill="#6366F1" opacity="0.5" />
+      <path d="M3 19c0-2.8 2.2-5 5-5s5 2.2 5 5" stroke="#4F46E5" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="17" cy="9" r="2.4" fill="#A5B4FC" opacity="0.7" />
+      <path d="M13.5 19c0-2.2 1.6-3.9 3.5-3.9s3.5 1.7 3.5 3.9" stroke="#6366F1" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 function RecognitionIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none">
@@ -310,6 +322,7 @@ export function Sidebar() {
     { title: 'Employees', href: '/employees', icon: EmployeesIcon, visible: true },
     { title: 'Helpdesk', href: '/helpdesk', icon: HelpdeskIcon, visible: true },
     { title: 'Leave', href: '/leave', icon: LeaveIcon, visible: isModuleEnabled('leave') },
+    { title: 'Mentorship', href: '/mentorship', icon: MentorshipIcon, visible: isModuleEnabled('mentorship') },
     { title: 'Onboarding', href: '/new-joiners', icon: OnboardingIcon, visible: true },
     { title: 'Payroll', href: '/payroll', icon: PayrollIcon, visible: permissions.canViewPayroll && isModuleEnabled('payroll') },
     { title: 'Performance', href: '/performance', icon: PerformanceIcon, visible: isModuleEnabled('performance') },
