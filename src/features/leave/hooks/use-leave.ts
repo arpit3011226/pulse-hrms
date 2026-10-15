@@ -234,16 +234,21 @@ export function useAllLeaveRequests(filters?: LeaveRequestFilters) {
 export function useApplyLeave() {
   const queryClient = useQueryClient()
   return useMutation({
+    /**
+     * The balance is moved by a trigger, in the same transaction as the
+     * request. It used to be a second call from here, and that call could
+     * never succeed: only HR and admins may write leave_balances, so an
+     * employee applying for leave was silently refused. The request was
+     * created, the balance never moved, and the failure took the cache
+     * invalidation with it — which is why a new request did not appear in the
+     * list until the page was reloaded.
+     */
     mutationFn: async ({
       request,
       days,
-      balanceId,
-      currentPendingDays,
     }: {
       request: Partial<LeaveRequest>
       days: Partial<LeaveRequestDay>[]
-      balanceId: string
-      currentPendingDays: number
     }) => {
       const created = await createLeaveRequest(request)
       if (days.length > 0) {
@@ -251,10 +256,6 @@ export function useApplyLeave() {
           days.map((d) => ({ ...d, leave_request_id: created.id }))
         )
       }
-      // Update pending days in balance
-      await adjustLeaveBalance(balanceId, {
-        pending_days: currentPendingDays + (request.total_days || 0),
-      })
       return created
     },
     onSuccess: () => {
@@ -264,30 +265,19 @@ export function useApplyLeave() {
   })
 }
 
+/**
+ * Approving, rejecting and cancelling no longer touch leave_balances.
+ *
+ * A trigger keeps the balance in step with the request, in the same
+ * transaction, so the browser doing it as a second call was both redundant and
+ * unsafe — if that call failed, the decision stood and the balance did not
+ * move. The extra arguments these hooks used to need are gone with it.
+ */
 export function useApproveLeave() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({
-      requestId,
-      approvedBy,
-      totalDays,
-      balanceId,
-      currentUsedDays,
-      currentPendingDays,
-    }: {
-      requestId: string
-      approvedBy: string
-      totalDays: number
-      balanceId: string
-      currentUsedDays: number
-      currentPendingDays: number
-    }) => {
-      await updateLeaveRequestStatus(requestId, 'approved', approvedBy)
-      await adjustLeaveBalance(balanceId, {
-        used_days: currentUsedDays + totalDays,
-        pending_days: Math.max(0, currentPendingDays - totalDays),
-      })
-    },
+    mutationFn: ({ requestId, approvedBy }: { requestId: string; approvedBy: string }) =>
+      updateLeaveRequestStatus(requestId, 'approved', approvedBy),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leave-requests'] })
       queryClient.invalidateQueries({ queryKey: ['leave-balances'] })
@@ -298,24 +288,13 @@ export function useApproveLeave() {
 export function useRejectLeave() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       requestId,
       rejectionReason,
-      totalDays,
-      balanceId,
-      currentPendingDays,
     }: {
       requestId: string
       rejectionReason: string
-      totalDays: number
-      balanceId: string
-      currentPendingDays: number
-    }) => {
-      await updateLeaveRequestStatus(requestId, 'rejected', undefined, rejectionReason)
-      await adjustLeaveBalance(balanceId, {
-        pending_days: Math.max(0, currentPendingDays - totalDays),
-      })
-    },
+    }) => updateLeaveRequestStatus(requestId, 'rejected', undefined, rejectionReason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leave-requests'] })
       queryClient.invalidateQueries({ queryKey: ['leave-balances'] })
@@ -326,22 +305,7 @@ export function useRejectLeave() {
 export function useCancelLeave() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({
-      requestId,
-      totalDays,
-      balanceId,
-      currentPendingDays,
-    }: {
-      requestId: string
-      totalDays: number
-      balanceId: string
-      currentPendingDays: number
-    }) => {
-      await cancelLeaveRequest(requestId)
-      await adjustLeaveBalance(balanceId, {
-        pending_days: Math.max(0, currentPendingDays - totalDays),
-      })
-    },
+    mutationFn: ({ requestId }: { requestId: string }) => cancelLeaveRequest(requestId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leave-requests'] })
       queryClient.invalidateQueries({ queryKey: ['leave-balances'] })

@@ -64,18 +64,11 @@ export function TeamLeavesTab() {
           await approveLeave.mutateAsync({
             requestId: req.id,
             approvedBy: employee.id,
-            totalDays: req.total_days,
-            balanceId: balance.id,
-            currentUsedDays: balance.used_days,
-            currentPendingDays: balance.pending_days,
           })
         } else {
           await rejectLeave.mutateAsync({
             requestId: req.id,
             rejectionReason: 'Rejected in bulk by approver',
-            totalDays: req.total_days,
-            balanceId: balance.id,
-            currentPendingDays: balance.pending_days,
           })
         }
         ok++

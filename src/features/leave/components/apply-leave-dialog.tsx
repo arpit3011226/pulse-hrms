@@ -161,8 +161,6 @@ export function ApplyLeaveDialog({ open, onOpenChange }: ApplyLeaveDialogProps) 
           half_day_period: data.is_half_day ? (data.half_day_period as 'first_half' | 'second_half') : null,
         },
         days: days.map((d) => ({ ...d, status: 'pending' })),
-        balanceId: selectedBalance.id,
-        currentPendingDays: selectedBalance.pending_days,
       })
 
       toast.success('Leave request submitted')

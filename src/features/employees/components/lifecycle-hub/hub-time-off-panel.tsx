@@ -46,10 +46,6 @@ export function HubTimeOffPanel({ employeeId, canApprove }: HubTimeOffPanelProps
       await approveMutation.mutateAsync({
         requestId: request.id,
         approvedBy: profile?.id ?? '',
-        totalDays: request.total_days,
-        balanceId: balance.id,
-        currentUsedDays: balance.used_days,
-        currentPendingDays: balance.pending_days,
       })
       toast.success('Leave approved')
     } catch {
@@ -67,9 +63,6 @@ export function HubTimeOffPanel({ employeeId, canApprove }: HubTimeOffPanelProps
       await rejectMutation.mutateAsync({
         requestId: request.id,
         rejectionReason: 'Rejected from hub',
-        totalDays: request.total_days,
-        balanceId: balance.id,
-        currentPendingDays: balance.pending_days,
       })
       toast.success('Leave rejected')
     } catch {

@@ -157,9 +157,6 @@ export function MyLeavesTab() {
           try {
             await cancelLeave.mutateAsync({
               requestId: cancelRequest.id,
-              totalDays: cancelRequest.total_days,
-              balanceId: balance.id,
-              currentPendingDays: balance.pending_days,
             })
             toast.success('Leave request cancelled')
           } catch {

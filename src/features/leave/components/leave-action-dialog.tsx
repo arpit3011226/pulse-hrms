@@ -52,10 +52,6 @@ export function LeaveActionDialog({
       await approveLeave.mutateAsync({
         requestId: request.id,
         approvedBy: approverId,
-        totalDays: request.total_days,
-        balanceId: balance.id,
-        currentUsedDays: balance.used_days,
-        currentPendingDays: balance.pending_days,
       })
       toast.success('Leave approved')
       onOpenChange(false)
@@ -77,9 +73,6 @@ export function LeaveActionDialog({
       await rejectLeave.mutateAsync({
         requestId: request.id,
         rejectionReason,
-        totalDays: request.total_days,
-        balanceId: balance.id,
-        currentPendingDays: balance.pending_days,
       })
       toast.success('Leave rejected')
       onOpenChange(false)
