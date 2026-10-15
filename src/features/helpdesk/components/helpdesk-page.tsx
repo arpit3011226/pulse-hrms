@@ -68,6 +68,10 @@ export function HelpdeskPage() {
 
   const { data: tickets, isLoading } = useTickets()
   const { data: categories } = useHelpdeskCategories()
+  const activeCategories = useMemo(
+    () => (categories ?? []).filter((c) => c.is_active),
+    [categories]
+  )
   const { data: employees } = useEmployees()
   const raiseTicket = useRaiseTicket()
   const updateTicket = useUpdateTicket()
@@ -314,14 +318,33 @@ export function HelpdeskPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Category</Label>
-                <Select value={categoryId} onValueChange={setCategoryId}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>
-                    {(categories ?? []).filter((c) => c.is_active).map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {/* An empty list used to render an empty dropdown, which reads
+                    as a broken screen rather than as a setting nobody had
+                    filled in. Say which it is. */}
+                {activeCategories.length === 0 ? (
+                  <>
+                    <Select disabled value="">
+                      <SelectTrigger>
+                        <SelectValue placeholder="No categories set up yet" />
+                      </SelectTrigger>
+                      <SelectContent />
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {canManage
+                        ? 'Add one on the Categories tab. A category sets who picks a ticket up and how quickly it must be answered.'
+                        : 'You can still raise the ticket. HR will sort it to the right place.'}
+                    </p>
+                  </>
+                ) : (
+                  <Select value={categoryId} onValueChange={setCategoryId}>
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {activeCategories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label>Priority</Label>

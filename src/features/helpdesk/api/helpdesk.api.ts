@@ -94,24 +94,6 @@ export async function getTickets(orgId: string) {
   return data as unknown as HelpdeskTicket[]
 }
 
-/** Next number in the HD-0001 series. */
-async function nextTicketNumber(orgId: string): Promise<string> {
-  const { data } = await supabase
-    .from('helpdesk_tickets')
-    .select('ticket_number')
-    .eq('organization_id', orgId)
-    .ilike('ticket_number', 'HD-%')
-    .order('ticket_number', { ascending: false })
-    .limit(1)
-  let next = 1
-  const code = data?.[0]?.ticket_number
-  if (code) {
-    const m = code.match(/HD-(\d+)/)
-    if (m) next = parseInt(m[1], 10) + 1
-  }
-  return `HD-${String(next).padStart(4, '0')}`
-}
-
 export async function raiseTicket(params: {
   orgId: string
   raisedBy: string
@@ -146,7 +128,10 @@ export async function raiseTicket(params: {
     .from('helpdesk_tickets')
     .insert({
       organization_id: params.orgId,
-      ticket_number: await nextTicketNumber(params.orgId),
+      // ticket_number is allocated by a trigger. Working it out here meant
+      // reading every ticket in the organisation, which row-level security
+      // rightly refuses an ordinary employee — so everybody but HR generated
+      // HD-0001 and collided with a number already taken.
       category_id: params.categoryId,
       raised_by: params.raisedBy,
       assigned_to: assignee,
