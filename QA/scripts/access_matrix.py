@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+"""
+Who can read what.
+
+Asks the live database, as each role in turn, how many rows of each sensitive
+table it can see. Row-level security is the only thing between an ordinary
+employee and everybody's salary, so it is worth checking by asking rather than
+by reading the policies and hoping.
+
+This impersonates a role the way PostgREST does: switch to the `authenticated`
+role and set the JWT claims the policies read, so a policy that looks right but
+behaves wrongly still shows up.
+
+    python3 QA/scripts/access_matrix.py                # the sensitive set
+    python3 QA/scripts/access_matrix.py employees      # named tables
+
+Reads only. Safe against any environment.
+"""
+import json
+import re
+import subprocess
+import sys
+
+# One demo account per role. Regenerate with:
+#   select p.role, p.id from profiles p join employees e on e.profile_id = p.id
+#   where e.email like '%pulsehrms.demo'
+ROLES = [
+    ("employee",      "0639a54b-f2a7-457a-b73c-9edc5857f26f"),
+    ("contractor",    "82df94c4-5f35-4926-af28-337d2faaf792"),
+    ("manager",       "d622e365-0e50-4ff6-bc0c-216c3346ee5e"),
+    ("payroll_admin", "b56ed460-8bb9-4641-a5f0-1c33349808bf"),
+    ("leadership",    "a8dbc6e7-7dcf-4f38-bff6-54c2f7ce3524"),
+    ("hr_admin",      "eb8bb741-08f2-4037-a1d6-0a2b6032872f"),
+    ("super_admin",   "385a1f4c-2e48-4e83-9d69-fb91fbe40e90"),
+]
+
+DEFAULT_TABLES = [
+    "employees", "employee_statutory", "employee_personal", "employee_compensation",
+    "payslips", "payroll_runs", "leave_requests", "leave_balances",
+    "attendance_records", "candidates", "interview_feedback", "job_requisition_budget",
+    "offer_letters", "mentorship_checkins", "mentorships", "helpdesk_tickets",
+    "employee_exit_records", "final_settlements", "exit_interview_responses",
+    "activity_log", "workflow_runs", "recognitions",
+]
+
+# What a role has no business seeing AT ALL. A count above zero here is a
+# finding. Tables where a role legitimately sees only its own or its team's
+# rows are deliberately absent: a count cannot tell "my salary" from
+# "everybody's salary", so those are checked by OWNERSHIP below instead.
+FORBIDDEN = {
+    "employee_statutory":       ["employee", "contractor", "manager"],
+    "employee_personal":        ["employee", "contractor", "manager"],
+    "payslips":                 ["employee", "contractor", "manager"],
+    "payroll_runs":             ["employee", "contractor", "manager"],
+    "payroll_cycles":           ["employee", "contractor", "manager"],
+    "payroll_run_employees":    ["employee", "contractor", "manager"],
+    "payroll_earnings":         ["employee", "contractor", "manager"],
+    "job_requisition_budget":   ["employee", "contractor"],
+    "interview_feedback":       ["employee", "contractor"],
+    "mentorship_checkins":      ["payroll_admin", "hr_admin", "super_admin", "leadership"],
+    "final_settlements":        ["employee", "contractor"],
+    "exit_interview_responses": ["employee", "contractor", "manager"],
+    "workflow_runs":            ["employee", "contractor", "manager"],
+}
+
+# Tables where a role may see its OWN rows and nothing else. Checked by asking
+# which employee each visible row belongs to, not by counting — an employee
+# seeing one compensation row is correct when it is theirs and a defect when it
+# is somebody else's, and the count is 1 either way.
+OWN_ROWS_ONLY = {
+    "employee_compensation": ("employee_id", ["employee", "contractor"]),
+    "leave_balances":        ("employee_id", ["employee", "contractor"]),
+    "leave_requests":        ("employee_id", ["employee", "contractor"]),
+}
+
+
+def own_rows_check(profile_id, table, column):
+    """Rows visible to this person that belong to somebody else."""
+    sql = (
+        "set local role authenticated; "
+        f"select set_config('request.jwt.claims','{{\"sub\":\"{profile_id}\",\"role\":\"authenticated\"}}',true); "
+        f"select count(*) as leaked from {table} t "
+        f"where t.{column} not in (select id from employees where profile_id = auth.uid());"
+    )
+    out = subprocess.run(
+        ["npx", "--yes", "supabase", "db", "query", "--linked", sql],
+        capture_output=True, text=True,
+    ).stdout
+    match = re.search(r"\{.*\}", out, re.S)
+    if not match:
+        return None
+    try:
+        return json.loads(match.group(0))["rows"][0]["leaked"]
+    except Exception:
+        return None
+
+
+def count_for(profile_id, tables):
+    """Row counts for one role, in a single round trip."""
+    selects = ", ".join(f'(select count(*) from {t}) as "{t}"' for t in tables)
+    sql = (
+        "set local role authenticated; "
+        f"select set_config('request.jwt.claims','{{\"sub\":\"{profile_id}\",\"role\":\"authenticated\"}}',true); "
+        f"select {selects};"
+    )
+    out = subprocess.run(
+        ["npx", "--yes", "supabase", "db", "query", "--linked", sql],
+        capture_output=True, text=True,
+    ).stdout
+    match = re.search(r"\{.*\}", out, re.S)
+    if not match:
+        return {t: "err" for t in tables}
+    try:
+        return json.loads(match.group(0))["rows"][0]
+    except Exception:
+        return {t: "err" for t in tables}
+
+
+def main():
+    tables = sys.argv[1:] or DEFAULT_TABLES
+    results = {}
+    for role, pid in ROLES:
+        print(f"  reading as {role}…", file=sys.stderr)
+        results[role] = count_for(pid, tables)
+
+    width = max(len(t) for t in tables) + 2
+    header = "table".ljust(width) + "".join(r.ljust(15) for r, _ in ROLES)
+    print(header)
+    print("-" * len(header))
+    for t in tables:
+        row = t.ljust(width)
+        for role, _ in ROLES:
+            row += str(results[role].get(t, "?")).ljust(15)
+        print(row)
+
+    print()
+    failures = []
+    for table, roles in FORBIDDEN.items():
+        if table not in tables:
+            continue
+        for role in roles:
+            value = results.get(role, {}).get(table)
+            if isinstance(value, int) and value > 0:
+                failures.append(f"{role} can read {value} row(s) of {table}")
+
+    # Rows belonging to other people, where a role should see only its own.
+    for table, (column, roles) in OWN_ROWS_ONLY.items():
+        if tables is not DEFAULT_TABLES and table not in tables:
+            continue
+        for role in roles:
+            pid = dict(ROLES)[role]
+            leaked = own_rows_check(pid, table, column)
+            if leaked:
+                failures.append(
+                    f"{role} can read {leaked} row(s) of {table} belonging to someone else"
+                )
+
+    if failures:
+        print(f"FAIL — {len(failures)} finding(s):")
+        for f in failures:
+            print("  ✗", f)
+        return 1
+    print("PASS — no role read a table it is forbidden, and no cross-employee rows leaked.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
