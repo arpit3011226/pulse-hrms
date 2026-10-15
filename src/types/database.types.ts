@@ -195,6 +195,8 @@ export interface LeaveType {
   max_leaves_per_month: number | null
   is_use_it_or_lose_it: boolean
   created_at: string
+  /** May unused days be paid out? Normally only earned leave. */
+  is_encashable: boolean
 }
 
 export interface LeavePolicy {

@@ -111,23 +111,33 @@ export function SettlementDialog({ open, onOpenChange, settlement }: Props) {
           <div className="grid gap-4 py-2">
             <div className="space-y-1.5">
               <Label>Employee *</Label>
-              <Select value={employeeId} onValueChange={setEmployeeId} disabled={!!settlement}>
-                <SelectTrigger><SelectValue placeholder="Select a leaver" /></SelectTrigger>
+              {/* The reason there is nobody to pick belongs outside the
+                  dropdown. Hidden inside it, the field just looked broken. */}
+              <Select
+                value={employeeId}
+                onValueChange={setEmployeeId}
+                disabled={!!settlement || leavers.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={leavers.length === 0 ? 'Nobody has left yet' : 'Select a leaver'}
+                  />
+                </SelectTrigger>
                 <SelectContent>
-                  {leavers.length === 0 ? (
-                    <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                      No one has left yet.
-                    </div>
-                  ) : (
-                    leavers.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>
-                        {e.first_name} {e.last_name}
-                        {e.employee_code ? ` · ${e.employee_code}` : ''}
-                      </SelectItem>
-                    ))
-                  )}
+                  {leavers.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.first_name} {e.last_name}
+                      {e.employee_code ? ` · ${e.employee_code}` : ''}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              {leavers.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  A settlement is worked out for somebody who is leaving, so this list fills up
+                  once a separation has been started for them. HR starts that from Separation.
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">

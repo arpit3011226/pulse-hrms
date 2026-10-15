@@ -41,6 +41,10 @@ const SETTLEMENT_STYLES: Record<string, string> = {
 export function AlumniPage() {
   const { profile } = useAuth()
   const { isAdmin, isHR, isPayrollAdmin } = usePermissions()
+  // Payroll needs settlements, which is money. Exit interviews are HR's work,
+  // and the database already refuses payroll the underlying records — so
+  // showing them the tab only ever produced an empty picker.
+  const runsExits = isAdmin || isHR
   const canManage = isAdmin || isHR || isPayrollAdmin
 
   const { data: me } = useQuery({
@@ -306,7 +310,7 @@ export function AlumniPage() {
         <TabsList>
           <TabsTrigger value="settlements">Settlements</TabsTrigger>
           <TabsTrigger value="directory">Directory</TabsTrigger>
-          <TabsTrigger value="exit-interviews">Exit Interviews</TabsTrigger>
+          {runsExits && <TabsTrigger value="exit-interviews">Exit Interviews</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="settlements" className="mt-6">
@@ -371,9 +375,11 @@ export function AlumniPage() {
             <DataTable columns={alumniColumns} data={alumniRows} isLoading={aLoading} />
           )}
         </TabsContent>
-        <TabsContent value="exit-interviews" className="mt-6">
-          <ExitInterviewTab canManage={canManage} />
-        </TabsContent>
+        {runsExits && (
+          <TabsContent value="exit-interviews" className="mt-6">
+            <ExitInterviewTab canManage={canManage} />
+          </TabsContent>
+        )}
       </Tabs>
 
       <SettlementDialog

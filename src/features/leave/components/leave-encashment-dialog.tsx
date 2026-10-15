@@ -53,10 +53,18 @@ export function LeaveEncashmentDialog({ open, onOpenChange }: LeaveEncashmentDia
 
   const available = selectedBalance ? getAvailableBalance(selectedBalance) : 0
 
-  const paidLeaveTypes = useMemo(
-    () => (leaveTypes || []).filter((lt) => lt.is_active && lt.is_paid),
+  // Sick leave is deliberately not here. It exists so somebody who is unwell
+  // stays at home; paying it out rewards coming in ill. Which types may be
+  // encashed is a property of the type, so HR can change it without a release.
+  const encashableTypes = useMemo(
+    () => (leaveTypes || []).filter((lt) => lt.is_active && lt.is_paid && lt.is_encashable),
     [leaveTypes]
   )
+
+  // Nothing to encash: either no balance row for this type, or none left. The
+  // form used to ask for a number "between 1 and 0" in this state, which is
+  // two true messages and no use at all.
+  const nothingToEncash = !!selectedTypeId && available <= 0
 
   const onSubmit = async (data: EncashmentFormData) => {
     if (!employee) return
@@ -98,14 +106,27 @@ export function LeaveEncashmentDialog({ open, onOpenChange }: LeaveEncashmentDia
                 <SelectValue placeholder="Select leave type" />
               </SelectTrigger>
               <SelectContent>
-                {paidLeaveTypes.map((lt) => (
+                {encashableTypes.map((lt) => (
                   <SelectItem key={lt.id} value={lt.id}>{lt.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {errors.leave_type_id && <p className="text-sm text-destructive">{errors.leave_type_id.message}</p>}
-            {selectedBalance && (
-              <p className="text-xs text-muted-foreground">Available: {available} days</p>
+            {encashableTypes.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No leave type can be encashed at the moment. Earned leave is the usual one — HR
+                can switch a type on from Leave, Policies.
+              </p>
+            ) : selectedTypeId ? (
+              <p className={`text-xs ${nothingToEncash ? 'text-amber-700' : 'text-muted-foreground'}`}>
+                {nothingToEncash
+                  ? 'You have nothing left to encash in this type.'
+                  : `You can encash up to ${available} day${available === 1 ? '' : 's'}.`}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Pick a type and we will show you how many days you can encash.
+              </p>
             )}
           </div>
 
@@ -115,7 +136,11 @@ export function LeaveEncashmentDialog({ open, onOpenChange }: LeaveEncashmentDia
               id="days_requested"
               type="number"
               step="1"
-              max={available}
+              min={1}
+              // Only cap it when there is something to cap. max={0} is what
+              // produced "should be less than or equal to 0".
+              {...(available > 0 ? { max: available } : {})}
+              disabled={nothingToEncash}
               {...register('days_requested')}
             />
             {errors.days_requested && <p className="text-sm text-destructive">{errors.days_requested.message}</p>}
@@ -130,7 +155,10 @@ export function LeaveEncashmentDialog({ open, onOpenChange }: LeaveEncashmentDia
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={createEncashment.isPending}>
+            <Button
+              type="submit"
+              disabled={createEncashment.isPending || nothingToEncash || encashableTypes.length === 0}
+            >
               {createEncashment.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Submit
             </Button>
