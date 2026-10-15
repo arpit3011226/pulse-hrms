@@ -120,11 +120,71 @@ the record is complete.
 
 ---
 
+---
+
+## QA-16 — Payroll produced a payslip for zero and reported success · P1 · FIXED
+
+**Module** Payroll **Found by** reading the calculation, confirmed by unit test **Fixed in** `payroll.api.ts`
+
+An employee with a salary on record but no salary components was run through
+the calculation anyway. There is nothing to add up, so gross, deductions and
+net all came out zero — and the run reported success.
+
+**Severity** Paying somebody nothing by accident is worse than refusing to pay
+them, because nobody notices. All eight demo employees are in exactly this
+state today: each has a monthly gross on record and zero components.
+
+**Fix** Employees with no earning component are set aside before the
+calculation, and named back to the user: *"Payroll computed for N employee(s).
+M left out with no salary components."* If nobody can be paid, the run refuses
+outright and says to assign a salary structure first.
+
+**Retest** 24 unit tests pass, including the zero-component case.
+
+---
+
+## QA-17 — Professional tax is a flat ₹200 for everyone · P2 · NEEDS BUSINESS DECISION
+
+**Module** Payroll
+
+`calculateStatutoryDeductions` returns `pt = 200` with the comment "Default
+flat PT", regardless of salary or state.
+
+Professional tax in India is a **state** levy with slabs, and is nil below each
+state's threshold. A flat ₹200 over-deducts from low earners and is simply
+wrong in states with different rates or none at all.
+
+**Not fixed** — the correct slabs depend on which states August operates in.
+Inventing Karnataka's numbers would be guessing. Covered by a test that records
+the current behaviour so the fix has something to turn green.
+
+---
+
+## QA-18 — Loss of pay is never applied · P1 · NOT FIXED
+
+**Module** Payroll
+
+`computePayrollForRun` passes `lopDays = 0` and `presentDays = totalWorkingDays`
+as literals, and `totalWorkingDays = 22` is hardcoded with the comment "MVP
+simplification".
+
+The machinery exists and works — `calculateLopDeduction` is correct and tested
+— but nothing feeds it. **Attendance and unpaid leave have no effect on pay.**
+Somebody absent all month is paid in full.
+
+**Not fixed** — connecting attendance and unpaid leave to payroll is a feature,
+not a defect fix, and the hardcoded 22 working days needs a business rule about
+how the month is counted. Raised rather than built.
+
+---
+
 ## Open
 
 | ID | Defect | Severity | Note |
 |---|---|---|---|
-| QA-15 | Salary component dropdown reported missing | Unknown | Could not reproduce — 8 components exist and are active. Needs the reporter's screen |
+| QA-15 | Salary component dropdown reported missing | Unknown | **Closed — will not action** at your request |
+| QA-17 | Flat professional tax | P2 | Needs the state slabs |
+| QA-18 | Loss of pay never applied | P1 | Needs a business rule, then a feature |
 
 ## Needs business decision
 

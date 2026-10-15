@@ -311,10 +311,39 @@ export async function computePayrollForRun(runId: string, orgId: string) {
   if (compError) throw compError
 
   // Filter to only active employees
-  const activeCompensations = (compensations || []).filter((c) => {
+  const onRolls = (compensations || []).filter((c) => {
     const emp = c.employee as { status?: string } | null
     return emp?.status === 'active'
   })
+
+  /**
+   * QA-16: somebody with a salary but no salary components used to be run
+   * through anyway, and the arithmetic has nothing to add up — so they got a
+   * payslip for zero and the run reported success. Paying somebody nothing by
+   * accident is worse than refusing to pay them, because nobody notices.
+   *
+   * They are set aside here, before either loop below, because the second
+   * loop indexes into the rows the first one inserted and the two must stay
+   * in step.
+   */
+  const hasEarnings = (c: (typeof onRolls)[number]) =>
+    (((c.employee_compensation_components as Array<{
+      salary_component: { component_type?: string } | null
+    }>) || []).some((cc) => (cc.salary_component?.component_type ?? 'earning') === 'earning'))
+
+  const activeCompensations = onRolls.filter(hasEarnings)
+  const skipped = onRolls.filter((c) => !hasEarnings(c)).map((c) => {
+    const emp = c.employee as { first_name?: string; last_name?: string } | null
+    return `${emp?.first_name ?? ''} ${emp?.last_name ?? ''}`.trim() || 'Unnamed employee'
+  })
+
+  if (activeCompensations.length === 0) {
+    throw new Error(
+      skipped.length > 0
+        ? `Nobody can be paid in this run. ${skipped.length} employee(s) have a salary but no salary components set up, so there is nothing to calculate. Assign a salary structure on the Compensation tab first.`
+        : 'There is nobody to pay in this run. No active employee has current compensation.'
+    )
+  }
 
   // 4. Get unprocessed adjustments for the month/year
   const { data: adjustments, error: adjError } = await supabase
@@ -524,7 +553,9 @@ export async function computePayrollForRun(runId: string, orgId: string) {
     .eq('id', run.payroll_cycle_id)
   if (cycleUpdateError) throw cycleUpdateError
 
-  return insertedEmployees
+  // The caller tells the user who was left out, so a short payroll is noticed
+  // at the time rather than at the bank.
+  return { employees: insertedEmployees, skipped }
 }
 
 // ============================================

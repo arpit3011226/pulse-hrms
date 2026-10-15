@@ -1,0 +1,243 @@
+import { describe, expect, it } from 'vitest'
+import {
+  calculateComponentAmount,
+  calculateLopDeduction,
+  calculateStatutoryDeductions,
+  computeEmployeePayroll,
+  generatePayslipNumber,
+} from './payroll-utils'
+
+/**
+ * Payroll arithmetic.
+ *
+ * This is the only part of Pulse where being wrong costs real money, and it
+ * had no tests at all. These check the figures against the Indian statutory
+ * rules the code says it implements: PF at 12% of basic capped at a basic of
+ * 15,000, ESI at 0.75% and 3.25% of gross while gross is 21,000 or less, and
+ * professional tax as a flat amount.
+ *
+ * Where a test records behaviour that looks wrong rather than behaviour that
+ * is right, it says so and points at the defect.
+ */
+
+/** A component as computeEmployeePayroll expects it. */
+function component(over: Partial<Parameters<typeof computeEmployeePayroll>[1][number]> = {}) {
+  return {
+    salary_component_id: 'id-' + (over.component_code ?? 'x'),
+    component_code: 'BASIC',
+    component_type: 'earning',
+    calculation_type: 'flat',
+    monthly_amount: 0,
+    is_statutory: false,
+    statutory_type: null,
+    ...over,
+  }
+}
+
+describe('calculateComponentAmount', () => {
+  it('takes a percentage of basic', () => {
+    expect(calculateComponentAmount('percentage_of_basic', 40, 50_000, 100_000)).toBe(20_000)
+  })
+
+  it('takes a percentage of gross', () => {
+    expect(calculateComponentAmount('percentage_of_gross', 10, 50_000, 100_000)).toBe(10_000)
+  })
+
+  it('passes a flat amount through untouched', () => {
+    expect(calculateComponentAmount('flat', 1_250, 50_000, 100_000)).toBe(1_250)
+  })
+
+  it('rounds to the rupee rather than carrying paise', () => {
+    // 33.33% of 50,000 is 16,665.00 exactly; 33.333% is 16,666.5 → 16,667
+    expect(calculateComponentAmount('percentage_of_basic', 33.333, 50_000, 0)).toBe(16_667)
+  })
+
+  it('treats an unknown calculation type as flat', () => {
+    expect(calculateComponentAmount('something_else', 999, 50_000, 100_000)).toBe(999)
+  })
+})
+
+describe('calculateStatutoryDeductions', () => {
+  it('takes PF at 12% of basic', () => {
+    const { pfEmployee, pfEmployer } = calculateStatutoryDeductions(10_000, 25_000)
+    expect(pfEmployee).toBe(1_200)
+    expect(pfEmployer).toBe(1_200)
+  })
+
+  it('caps PF at a basic of 15,000, so 1,800 is the most', () => {
+    const { pfEmployee } = calculateStatutoryDeductions(90_000, 300_000)
+    expect(pfEmployee).toBe(1_800)
+  })
+
+  it('charges ESI while gross is 21,000 or under', () => {
+    const { esiEmployee, esiEmployer } = calculateStatutoryDeductions(8_000, 20_000)
+    expect(esiEmployee).toBe(150) // 0.75%
+    expect(esiEmployer).toBe(650) // 3.25%
+  })
+
+  it('charges ESI exactly at the 21,000 boundary', () => {
+    const { esiEmployee } = calculateStatutoryDeductions(8_000, 21_000)
+    expect(esiEmployee).toBe(158) // 157.5 rounds up
+  })
+
+  it('stops ESI one rupee above the limit', () => {
+    const { esiEmployee, esiEmployer } = calculateStatutoryDeductions(8_000, 21_001)
+    expect(esiEmployee).toBe(0)
+    expect(esiEmployer).toBe(0)
+  })
+
+  it('charges professional tax as a flat 200 regardless of earnings', () => {
+    expect(calculateStatutoryDeductions(5_000, 8_000).pt).toBe(200)
+    expect(calculateStatutoryDeductions(90_000, 300_000).pt).toBe(200)
+    // DEFECT QA-17: professional tax is a state subject with slabs, and is nil
+    // below the state's threshold. A flat 200 over-deducts from low earners
+    // and is wrong for several states outright.
+  })
+})
+
+describe('calculateLopDeduction', () => {
+  it('deducts a day of gross per day of loss of pay', () => {
+    expect(calculateLopDeduction(44_000, 22, 1)).toBe(2_000)
+    expect(calculateLopDeduction(44_000, 22, 3)).toBe(6_000)
+  })
+
+  it('deducts nothing when there is no loss of pay', () => {
+    expect(calculateLopDeduction(44_000, 22, 0)).toBe(0)
+  })
+
+  it('refuses to divide by zero working days', () => {
+    expect(calculateLopDeduction(44_000, 0, 2)).toBe(0)
+  })
+
+  it('does not pay somebody for negative loss of pay', () => {
+    expect(calculateLopDeduction(44_000, 22, -5)).toBe(0)
+  })
+})
+
+describe('computeEmployeePayroll', () => {
+  const standardSet = [
+    component({ component_code: 'BASIC', monthly_amount: 20_000 }),
+    component({ component_code: 'HRA', monthly_amount: 8_000 }),
+    component({ component_code: 'SA', monthly_amount: 2_000 }),
+    component({
+      component_code: 'PF',
+      component_type: 'deduction',
+      is_statutory: true,
+      statutory_type: 'pf_employee',
+      monthly_amount: 0,
+    }),
+    component({
+      component_code: 'PT',
+      component_type: 'deduction',
+      is_statutory: true,
+      statutory_type: 'pt',
+      monthly_amount: 0,
+    }),
+    component({
+      component_code: 'PFER',
+      component_type: 'employer_contribution',
+      is_statutory: true,
+      statutory_type: 'pf_employer',
+      monthly_amount: 0,
+    }),
+  ]
+
+  it('adds the earnings and takes off the deductions', () => {
+    const r = computeEmployeePayroll(30_000, standardSet, [], 22, 0, 22)
+    expect(r.grossEarnings).toBe(30_000)   // 20,000 + 8,000 + 2,000
+    // PF is 12% of a basic capped at 15,000, so 1,800 — not 12% of the actual
+    // 20,000 basic. That cap is the statutory minimum and is applied always.
+    expect(r.totalDeductions).toBe(2_000)  // PF 1,800 + PT 200
+    expect(r.netPay).toBe(28_000)
+  })
+
+  it('keeps the employer contribution out of net pay', () => {
+    const r = computeEmployeePayroll(30_000, standardSet, [], 22, 0, 22)
+    expect(r.totalEmployerContributions).toBe(1_800)
+    expect(r.netPay).toBe(r.grossEarnings - r.totalDeductions)
+  })
+
+  it('reduces earnings proportionally for loss of pay', () => {
+    const r = computeEmployeePayroll(30_000, standardSet, [], 22, 2, 22)
+    // Each earning scaled by 20/22
+    expect(r.earnings.find((e) => e.component_code === 'BASIC')?.amount).toBe(18_182)
+    expect(r.grossEarnings).toBeLessThan(30_000)
+  })
+
+  it('adds an addition adjustment to earnings', () => {
+    const r = computeEmployeePayroll(
+      30_000, standardSet,
+      [{ adjustment_type: 'addition', amount: 5_000, salary_component_id: null }],
+      22, 0, 22
+    )
+    expect(r.grossEarnings).toBe(35_000)
+    expect(r.netPay).toBe(33_000)
+  })
+
+  it('takes a deduction adjustment off net pay', () => {
+    const r = computeEmployeePayroll(
+      30_000, standardSet,
+      [{ adjustment_type: 'deduction', amount: 1_000, salary_component_id: null }],
+      22, 0, 22
+    )
+    expect(r.totalDeductions).toBe(3_000)  // PF 1,800 + PT 200 + adjustment 1,000
+    expect(r.netPay).toBe(27_000)
+  })
+
+  it('charges ESI for a low earner and not for a high one', () => {
+    const esi = component({
+      component_code: 'ESI',
+      component_type: 'deduction',
+      is_statutory: true,
+      statutory_type: 'esi_employee',
+      monthly_amount: 0,
+    })
+    const low = computeEmployeePayroll(
+      18_000,
+      [component({ component_code: 'BASIC', monthly_amount: 18_000 }), esi],
+      [], 22, 0, 22
+    )
+    expect(low.deductions.find((d) => d.component_code === 'ESI')?.amount).toBe(135)
+
+    const high = computeEmployeePayroll(
+      60_000,
+      [component({ component_code: 'BASIC', monthly_amount: 60_000 }), esi],
+      [], 22, 0, 22
+    )
+    // Above the limit the line is dropped rather than shown as zero.
+    expect(high.deductions.find((d) => d.component_code === 'ESI')).toBeUndefined()
+  })
+
+  it('falls back to 40% of gross as basic when there is no BASIC component', () => {
+    const r = computeEmployeePayroll(
+      50_000,
+      [
+        component({ component_code: 'ALLOWANCE', monthly_amount: 50_000 }),
+        component({
+          component_code: 'PF', component_type: 'deduction',
+          is_statutory: true, statutory_type: 'pf_employee', monthly_amount: 0,
+        }),
+      ],
+      [], 22, 0, 22
+    )
+    // 40% of 50,000 = 20,000 basic, capped at 15,000 → PF 1,800
+    expect(r.deductions.find((d) => d.component_code === 'PF')?.amount).toBe(1_800)
+  })
+
+  it('computes nothing when there are no components — the caller must not let this happen', () => {
+    const r = computeEmployeePayroll(100_000, [], [], 22, 0, 22)
+    // Correct in isolation: no components means nothing to add up. The danger
+    // was upstream — computePayrollForRun used to run somebody through anyway
+    // and produce a payslip for zero while reporting success. QA-16: it now
+    // sets those people aside and names them instead.
+    expect(r.grossEarnings).toBe(0)
+    expect(r.netPay).toBe(0)
+  })
+})
+
+describe('generatePayslipNumber', () => {
+  it('pads the month and the sequence', () => {
+    expect(generatePayslipNumber(3, 2026, 7)).toBe('PS-202603-0007')
+    expect(generatePayslipNumber(12, 2026, 1234)).toBe('PS-202612-1234')
+  })
+})

@@ -7,11 +7,11 @@ one automated check now. That is not a test suite.
 
 | | |
 |---|---|
-| Test framework | None installed |
-| Unit tests | 0 |
+| Test framework | Vitest |
+| Unit tests | 24, all passing — payroll arithmetic |
 | Component tests | 0 |
 | Browser E2E tests | 0 |
-| Automated checks | 1 — the authorization matrix |
+| Automated checks | 2 — payroll unit tests, authorization matrix |
 | CI | None |
 
 ## What is automated
@@ -35,6 +35,28 @@ kinds of assertion:
 Exit code 1 on any finding, so it can gate a pipeline.
 
 **It found QA-01 and QA-02.** 210 checks per run.
+
+### `npm test` — payroll arithmetic
+
+```bash
+npm test          # vitest run, ~0.2s
+npm run test:watch
+```
+
+24 tests over `payroll-utils.ts`: component percentages and rounding, the PF
+cap, the ESI threshold and its boundary either side, loss-of-pay arithmetic
+including divide-by-zero and negative days, gross and net assembly, adjustments,
+the basic-salary fallback, and payslip numbering.
+
+These were written against the Indian statutory rules the code claims to
+implement, not against what the code happens to do. **Four initially failed,
+and in all four cases the test was wrong and the code was right** — PF is
+capped at 12% of a basic of ₹15,000, which I had not accounted for. The
+expectations were corrected; the code was not touched. Worth recording,
+because the opposite mistake — changing code to match a wrong test — is how
+payroll bugs get written.
+
+They found QA-16 and QA-17.
 
 ### Type and lint
 

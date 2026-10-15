@@ -205,8 +205,18 @@ export function PayrollRunsTab() {
 
   const handleCompute = async (runId: string) => {
     try {
-      await computePayroll.mutateAsync(runId)
-      toast.success('Payroll computed successfully')
+      const result = await computePayroll.mutateAsync(runId)
+      const skipped = (result as { skipped?: string[] })?.skipped ?? []
+      if (skipped.length > 0) {
+        // A short payroll should be noticed now, not at the bank.
+        toast.warning(
+          `Payroll computed for ${(result as { employees?: unknown[] }).employees?.length ?? 0} employee(s). ` +
+            `${skipped.length} left out with no salary components: ${skipped.slice(0, 3).join(', ')}` +
+            (skipped.length > 3 ? ` and ${skipped.length - 3} more` : '')
+        )
+      } else {
+        toast.success('Payroll computed successfully')
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error')
       console.error('Failed to compute payroll:', err)
