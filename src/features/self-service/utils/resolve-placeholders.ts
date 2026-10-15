@@ -1,3 +1,4 @@
+import { supabase } from '@/lib/supabase'
 import type { Employee, Organization } from '@/types/database.types'
 
 interface PlaceholderContext {
@@ -64,4 +65,28 @@ export function resolvePlaceholders(template: string, ctx: PlaceholderContext): 
     result = result.replaceAll(key, value)
   }
   return result
+}
+
+/**
+ * The pay figure a letter needs, or null when there is none on record.
+ *
+ * {{salary}} resolved to an empty string on every letter because no call site
+ * passed compensation — so a Salary Certificate read "...cost to company is ."
+ * Fetched here rather than at four separate call sites, each of which would
+ * have had to remember.
+ */
+export async function getLetterCompensation(
+  employeeId: string | null | undefined
+): Promise<{ annual_ctc: number } | null> {
+  if (!employeeId) return null
+  const { data, error } = await supabase
+    .from('employee_compensation')
+    .select('annual_ctc')
+    .eq('employee_id', employeeId)
+    .eq('is_current', true)
+    .maybeSingle()
+  // A missing figure is not worth failing a letter over: the placeholder just
+  // stays empty, exactly as it did before.
+  if (error || !data) return null
+  return { annual_ctc: Number(data.annual_ctc) }
 }

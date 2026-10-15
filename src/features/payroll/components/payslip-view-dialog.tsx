@@ -15,6 +15,7 @@ import { generatePayslipPdf } from '../utils/generate-payslip-pdf'
 import { getPayslipDetail } from '../api/payroll.api'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import type { Payslip } from '@/types/database.types'
+import { toast } from 'sonner'
 
 interface PayslipViewDialogProps {
   open: boolean
@@ -40,6 +41,9 @@ export function PayslipViewDialog({
       generatePayslipPdf(detail, organization)
     } catch (err) {
       console.error('Failed to generate payslip PDF:', err)
+      toast.error(
+        err instanceof Error ? err.message : 'Could not build the payslip. Please tell HR.'
+      )
     } finally {
       setDownloading(false)
     }

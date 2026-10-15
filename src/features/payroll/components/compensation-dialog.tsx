@@ -121,7 +121,9 @@ export function CompensationDialog({
         if (cancelled) return
         setLoadingEmployees(false)
         if (error) {
+          // Silent before, which left an empty picker and no clue why.
           console.error('Failed to fetch employees:', error)
+          toast.error('Could not load the employee list. Please refresh and try again.')
           return
         }
         setEmployees(data || [])

@@ -17,6 +17,7 @@ import { generatePayslipPdf } from '../utils/generate-payslip-pdf'
 import { getPayslipDetail } from '../api/payroll.api'
 import { PayslipViewDialog } from './payslip-view-dialog'
 import type { Payslip } from '@/types/database.types'
+import { toast } from 'sonner'
 
 export function MyPayslipsTab() {
   const { data: employee } = useCurrentEmployee()
@@ -36,7 +37,12 @@ export function MyPayslipsTab() {
       const detail = await getPayslipDetail(payslip.id)
       generatePayslipPdf(detail, organization)
     } catch (err) {
+      // Was console-only, so a failure here looked like the button doing
+      // nothing at all — which is exactly how it was reported.
       console.error('Failed to generate payslip PDF:', err)
+      toast.error(
+        err instanceof Error ? err.message : 'Could not build the payslip. Please tell HR.'
+      )
     } finally {
       setDownloadingId(null)
     }

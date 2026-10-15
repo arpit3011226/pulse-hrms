@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { useLetterTemplates, useMyLetterRequests, useRequestLetter } from '../hooks/use-self-service'
-import { resolvePlaceholders } from '../utils/resolve-placeholders'
+import { resolvePlaceholders, getLetterCompensation } from '../utils/resolve-placeholders'
 import { generateLetterPdf } from '../utils/generate-letter-pdf'
 import { LetterRequestDialog } from './letter-request-dialog'
 import { toast } from 'sonner'
@@ -82,6 +82,7 @@ export function MyLettersTab({ employeeId }: Props) {
       const resolved = resolvePlaceholders(template.body_html, {
         employee: fullEmployee,
         organization,
+        compensation: await getLetterCompensation(fullEmployee.id),
       })
       generateLetterPdf(
         resolved,
@@ -97,12 +98,13 @@ export function MyLettersTab({ employeeId }: Props) {
     }
   }
 
-  function handleDownload(request: LetterRequestWithRelations) {
+  async function handleDownload(request: LetterRequestWithRelations) {
     if (!organization || !fullEmployee || !request.template) return
 
     const resolved = request.resolved_body_html || resolvePlaceholders(request.template.body_html, {
       employee: fullEmployee,
       organization,
+      compensation: await getLetterCompensation(fullEmployee.id),
     })
     generateLetterPdf(
       resolved,

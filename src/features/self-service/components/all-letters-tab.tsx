@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { DataTable } from '@/components/shared/data-table'
 import { useAllLetterRequests } from '../hooks/use-self-service'
 import { useAuth } from '@/features/auth/hooks/use-auth'
-import { resolvePlaceholders } from '../utils/resolve-placeholders'
+import { resolvePlaceholders, getLetterCompensation } from '../utils/resolve-placeholders'
 import { generateLetterPdf } from '../utils/generate-letter-pdf'
 import type { LetterRequestWithRelations } from '@/types/database.types'
 
@@ -27,13 +27,14 @@ export function AllLettersTab() {
   const { organization } = useAuth()
   const { data: requests, isLoading } = useAllLetterRequests()
 
-  function handleDownload(req: LetterRequestWithRelations) {
+  async function handleDownload(req: LetterRequestWithRelations) {
     const employee = one(req.employee)
     if (!organization || !req.template || !employee) return
 
     const resolved = req.resolved_body_html || resolvePlaceholders(req.template.body_html, {
       employee,
       organization,
+      compensation: await getLetterCompensation(employee.id),
     })
     generateLetterPdf(
       resolved,

@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { useLetterTemplates, useRequestLetter } from '../hooks/use-self-service'
-import { resolvePlaceholders } from '../utils/resolve-placeholders'
+import { resolvePlaceholders, getLetterCompensation } from '../utils/resolve-placeholders'
 import { generateLetterPdf } from '../utils/generate-letter-pdf'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
@@ -89,6 +89,7 @@ export function HrGenerateLetterDialog({ open, onOpenChange }: Props) {
           // Narrow the to-one embeds the picker query returns.
           ...{ employee: { ...employee, department: one(employee.department), designation: one(employee.designation) } },
           organization,
+          compensation: await getLetterCompensation(employee.id),
         })
         generateLetterPdf(
           resolved,
