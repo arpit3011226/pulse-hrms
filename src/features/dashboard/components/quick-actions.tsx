@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { UserPlus, CalendarPlus, ClipboardList, Building2, FileText, BarChart3, Target, DollarSign } from 'lucide-react'
+import { UserPlus, CalendarPlus, CalendarCheck, ClipboardList, Building2, FileText, BarChart3, Target, DollarSign } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePermissions } from '@/hooks/use-permissions'
 
@@ -21,63 +21,73 @@ export function QuickActions() {
     {
       title: 'Add Employee',
       icon: UserPlus,
-      href: '/employees/new',
+      href: '/employees/new' as const,
+      search: {} as Record<string, string>,
       visible: permissions.canManageEmployees,
       color: 'blue' as const,
     },
     {
       title: 'Apply Leave',
       icon: CalendarPlus,
-      href: '/leave/apply',
+      href: '/leave' as const,
+      // Opens the form, rather than leaving you to find it.
+      search: { tab: 'my-leaves', action: 'apply' },
       visible: true,
       color: 'amber' as const,
     },
     {
       title: 'Mark Attendance',
       icon: ClipboardList,
-      href: '/attendance',
+      href: '/attendance' as const,
+      search: { tab: 'my-attendance' },
       visible: true,
       color: 'emerald' as const,
     },
     {
       title: 'Approve Leaves',
-      icon: CalendarPlus,
-      href: '/leave',
+      icon: CalendarCheck,
+      href: '/leave' as const,
+      search: { tab: 'team-leaves' },
       visible: permissions.canApproveLeave,
       color: 'orange' as const,
     },
     {
       title: 'View Payslips',
       icon: FileText,
-      href: '/payroll',
+      href: '/payroll' as const,
+      search: { tab: 'my-payslips' },
       visible: true,
       color: 'indigo' as const,
     },
     {
       title: 'Run Payroll',
       icon: DollarSign,
-      href: '/payroll',
+      href: '/payroll' as const,
+      search: { tab: 'runs' },
       visible: permissions.canManagePayroll,
       color: 'rose' as const,
     },
     {
       title: 'View Reports',
       icon: BarChart3,
-      href: '/reports',
+      href: '/reports' as const,
+      search: {} as Record<string, string>,
       visible: permissions.canViewReports,
       color: 'cyan' as const,
     },
     {
       title: 'My Goals',
       icon: Target,
-      href: '/performance',
+      href: '/performance' as const,
+      search: { tab: 'my-goals' },
       visible: permissions.canViewPerformance,
       color: 'purple' as const,
     },
     {
       title: 'Add Department',
       icon: Building2,
-      href: '/departments',
+      href: '/departments' as const,
+      search: {} as Record<string, string>,
       visible: permissions.canManageDepartments,
       color: 'purple' as const,
     },
@@ -96,6 +106,7 @@ export function QuickActions() {
               <Link
                 key={action.title}
                 to={action.href}
+                search={action.search}
                 className={`flex flex-col items-center gap-2 rounded-lg border p-4 text-center transition-colors ${palette.hover}`}
               >
                 <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${palette.bg}`}>

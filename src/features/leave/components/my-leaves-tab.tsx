@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useModuleAction } from '@/hooks/use-module-tab'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Plus, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -20,6 +21,22 @@ export function MyLeavesTab() {
   const { data: balances, isLoading: balancesLoading } = useMyLeaveBalances(employee?.id || '', currentYear)
   const cancelLeave = useCancelLeave()
   const [applyOpen, setApplyOpen] = useState(false)
+
+  /**
+   * "Apply Leave" on the home page links here with ?action=apply.
+   *
+   * The form is open because the URL says so — derived, not copied into state.
+   * Copying it meant navigating while this component was rendering, which React
+   * reports as updating one component during the render of another. Closing the
+   * form clears the instruction, so a refresh does not reopen it.
+   */
+  const { action, clearAction } = useModuleAction()
+  const showApply = applyOpen || action === 'apply'
+
+  const handleApplyOpenChange = (next: boolean) => {
+    setApplyOpen(next)
+    if (!next && action === 'apply') clearAction()
+  }
   const [cancelRequest, setCancelRequest] = useState<LeaveRequestWithRelations | null>(null)
 
   const columns: ColumnDef<LeaveRequestWithRelations>[] = [
@@ -119,7 +136,7 @@ export function MyLeavesTab() {
         }
       />
 
-      <ApplyLeaveDialog open={applyOpen} onOpenChange={setApplyOpen} />
+      <ApplyLeaveDialog open={showApply} onOpenChange={handleApplyOpenChange} />
 
       <ConfirmDialog
         open={!!cancelRequest}

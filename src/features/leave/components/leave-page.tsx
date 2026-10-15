@@ -11,8 +11,10 @@ import { LeaveBalancesTab } from './leave-balances-tab'
 import { LeaveEncashmentTab } from './leave-encashment-tab'
 import { LeaveRulesTab } from './leave-rules-tab'
 import { TeamOverview } from '@/features/workplace/components/team-overview'
+import { useModuleTab } from '@/hooks/use-module-tab'
 
 export function LeavePage() {
+  const [tab, setTab] = useModuleTab('my-leaves', ['my-leaves', 'encashment', 'team-leaves', 'team-overview', 'all-leaves', 'policies', 'rules', 'holidays', 'balances'])
   const {
     canApproveLeave,
     canManageLeaveTypes,
@@ -36,7 +38,7 @@ export function LeavePage() {
         actions={<DateRangeFilter />}
       />
 
-      <Tabs defaultValue="my-leaves">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="my-leaves">My Leaves</TabsTrigger>
           <TabsTrigger value="encashment">Encashment</TabsTrigger>

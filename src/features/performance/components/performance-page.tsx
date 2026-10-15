@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/page-header'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -12,12 +11,18 @@ import { CyclesTab } from './cycles-tab'
 import { CompetenciesTab } from './competencies-tab'
 import { PipTab } from './pip-tab'
 import { AnalyticsTab } from './analytics-tab'
+import { useModuleTab } from '@/hooks/use-module-tab'
 
 export function PerformancePage() {
   const { canManagePerformance, isAdmin, isHR, isManager } = usePermissions()
   const canAdmin = canManagePerformance || isAdmin || isHR
 
-  const [activeTab, setActiveTab] = useState('my-goals')
+  // Driven by ?tab= so a link can land on the right screen, rather than
+  // always opening on My Goals.
+  const [activeTab, setActiveTab] = useModuleTab('my-goals', [
+    'my-goals', 'my-reviews', 'team-goals', 'team-reviews', 'all-goals',
+    'all-reviews', 'analytics', 'cycles', 'competencies', 'pip',
+  ])
 
   return (
     <div>

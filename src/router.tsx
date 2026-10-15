@@ -30,6 +30,23 @@ import { WorkflowsPage } from '@/features/workflows/components/workflows-page'
 import { DashboardPage } from '@/features/dashboard/components/dashboard-page'
 import { AuthLayout } from '@/features/auth/components/auth-layout'
 
+/**
+ * Modules accept `?tab=` and `?action=`, so a link can land on the exact
+ * screen rather than on whatever tab opens first.
+ *
+ * Absent keys are LEFT OUT rather than set to undefined. The router compares
+ * the validated search against the current one, and a key that is present but
+ * undefined never compares equal to a missing key — it re-commits the location
+ * on every render and blows the update depth. Same trap as the employee route
+ * below.
+ */
+function validateModuleSearch(search: Record<string, unknown>): { tab?: string; action?: string } {
+  const out: { tab?: string; action?: string } = {}
+  if (typeof search.tab === 'string' && search.tab) out.tab = search.tab
+  if (typeof search.action === 'string' && search.action) out.action = search.action
+  return out
+}
+
 // Root
 const rootRoute = createRootRoute({ component: Outlet })
 
@@ -45,7 +62,7 @@ const appRoute = createRoute({ getParentRoute: () => rootRoute, id: 'app', compo
 // Dashboard (component imported from dashboard feature)
 
 const dashboardRoute = createRoute({ getParentRoute: () => appRoute, path: '/dashboard', component: DashboardPage })
-const employeesRoute = createRoute({ getParentRoute: () => appRoute, path: '/employees', component: EmployeeList })
+const employeesRoute = createRoute({ getParentRoute: () => appRoute, path: '/employees', component: EmployeeList, validateSearch: validateModuleSearch })
 
 const employeeNewRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -91,31 +108,30 @@ const employeeEditRoute = createRoute({
 const newJoinersRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/new-joiners',
-  component: OnboardingPage,
-})
+  component: OnboardingPage, validateSearch: validateModuleSearch })
 
-const assetsRoute = createRoute({ getParentRoute: () => appRoute, path: '/assets', component: AssetsPage })
+const assetsRoute = createRoute({ getParentRoute: () => appRoute, path: '/assets', component: AssetsPage, validateSearch: validateModuleSearch })
 
 // F17 — a candidate signs in with their personal email and sees only their own
 // application. RLS on candidates, applications, interviews and offers enforces it.
 const myApplicationRoute = createRoute({ getParentRoute: () => appRoute, path: '/my-application', component: CandidatePortalPage })
 
-const alumniRoute = createRoute({ getParentRoute: () => appRoute, path: '/alumni', component: AlumniPage })
+const alumniRoute = createRoute({ getParentRoute: () => appRoute, path: '/alumni', component: AlumniPage, validateSearch: validateModuleSearch })
 
-const helpdeskRoute = createRoute({ getParentRoute: () => appRoute, path: '/helpdesk', component: HelpdeskPage })
-const recognitionRoute = createRoute({ getParentRoute: () => appRoute, path: '/recognition', component: RecognitionPage })
-const mentorshipRoute = createRoute({ getParentRoute: () => appRoute, path: '/mentorship', component: MentorshipPage })
+const helpdeskRoute = createRoute({ getParentRoute: () => appRoute, path: '/helpdesk', component: HelpdeskPage, validateSearch: validateModuleSearch })
+const recognitionRoute = createRoute({ getParentRoute: () => appRoute, path: '/recognition', component: RecognitionPage, validateSearch: validateModuleSearch })
+const mentorshipRoute = createRoute({ getParentRoute: () => appRoute, path: '/mentorship', component: MentorshipPage, validateSearch: validateModuleSearch })
 
 // F39 — an ex-employee signs in on their personal email and fetches their own
 // payslips, letters and settlement. Nothing else.
 const myRecordsRoute = createRoute({ getParentRoute: () => appRoute, path: '/my-records', component: MyRecordsPage })
 
-const departmentsRoute = createRoute({ getParentRoute: () => appRoute, path: '/departments', component: DepartmentList })
+const departmentsRoute = createRoute({ getParentRoute: () => appRoute, path: '/departments', component: DepartmentList, validateSearch: validateModuleSearch })
 
 
-const leaveRoute = createRoute({ getParentRoute: () => appRoute, path: '/leave', component: LeavePage })
-const attendanceRoute = createRoute({ getParentRoute: () => appRoute, path: '/attendance', component: AttendancePage })
-const recruitmentRoute = createRoute({ getParentRoute: () => appRoute, path: '/recruitment', component: RecruitmentPage })
+const leaveRoute = createRoute({ getParentRoute: () => appRoute, path: '/leave', component: LeavePage, validateSearch: validateModuleSearch })
+const attendanceRoute = createRoute({ getParentRoute: () => appRoute, path: '/attendance', component: AttendancePage, validateSearch: validateModuleSearch })
+const recruitmentRoute = createRoute({ getParentRoute: () => appRoute, path: '/recruitment', component: RecruitmentPage, validateSearch: validateModuleSearch })
 
 // A candidate opens as a page of their own, the way an employee does, so their
 // background, applications and interview feedback are read in one place.
@@ -127,13 +143,13 @@ const candidateDetailRoute = createRoute({
     return <CandidateDetailPage candidateId={candidateId} />
   },
 })
-const payrollRoute = createRoute({ getParentRoute: () => appRoute, path: '/payroll', component: PayrollPage })
-const performanceRoute = createRoute({ getParentRoute: () => appRoute, path: '/performance', component: PerformancePage })
-const selfServiceRoute = createRoute({ getParentRoute: () => appRoute, path: '/self-service', component: SelfServicePage })
-const separationRoute = createRoute({ getParentRoute: () => appRoute, path: '/separation', component: ResignationPage })
-const reportsRoute = createRoute({ getParentRoute: () => appRoute, path: '/reports', component: ReportsPage })
-const workflowsRoute = createRoute({ getParentRoute: () => appRoute, path: '/workflows', component: WorkflowsPage })
-const settingsRoute = createRoute({ getParentRoute: () => appRoute, path: '/settings', component: SettingsPage })
+const payrollRoute = createRoute({ getParentRoute: () => appRoute, path: '/payroll', component: PayrollPage, validateSearch: validateModuleSearch })
+const performanceRoute = createRoute({ getParentRoute: () => appRoute, path: '/performance', component: PerformancePage, validateSearch: validateModuleSearch })
+const selfServiceRoute = createRoute({ getParentRoute: () => appRoute, path: '/self-service', component: SelfServicePage, validateSearch: validateModuleSearch })
+const separationRoute = createRoute({ getParentRoute: () => appRoute, path: '/separation', component: ResignationPage, validateSearch: validateModuleSearch })
+const reportsRoute = createRoute({ getParentRoute: () => appRoute, path: '/reports', component: ReportsPage, validateSearch: validateModuleSearch })
+const workflowsRoute = createRoute({ getParentRoute: () => appRoute, path: '/workflows', component: WorkflowsPage, validateSearch: validateModuleSearch })
+const settingsRoute = createRoute({ getParentRoute: () => appRoute, path: '/settings', component: SettingsPage, validateSearch: validateModuleSearch })
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,

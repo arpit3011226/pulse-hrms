@@ -12,8 +12,10 @@ import { PayrollConfigPanel } from './payroll-config-panel'
 import { AllPayslipsTab } from './all-payslips-tab'
 import { PayrollAdjustmentsTab } from './payroll-adjustments-tab'
 import { TdsRecordsTab } from './tds-records-tab'
+import { useModuleTab } from '@/hooks/use-module-tab'
 
 export function PayrollPage() {
+  const [tab, setTab] = useModuleTab('my-payslips', ['my-payslips', 'compensation', 'components', 'structures', 'runs', 'adjustments', 'all-payslips', 'my-tax', 'tax-declarations', 'tds-records', 'settings'])
   const {
     canManagePayroll,
     isAdmin,
@@ -36,7 +38,7 @@ export function PayrollPage() {
         description="Manage salary structures, employee compensation, and payroll processing."
       />
 
-      <Tabs defaultValue="my-payslips">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="my-payslips">My Payslips</TabsTrigger>
           {showCompensationTab && <TabsTrigger value="compensation">Compensation</TabsTrigger>}

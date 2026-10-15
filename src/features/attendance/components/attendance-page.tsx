@@ -7,8 +7,10 @@ import { TeamAttendanceTab } from './team-attendance-tab'
 import { AllAttendanceTab } from './all-attendance-tab'
 import { ShiftsTab } from './shifts-tab'
 import { AllRegularizationsTab } from './all-regularizations-tab'
+import { useModuleTab } from '@/hooks/use-module-tab'
 
 export function AttendancePage() {
+  const [tab, setTab] = useModuleTab('my-attendance', ['my-attendance', 'team', 'all', 'regularizations', 'shifts'])
   const {
     canViewAttendance,
     canManageAttendance,
@@ -30,7 +32,7 @@ export function AttendancePage() {
         actions={<DateRangeFilter />}
       />
 
-      <Tabs defaultValue="my-attendance">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="my-attendance">My Attendance</TabsTrigger>
           {showTeamTab && <TabsTrigger value="team">Team</TabsTrigger>}

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -12,6 +12,7 @@ import {
   useCandidates,
   useJobRequisitions,
   useCreateCandidateApplication,
+  useCandidateApplications,
 } from '../hooks/use-recruitment'
 import type { JobRequisitionWithRelations } from '@/types/database.types'
 import { toast } from 'sonner'
@@ -34,7 +35,9 @@ export function ApplicationFormDialog({ open, onOpenChange }: ApplicationFormDia
   const { data: candidates } = useCandidates()
   const { data: requisitions } = useJobRequisitions()
 
-  const openRequisitions = ((requisitions || []) as JobRequisitionWithRelations[]).filter(
+  const { data: existingApplications } = useCandidateApplications()
+
+  const allOpenRequisitions = ((requisitions || []) as JobRequisitionWithRelations[]).filter(
     (r) => r.status === 'open'
   )
 
@@ -57,6 +60,32 @@ export function ApplicationFormDialog({ open, onOpenChange }: ApplicationFormDia
   const candidateId = watch('candidate_id')
   const requisitionId = watch('job_requisition_id')
 
+  /**
+   * A candidate can only be put forward once per role — there is a unique rule
+   * on (candidate, requisition) in the database. Offering a role they are
+   * already up for only ever produced "Failed to create application", which
+   * said nothing about why. Those roles are left out instead.
+   */
+  const alreadyAppliedFor = useMemo(() => {
+    if (!candidateId) return new Set<string>()
+    return new Set(
+      ((existingApplications || []) as { candidate_id: string; job_requisition_id: string }[])
+        .filter((a) => a.candidate_id === candidateId)
+        .map((a) => a.job_requisition_id)
+    )
+  }, [existingApplications, candidateId])
+
+  const openRequisitions = useMemo(
+    () => allOpenRequisitions.filter((r) => !alreadyAppliedFor.has(r.id)),
+    [allOpenRequisitions, alreadyAppliedFor]
+  )
+  const hiddenCount = allOpenRequisitions.length - openRequisitions.length
+
+  // Clear a choice that has just become invalid, so a stale id is never sent.
+  if (requisitionId && alreadyAppliedFor.has(requisitionId)) {
+    setValue('job_requisition_id', '')
+  }
+
   useEffect(() => {
     if (open) {
       reset({
@@ -77,8 +106,15 @@ export function ApplicationFormDialog({ open, onOpenChange }: ApplicationFormDia
       })
       toast.success('Application created')
       onOpenChange(false)
-    } catch {
-      toast.error('Failed to create application')
+    } catch (err) {
+      // The generic message hid the only thing worth knowing. A duplicate is
+      // the common case and deserves plain words rather than a constraint name.
+      const message = err instanceof Error ? err.message : ''
+      toast.error(
+        /duplicate key|unique constraint/i.test(message)
+          ? 'That candidate has already been put forward for this role.'
+          : message || 'Could not create the application'
+      )
     }
   }
 
@@ -121,6 +157,17 @@ export function ApplicationFormDialog({ open, onOpenChange }: ApplicationFormDia
               </SelectContent>
             </Select>
             {errors.job_requisition_id && <p className="text-sm text-destructive">{errors.job_requisition_id.message}</p>}
+            {candidateId && hiddenCount > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {hiddenCount} open {hiddenCount === 1 ? 'role is' : 'roles are'} not listed because
+                this candidate has already been put forward {hiddenCount === 1 ? 'for it' : 'for them'}.
+              </p>
+            )}
+            {candidateId && openRequisitions.length === 0 && (
+              <p className="text-xs text-amber-700">
+                This candidate is already up for every open role.
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
