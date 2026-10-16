@@ -1,14 +1,21 @@
 # UAT Readiness Report
 
-**Date** 15 October 2026 · **Verdict** **NOT READY FOR UAT**
+**Date** 16 October 2026 · **Verdict** **NOT READY FOR UAT**
 
 ---
 
 ## 1. Executive summary
 
-Pulse is in better shape than it was this morning: four defects were found and
-fixed today, two of them serious, on top of ten fixed earlier in the week from
-tester reports. The authorization model is genuinely strong — row-level
+Pulse is in better shape than it was two days ago: seven defects found and
+fixed in this engagement, including **one P0**, on top of ten fixed earlier in
+the week from tester reports.
+
+**The P0 is the headline.** Both storage buckets were public, so every employee
+identity document was downloadable by anyone on the internet with no sign-in
+and no API key. A PAN card scan was fetched to prove it. Eight carefully
+written row-level security policies existed for storage and were being
+bypassed entirely. That is now closed and verified from both sides — HR can
+open a document, an ordinary employee asking for a colleague's is refused. The authorization model is genuinely strong — row-level
 security is on for all 128 tables, every table has a policy, no policy is
 open, and no database function is reachable without signing in.
 
@@ -37,7 +44,8 @@ your testers.
 | Leave | **Good** | Full E2E across two roles, balance arithmetic, server-side limits, negative tests |
 | Helpdesk | Moderate | Ticket creation E2E as employee; SLA stamping verified |
 | Self-service letters | Moderate | Generation verified by reading the PDF output |
-| Payroll | **Thin** | Access control only. No calculation, run, or payslip arithmetic tested |
+| Payroll | Moderate | 24 unit tests on the arithmetic, all passing. A full run through the UI still untested |
+| Storage and documents | **Good** | Bucket policy, signed URLs, cross-employee access, both directions |
 | Recruitment | **Thin** | One form. Hiring pipeline untested |
 | Mentorship | Moderate | Rules proven at the database; UI not exercised |
 | Attendance | **None** | |
@@ -62,11 +70,10 @@ Every number here is of tests actually run. Nothing is projected.
 
 | Severity | Found | Fixed | Open |
 |---|---:|---:|---:|
-| P0 | 0 | 0 | 0 |
-| P1 | 4 | 4 | 0 |
-| P2 | 8 | 8 | 0 |
+| P0 | 1 | 1 | 0 (one cached URL pending, below) |
+| P1 | 6 | 5 | 1 (QA-18, needs a business rule) |
+| P2 | 9 | 8 | 1 (QA-17, needs the state slabs) |
 | P3 | 2 | 2 | 0 |
-| Unknown | 1 | 0 | 1 |
 
 ## 5. Security findings
 
@@ -82,9 +89,18 @@ payroll, HR, leadership and admin; HR cannot reach leadership pay; mentorship
 check-in notes readable by the two participants and by nobody else, including
 super admin.
 
-**Not tested:** file upload safety, storage bucket policies, session expiry and
-refresh behaviour, rate limiting, the edge functions beyond their auth gates,
-injection against free-text fields.
+**Storage, now tested and fixed (QA-19, P0):** both buckets were public,
+exposing every employee document to the open internet. Now private, with a
+5 MB ceiling and a JPEG/PNG/PDF allow-list set on the buckets themselves
+rather than only in the browser. Files open through signed URLs that expire.
+
+**Residual on QA-19:** one URL is still served from Supabase's CDN cache.
+Closing the origin did not purge entries already cached, and moving the object
+did not either. Purge it from the dashboard, or let the hour expire. With real
+data this purge would be mandatory.
+
+**Not tested:** session expiry and refresh behaviour, rate limiting, the edge
+functions beyond their auth gates, injection against free-text fields.
 
 ## 6. Data integrity
 
