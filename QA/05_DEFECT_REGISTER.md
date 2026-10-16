@@ -319,7 +319,41 @@ The tax code reaches the deduction:
 EMP-0019  Contractor TDS  tax code 1027  amount 7,000
 ```
 
-14 unit tests cover the two rules, including the case where PF is attached to
+### Answered by the business, 16 October 2026
+
+Two questions were put back, because either answer changes what comes out of
+somebody's payment. Both are now implemented:
+
+**Professional tax and labour welfare fund do not apply to a contractor or an
+intern either.** Both Acts are written around persons in employment, so they
+stop at the same boundary provident fund does. A contractor on ₹70,000 now has
+the ₹7,000 TDS and nothing else, and an intern has no deduction at all.
+
+**Freelance counts as a contractor.** No provident fund, and 10% TDS under
+code 1027. Nobody is on that type today, but somebody tagged `freelance` by
+mistake is now taxed rather than missed.
+
+So the three engagements `contract`, `intern` and `freelance` sit outside the
+employee statutory regime — no PF, no professional tax, no labour welfare
+fund — and of those, `contract` and `freelance` are paid under deduction of
+tax. Part-time staff are **not** in this group: they are on the rolls and
+everything applies to them as usual.
+
+**Re-verified through the December run and the preview.**
+
+```
+EMP-0019  contract    gross 70,000   TDS_CONTRACTOR 7,000              net 63,000
+12 staff  full_time                  PF, PT 200, LWF 150
+```
+
+The preview for the same contractor now reads gross ₹70,000, less deductions
+₹7,000, take home ₹63,000 — the same figures the payslip carries.
+
+One worked case worth keeping: an employee on a ₹12,000 basic pays PF of
+₹1,440, not ₹1,800. The ₹15,000 cap is a ceiling on the basic, not a floor on
+the contribution.
+
+17 unit tests cover the two rules, including the case where PF is attached to
 a contractor by hand and must still be refused.
 
 ---
@@ -566,8 +600,6 @@ per-state table.
 |---|---|
 | Should leadership see **all** leave balances, or only their own team's? | Today leadership sees 16 rows (own + direct reports); HR sees 76 (everyone). If leadership is meant to have an org-wide view, that is a gap |
 | Should `salary_components` definitions (Basic, HRA, PF and their default values) be readable by every employee? | They currently are. Reference data, arguably fine, but it exposes the pay structure |
-| Should professional tax and labour welfare fund apply to a contractor and an intern? | **Open.** You told us about provident fund and contractor TDS, and only those two were changed. A contractor and an intern are still charged professional tax ₹200 and, in December, labour welfare fund ₹150. Both Acts are written around persons in employment, so this may well be wrong — but guessing it would change what comes out of someone's payment |
-| Does the contractor rule apply to the **freelance** employment type too? | **Open.** Pulse has five types: full time, part time, contract, intern, freelance. "Contractor" was read as `contract` only. Nobody is on `freelance` today, so nothing is wrong yet |
 | Is the 10% contractor TDS the right rate for everybody, or does it vary? | 10% under code 1027 is applied to every contractor. If a contractor gives a lower-deduction certificate under section 197, or if a different section applies to some of them, Pulse has no way to record that |
 | Should provident fund be deducted from **every** full-time employee, or can a high earner be excluded? | PF applies to all staff. In law an employee who has never been a member and joins above a basic of ₹15,000 may be excluded on Form 11. Pulse does not model that exclusion, so it over-deducts for such a person rather than under-deducting. Confirm whether August has anybody in that position |
 | Is ₹150 the right Karnataka LWF employee share? | Flagged under QA-17 as well. Worth one check with your CA before go-live — the run now actually takes it, so the figure matters |

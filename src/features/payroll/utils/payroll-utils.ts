@@ -7,7 +7,7 @@ import {
   INDIA_ESI_EMPLOYER_RATE,
   INDIA_ESI_GROSS_LIMIT,
   INDIA_PF_BASIC_LIMIT,
-  PF_EXEMPT_EMPLOYMENT_TYPES,
+  NON_EMPLOYEE_ENGAGEMENT_TYPES,
   CONTRACTOR_EMPLOYMENT_TYPES,
   CONTRACTOR_TDS_RATE,
 } from '@/lib/constants'
@@ -77,23 +77,29 @@ export function labourWelfareFund(month: number | null | undefined): number {
 }
 
 /**
- * Whether provident fund applies to this kind of engagement.
+ * Whether this engagement is covered by the employee statutory regime.
  *
- * It does not for a contractor or an intern. Neither is on the rolls as an
- * employee, so there is no EPF membership to contribute to. Anybody else,
+ * Provident fund, professional tax and labour welfare fund are all written
+ * around persons in employment. A contractor, a freelancer and an intern are
+ * not on the rolls as employees, so none of the three applies. Anybody else,
  * including part-time staff, is covered.
  *
  * An unknown or missing type is treated as covered. Erring towards deducting
  * is the safe direction: an over-deduction is refunded, a short deduction
  * costs the employer interest and damages.
  */
-export function isPfApplicable(employmentType?: string | null): boolean {
-  return !PF_EXEMPT_EMPLOYMENT_TYPES.includes(
-    (employmentType ?? '') as (typeof PF_EXEMPT_EMPLOYMENT_TYPES)[number]
+export function isStatutoryEmployee(employmentType?: string | null): boolean {
+  return !NON_EMPLOYEE_ENGAGEMENT_TYPES.includes(
+    (employmentType ?? '') as (typeof NON_EMPLOYEE_ENGAGEMENT_TYPES)[number]
   )
 }
 
-/** Whether this engagement is a contractor, who is paid under deduction of tax. */
+/** Provident fund follows the employee statutory regime. */
+export function isPfApplicable(employmentType?: string | null): boolean {
+  return isStatutoryEmployee(employmentType)
+}
+
+/** Paid against an invoice, under deduction of tax at source. Contract or freelance. */
 export function isContractor(employmentType?: string | null): boolean {
   return CONTRACTOR_EMPLOYMENT_TYPES.includes(
     (employmentType ?? '') as (typeof CONTRACTOR_EMPLOYMENT_TYPES)[number]
@@ -139,8 +145,11 @@ export function calculateStatutoryDeductions(
   const esiEmployee = esiApplicable ? Math.round((grossMonthly * INDIA_ESI_EMPLOYEE_RATE) / 100) : 0
   const esiEmployer = esiApplicable ? Math.round((grossMonthly * INDIA_ESI_EMPLOYER_RATE) / 100) : 0
 
-  const pt = professionalTaxKarnataka(grossMonthly)
-  const lwf = labourWelfareFund(payrollMonth)
+  // Professional tax and labour welfare fund are employee levies, so they
+  // stop at the same boundary provident fund does.
+  const covered = isStatutoryEmployee(employmentType)
+  const pt = covered ? professionalTaxKarnataka(grossMonthly) : 0
+  const lwf = covered ? labourWelfareFund(payrollMonth) : 0
   const tdsContractor = contractorTds(grossMonthly, employmentType)
 
   return { pfEmployee, pfEmployer, esiEmployee, esiEmployer, pt, lwf, tdsContractor }
@@ -178,16 +187,25 @@ const ALWAYS_APPLIED_STATUTORY = new Set([
 /**
  * Statutory lines that apply only to some kinds of engagement.
  *
- * Provident fund is not added for a contractor or an intern. Contractor TDS
- * is added only for a contractor, and never for anybody else — an employee's
- * tax comes from their own declaration, not from a flat 10%.
+ * Provident fund, professional tax and labour welfare fund are employee
+ * levies and are not added for a contractor, a freelancer or an intern.
+ * Contractor TDS is added only for a contractor or a freelancer, and never
+ * for anybody else — an employee's tax comes from their own declaration, not
+ * from a flat 10%.
  */
+const EMPLOYEE_ONLY_STATUTORY = new Set([
+  'pf_employee',
+  'pf_employer',
+  'pt',
+  'lwf',
+])
+
 function appliesToEngagement(statutoryType: string, employmentType?: string | null): boolean {
-  if (statutoryType === 'pf_employee' || statutoryType === 'pf_employer') {
-    return isPfApplicable(employmentType)
-  }
   if (statutoryType === 'tds_contractor') {
     return isContractor(employmentType)
+  }
+  if (EMPLOYEE_ONLY_STATUTORY.has(statutoryType)) {
+    return isStatutoryEmployee(employmentType)
   }
   return ALWAYS_APPLIED_STATUTORY.has(statutoryType)
 }

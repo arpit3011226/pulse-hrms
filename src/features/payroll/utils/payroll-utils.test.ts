@@ -9,6 +9,7 @@ import {
   computeEmployeePayroll,
   withStatutoryComponents,
   isPfApplicable,
+  isStatutoryEmployee,
   isContractor,
   contractorTds,
   generatePayslipNumber,
@@ -442,9 +443,10 @@ describe('provident fund by kind of engagement', () => {
     expect(isPfApplicable('probation')).toBe(true)
   })
 
-  it('does not apply to a contractor or an intern', () => {
+  it('does not apply to a contractor, a freelancer or an intern', () => {
     expect(isPfApplicable('contract')).toBe(false)
     expect(isPfApplicable('intern')).toBe(false)
+    expect(isPfApplicable('freelance')).toBe(false)
   })
 
   // Erring towards deducting is the safe direction: an over-deduction is
@@ -474,16 +476,23 @@ describe('contractor TDS', () => {
     expect(contractorTds(45_500, 'contract')).toBe(4_550)
   })
 
-  it('is nil for anybody who is not a contractor', () => {
+  it('also applies to a freelancer, who is paid the same way', () => {
+    expect(contractorTds(70_000, 'freelance')).toBe(7_000)
+    expect(isContractor('freelance')).toBe(true)
+  })
+
+  it('is nil for anybody paid a salary or a stipend', () => {
     expect(contractorTds(70_000, 'full_time')).toBe(0)
+    expect(contractorTds(70_000, 'part_time')).toBe(0)
     expect(contractorTds(70_000, 'intern')).toBe(0)
     expect(contractorTds(70_000, null)).toBe(0)
   })
 
-  it('is identified separately from PF exemption', () => {
-    // An intern is exempt from PF but is not a contractor, so no TDS.
+  it('is identified separately from the employee boundary', () => {
+    // An intern is outside the employee levies but is not paid against an
+    // invoice, so a stipend carries no tax at source either.
     expect(isContractor('intern')).toBe(false)
-    expect(isPfApplicable('intern')).toBe(false)
+    expect(isStatutoryEmployee('intern')).toBe(false)
   })
 })
 
@@ -502,13 +511,20 @@ describe('computeEmployeePayroll — contractors and interns', () => {
     component({ component_code: 'SA', monthly_amount: 28_000 }),
   ]
 
-  it('deducts 10% TDS from a contractor and no provident fund', () => {
+  it('deducts 10% TDS from a contractor and nothing else', () => {
     const r = computeEmployeePayroll(70_000, earningsOnly, [], 23, 0, 23, 11, orgStatutory, 'contract')
     expect(r.grossEarnings).toBe(70_000)
     expect(r.deductions.find((d) => d.component_code === 'PF_EMP')).toBeUndefined()
+    expect(r.deductions.find((d) => d.component_code === 'PT')).toBeUndefined()
     expect(r.deductions.find((d) => d.component_code === 'TDS_CONTRACTOR')?.amount).toBe(7_000)
-    expect(r.totalDeductions).toBe(7_200)  // TDS 7,000 + PT 200
-    expect(r.netPay).toBe(62_800)
+    expect(r.totalDeductions).toBe(7_000)
+    expect(r.netPay).toBe(63_000)
+  })
+
+  it('treats a freelancer exactly as a contractor', () => {
+    const r = computeEmployeePayroll(70_000, earningsOnly, [], 23, 0, 23, 11, orgStatutory, 'freelance')
+    expect(r.deductions.find((d) => d.component_code === 'TDS_CONTRACTOR')?.amount).toBe(7_000)
+    expect(r.totalDeductions).toBe(7_000)
   })
 
   it('keeps the employer out of pocket for nothing on a contractor', () => {
@@ -516,11 +532,11 @@ describe('computeEmployeePayroll — contractors and interns', () => {
     expect(r.totalEmployerContributions).toBe(0)
   })
 
-  it('gives an intern neither provident fund nor contractor TDS', () => {
+  it('takes nothing at all from an intern', () => {
     const r = computeEmployeePayroll(70_000, earningsOnly, [], 23, 0, 23, 11, orgStatutory, 'intern')
-    expect(r.deductions.find((d) => d.component_code === 'PF_EMP')).toBeUndefined()
-    expect(r.deductions.find((d) => d.component_code === 'TDS_CONTRACTOR')).toBeUndefined()
-    expect(r.totalDeductions).toBe(200)  // professional tax only
+    expect(r.deductions).toHaveLength(0)
+    expect(r.totalDeductions).toBe(0)
+    expect(r.netPay).toBe(70_000)
   })
 
   it('never charges contractor TDS to a full-time employee', () => {
@@ -529,7 +545,7 @@ describe('computeEmployeePayroll — contractors and interns', () => {
     expect(r.totalDeductions).toBe(2_000)  // PF 1,800 + PT 200
   })
 
-  it('refuses PF even when somebody attached it to a contractor by hand', () => {
+  it('refuses an employee levy even when somebody attached it by hand', () => {
     const withPfAttached = [
       ...earningsOnly,
       component({ component_code: 'PF_EMP', component_type: 'deduction', is_statutory: true, statutory_type: 'pf_employee', monthly_amount: 1_800 }),
@@ -538,10 +554,17 @@ describe('computeEmployeePayroll — contractors and interns', () => {
     expect(r.deductions.find((d) => d.component_code === 'PF_EMP')).toBeUndefined()
   })
 
-  it('still takes the December labour welfare fund from a contractor', () => {
-    // Not a rule that was changed, so it is pinned here to catch a drift.
+  it('does not take the December labour welfare fund from a contractor', () => {
+    // An employee levy, so it stops at the same boundary provident fund does.
     const r = computeEmployeePayroll(70_000, earningsOnly, [], 23, 0, 23, 12, orgStatutory, 'contract')
+    expect(r.deductions.find((d) => d.component_code === 'LWF')).toBeUndefined()
+    expect(r.totalDeductions).toBe(7_000)
+  })
+
+  it('still takes it from a part-time employee, who is on the rolls', () => {
+    const r = computeEmployeePayroll(70_000, earningsOnly, [], 23, 0, 23, 12, orgStatutory, 'part_time')
     expect(r.deductions.find((d) => d.component_code === 'LWF')?.amount).toBe(150)
+    expect(r.deductions.find((d) => d.component_code === 'PT')?.amount).toBe(200)
   })
 })
 
