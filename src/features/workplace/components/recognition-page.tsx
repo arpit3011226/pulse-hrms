@@ -198,7 +198,11 @@ export function RecognitionPage() {
                 <SelectTrigger><SelectValue placeholder="Select a colleague" /></SelectTrigger>
                 <SelectContent>
                   {(employees ?? []).filter((e) => e.status === 'active' && e.id !== myId).map((e) => (
-                    <SelectItem key={e.id} value={e.id}>{e.first_name} {e.last_name}</SelectItem>
+                    <SelectItem key={e.id} value={e.id}>
+                      {/* The code is shown because two people here share a name. */}
+                      {e.first_name} {e.last_name}
+                      {e.employee_code ? ` (${e.employee_code})` : ''}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>

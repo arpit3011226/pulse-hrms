@@ -33,7 +33,7 @@ import {
   type Asset, type AssetAssignment, type AssetCondition,
 } from '../api/assets.api'
 import { generateNextAssetCode } from '../api/assets.api'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate, humanizeLabel } from '@/lib/utils'
 import { toast } from 'sonner'
 
 const CONDITIONS: AssetCondition[] = ['new', 'good', 'fair', 'poor', 'damaged']
@@ -227,7 +227,7 @@ export function AssetsPage() {
         if (!canManage || held) {
           return (
             <Badge className={STATUS_STYLES[a.status] ?? ''}>
-              {a.status.replace('_', ' ')}
+              {humanizeLabel(a.status)}
             </Badge>
           )
         }
@@ -488,7 +488,9 @@ export function AssetsPage() {
                     .filter((e) => e.status === 'active')
                     .map((e) => (
                       <SelectItem key={e.id} value={e.id}>
+                        {/* The code is shown because two people here share a name. */}
                         {e.first_name} {e.last_name}
+                        {e.employee_code ? ` (${e.employee_code})` : ''}
                       </SelectItem>
                     ))}
                 </SelectContent>
@@ -535,10 +537,12 @@ export function AssetsPage() {
                   value={returnCondition}
                   onValueChange={(v) => setReturnCondition(v as AssetCondition)}
                 >
+                  {/* The list was capitalised with CSS, which the trigger does
+                      not inherit — so the chosen value read "good". */}
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {CONDITIONS.map((c) => (
-                      <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>
+                      <SelectItem key={c} value={c}>{humanizeLabel(c)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
