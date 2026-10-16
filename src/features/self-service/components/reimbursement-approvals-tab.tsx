@@ -9,6 +9,7 @@ import { useReimbursementsForApproval } from '../hooks/use-reimbursements'
 import { ReimbursementActionDialog } from './reimbursement-action-dialog'
 import { REIMBURSEMENT_CATEGORIES } from '@/lib/constants'
 import type { ReimbursementRequestWithRelations } from '@/types/database.types'
+import { StoredFileLink } from '@/components/shared/stored-file-link'
 
 interface Props {
   approverEmployeeId: string
@@ -81,14 +82,13 @@ export function ReimbursementApprovalsTab({ approverEmployeeId }: Props) {
                       })}
                     </span>
                     {req.receipt_url && (
-                      <a
-                        href={req.receipt_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <StoredFileLink
+                        bucket="reimbursement-receipts"
+                        path={req.receipt_url}
                         className="text-muted-foreground hover:text-primary"
                       >
                         <ExternalLink className="h-3 w-3" />
-                      </a>
+                      </StoredFileLink>
                     )}
                   </div>
                   {req.description && (

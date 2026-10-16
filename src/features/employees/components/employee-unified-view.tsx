@@ -43,6 +43,7 @@ import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEmployee, useUpdateEmployee, useEmployees } from '../hooks/use-employees'
 import { upsertEmployeeStatutory, upsertEmployeePersonal } from '../api/employees.api'
+import { StoredFileLink } from '@/components/shared/stored-file-link'
 
 /**
  * Fields that live outside `employees` since 00045, because they are not part of
@@ -768,9 +769,9 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
                       {doc.issue_date && <p className="text-xs text-muted-foreground">Issued: {formatDate(doc.issue_date)}</p>}
                       {doc.expiry_date && <p className="text-xs text-muted-foreground">Expires: {formatDate(doc.expiry_date)}</p>}
                       {doc.file_url && (
-                        <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                        <StoredFileLink bucket="employee-documents" path={doc.file_url} className="mt-1 text-xs">
                           <ExternalLink className="h-3 w-3" /> View File
-                        </a>
+                        </StoredFileLink>
                       )}
                       {canEdit && (
                         <div className="mt-2 flex gap-1">
@@ -810,9 +811,9 @@ export function EmployeeUnifiedView({ employeeId }: EmployeeUnifiedViewProps) {
                       </div>
                       <p className="text-sm font-medium">{doc.document_name}</p>
                       {doc.expiry_date && <p className="text-xs text-muted-foreground">Expires: {formatDate(doc.expiry_date)}</p>}
-                      <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                      <StoredFileLink bucket="employee-documents" path={doc.file_url} className="mt-1 text-xs">
                         <ExternalLink className="h-3 w-3" /> View File
-                      </a>
+                      </StoredFileLink>
                       {canEdit && (
                         <div className="mt-2 flex gap-1">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setDocFormType('document'); setEditingEmpDocument(doc); setEditingIdentityDoc(undefined); setDocDialogOpen(true) }}>

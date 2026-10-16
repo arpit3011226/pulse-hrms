@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useMyReimbursements } from '../hooks/use-reimbursements'
 import { ReimbursementFormDialog } from './reimbursement-form-dialog'
 import { REIMBURSEMENT_CATEGORIES } from '@/lib/constants'
+import { StoredFileLink } from '@/components/shared/stored-file-link'
 
 const CATEGORY_ICONS: Record<string, { icon: React.ElementType; color: string }> = {
   travel: { icon: Plane, color: 'bg-blue-50 text-blue-600' },
@@ -102,14 +103,13 @@ export function MyReimbursementsTab({ employeeId }: Props) {
                       {status.label}
                     </Badge>
                     {req.receipt_url && (
-                      <a
-                        href={req.receipt_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <StoredFileLink
+                        bucket="reimbursement-receipts"
+                        path={req.receipt_url}
                         className="text-muted-foreground hover:text-primary"
                       >
                         <ExternalLink className="h-4 w-4" />
-                      </a>
+                      </StoredFileLink>
                     )}
                   </div>
                 </CardContent>

@@ -6,6 +6,7 @@ import { useAllReimbursements } from '../hooks/use-reimbursements'
 import { REIMBURSEMENT_CATEGORIES } from '@/lib/constants'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ReimbursementRequestWithRelations } from '@/types/database.types'
+import { StoredFileLink } from '@/components/shared/stored-file-link'
 
 const STATUS_STYLES: Record<string, { label: string; color: string }> = {
   draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700' },
@@ -83,15 +84,11 @@ const columns: ColumnDef<ReimbursementRequestWithRelations>[] = [
     cell: ({ row }) => {
       if (!row.original.receipt_url) return null
       return (
-        <a
-          href={row.original.receipt_url}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <StoredFileLink bucket="reimbursement-receipts" path={row.original.receipt_url}>
           <Button variant="ghost" size="sm">
             <ExternalLink className="h-4 w-4" />
           </Button>
-        </a>
+        </StoredFileLink>
       )
     },
   },

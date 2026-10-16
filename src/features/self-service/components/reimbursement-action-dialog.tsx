@@ -8,6 +8,7 @@ import { useApproveReimbursementManager, useApproveReimbursementFinance, useReje
 import { REIMBURSEMENT_CATEGORIES } from '@/lib/constants'
 import { toast } from 'sonner'
 import type { ReimbursementRequestWithRelations } from '@/types/database.types'
+import { StoredFileLink } from '@/components/shared/stored-file-link'
 
 interface Props {
   open: boolean
@@ -110,14 +111,13 @@ export function ReimbursementActionDialog({ open, onOpenChange, request, action,
             {request.receipt_url && (
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Receipt</span>
-                <a
-                  href={request.receipt_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline text-xs flex items-center gap-1"
+                <StoredFileLink
+                  bucket="reimbursement-receipts"
+                  path={request.receipt_url}
+                  className="text-xs"
                 >
                   View Receipt <ExternalLink className="h-3 w-3" />
-                </a>
+                </StoredFileLink>
               </div>
             )}
           </div>

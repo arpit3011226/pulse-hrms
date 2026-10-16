@@ -178,6 +178,76 @@ how the month is counted. Raised rather than built.
 
 ---
 
+## QA-19 — Employee identity documents were downloadable by anyone on the internet · **P0** · FIXED (with a residual, below)
+
+**Module** Storage **Found by** enumerating storage buckets **Fixed in** migration 00064 and `src/lib/storage.ts`
+
+Both buckets — `employee-documents` and `reimbursement-receipts` — were marked
+**public**. A public bucket serves every object through
+`/storage/v1/object/public/<bucket>/<path>` with no sign-in and no API key.
+
+Eight careful row-level security policies had been written for
+`storage.objects`, scoping documents to the employee's own folder, to HR, and
+to finance. **Marking the buckets public bypassed every one of them for
+reads.** The policies were doing nothing at all.
+
+**Reproduction** — with no credentials of any kind, not even the public API key:
+
+```
+GET /storage/v1/object/public/employee-documents/<uuid>/identity/pan_*.png
+→ HTTP 200 · image/png · 329,665 bytes · 2418×1202
+```
+
+That is a scan of somebody's PAN card. Addresses are guessable in shape:
+`<employee-uuid>/identity/<type>_<timestamp>.png`, and employee UUIDs are
+readable by any signed-in colleague from the staff directory.
+
+**With real data this is a reportable personal data breach under the DPDP Act**,
+not merely a defect.
+
+**Also found in the same place**
+
+- No file size limit and no allowed MIME types on either bucket. The 5 MB and
+  JPG/PNG/PDF checks existed only in the browser, so posting straight to the
+  storage API bypassed them — including uploading HTML or SVG, which would
+  then be served from the project's own origin.
+- `uploadFile` returned `getPublicUrl()`, and that permanent public address was
+  written into the database and rendered straight into an `<a href>`.
+
+**Fix**
+
+1. Both buckets set private, so the existing policies finally apply.
+2. A 5 MB ceiling and a JPEG/PNG/PDF allow-list set on the buckets themselves,
+   where they cannot be skipped.
+3. `uploadFile` now returns the storage **path**, not a URL.
+4. Files are opened through a short-lived signed URL, minted when somebody
+   clicks and good for ten minutes, via a shared `StoredFileLink` component
+   across all eight places a document was linked.
+5. `storagePathFromUrl` recovers the path from rows written before the change,
+   so existing documents still open without rewriting any data.
+
+**Retest** Any path in either bucket now returns 400 unauthenticated. The
+authenticated API path returns 400 without a valid session. The file is still
+reachable by authorised users through the CLI and the app.
+
+**RESIDUAL — needs your action**
+
+One specific URL, the one tested above, is **still served from Supabase's
+Smart CDN cache** (`cf-cache-status: HIT`, `cache-control: max-age=3600`).
+Making the bucket private closed the origin, but did not purge entries already
+cached. Moving the object and waiting did not purge it either.
+
+That one address will keep serving the file until its cache entry expires.
+Nothing else is exposed — every other path, and every variation of this one,
+returns 400.
+
+To remove it now rather than waiting: delete the object from Storage in the
+Supabase dashboard, or ask Supabase support to purge the CDN entry. **If this
+had been real employee data, that purge would be mandatory and the incident
+reportable**, not optional.
+
+---
+
 ## Open
 
 | ID | Defect | Severity | Note |
@@ -185,6 +255,7 @@ how the month is counted. Raised rather than built.
 | QA-15 | Salary component dropdown reported missing | Unknown | **Closed — will not action** at your request |
 | QA-17 | Flat professional tax | P2 | Needs the state slabs |
 | QA-18 | Loss of pay never applied | P1 | Needs a business rule, then a feature |
+| QA-19 | One cached document URL still served by the CDN | P1 residual | Origin closed. Purge from the dashboard, or wait for the entry to expire |
 
 ## Needs business decision
 

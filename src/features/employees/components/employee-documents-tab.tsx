@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, FileText, ShieldCheck, ExternalLink } from 'lucide-react'
+import { Plus, Pencil, Trash2, FileText, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -17,6 +17,7 @@ import { EmployeeDocumentForm } from './employee-document-form'
 import type { Employee, EmployeeIdentityDocument, EmployeeDocument } from '@/types/database.types'
 import { IDENTITY_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from '@/lib/constants'
 import { toast } from 'sonner'
+import { StoredFileLink } from '@/components/shared/stored-file-link'
 
 interface EmployeeDocumentsTabProps {
   employee: Employee
@@ -97,7 +98,7 @@ export function EmployeeDocumentsTab({ employee }: EmployeeDocumentsTabProps) {
                     <div className="flex gap-1">
                       {doc.file_url && (
                         <Button size="icon" variant="ghost" className="h-7 w-7" asChild>
-                          <a href={doc.file_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3 w-3" /></a>
+                          <StoredFileLink bucket="employee-documents" path={doc.file_url} />
                         </Button>
                       )}
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingIdDoc(doc); setIdDocDialogOpen(true) }}>
@@ -152,7 +153,7 @@ export function EmployeeDocumentsTab({ employee }: EmployeeDocumentsTabProps) {
                   {canEdit && (
                     <div className="flex gap-1">
                       <Button size="icon" variant="ghost" className="h-7 w-7" asChild>
-                        <a href={doc.file_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3 w-3" /></a>
+                        <StoredFileLink bucket="employee-documents" path={doc.file_url} />
                       </Button>
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingEmpDoc(doc); setEmpDocDialogOpen(true) }}>
                         <Pencil className="h-3 w-3" />
