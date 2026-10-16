@@ -99,6 +99,76 @@ export function calculateStatutoryDeductions(
   return { pfEmployee, pfEmployer, esiEmployee, esiEmployer, pt, lwf }
 }
 
+/**
+ * A salary component as the calculator needs to see it.
+ */
+export interface PayrollComponentInput {
+  salary_component_id: string
+  component_code: string
+  component_type: string
+  calculation_type: string
+  monthly_amount: number
+  is_statutory: boolean
+  statutory_type: string | null
+}
+
+/**
+ * Statutory deductions that must be taken whether or not anybody attached
+ * them to the employee.
+ *
+ * TDS is deliberately absent. It is driven by the employee's own investment
+ * declaration and is typed in, so there is nothing to apply automatically.
+ */
+const ALWAYS_APPLIED_STATUTORY = new Set([
+  'pf_employee',
+  'pf_employer',
+  'esi_employee',
+  'esi_employer',
+  'pt',
+  'lwf',
+])
+
+/**
+ * Adds the organisation's statutory components to an employee's own list.
+ *
+ * QA-23. The calculator used to walk only the components attached to the
+ * employee's compensation, so provident fund, professional tax and labour
+ * welfare fund were applied only if whoever set up the salary structure had
+ * remembered to tick them. Ten of the eleven people in the first December run
+ * were paid with no PF and no professional tax at all, and the December LWF
+ * was taken from nobody — not even from the one employee whose structure did
+ * carry PF and PT, because it had no LWF line.
+ *
+ * Under-deducting PF is not a display bug. The employer owes the arrears with
+ * interest under section 7Q and damages under section 14B, and the employee's
+ * account is short. The same money has to come out whether or not a form was
+ * filled in correctly, so the deduction cannot be opt-in.
+ *
+ * An attached component always wins, so anything deliberately configured for
+ * one person is left exactly as it is. Only genuinely missing statutory lines
+ * are added, and only the ones listed above.
+ */
+export function withStatutoryComponents(
+  attached: PayrollComponentInput[],
+  orgStatutory: PayrollComponentInput[]
+): PayrollComponentInput[] {
+  const present = new Set(
+    attached
+      .filter((c) => c.is_statutory && c.statutory_type)
+      .map((c) => c.statutory_type as string)
+  )
+
+  const missing = orgStatutory.filter(
+    (c) =>
+      c.is_statutory &&
+      c.statutory_type &&
+      ALWAYS_APPLIED_STATUTORY.has(c.statutory_type) &&
+      !present.has(c.statutory_type)
+  )
+
+  return [...attached, ...missing]
+}
+
 export function calculateLopDeduction(
   monthlyGross: number,
   totalWorkingDays: number,
@@ -126,22 +196,21 @@ export interface PayrollComputationResult {
 
 export function computeEmployeePayroll(
   monthlyGross: number,
-  components: {
-    salary_component_id: string
-    component_code: string
-    component_type: string
-    calculation_type: string
-    monthly_amount: number
-    is_statutory: boolean
-    statutory_type: string | null
-  }[],
+  attachedComponents: PayrollComponentInput[],
   adjustments: { adjustment_type: string; amount: number; salary_component_id: string | null }[],
   _workingDays: number,
   lopDays: number,
   totalWorkingDays: number,
   /** 1-12. Needed for labour welfare fund, which falls in December. */
-  payrollMonth?: number | null
+  payrollMonth?: number | null,
+  /**
+   * The organisation's statutory components. Any of them the employee does
+   * not already carry is applied anyway — see withStatutoryComponents.
+   */
+  orgStatutoryComponents: PayrollComponentInput[] = []
 ): PayrollComputationResult {
+  const components = withStatutoryComponents(attachedComponents, orgStatutoryComponents)
+
   const earnings: ComponentAmount[] = []
   const deductions: ComponentAmount[] = []
   const employerContributions: ComponentAmount[] = []

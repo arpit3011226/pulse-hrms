@@ -7,6 +7,7 @@ import {
   calculateLopDeduction,
   calculateStatutoryDeductions,
   computeEmployeePayroll,
+  withStatutoryComponents,
   generatePayslipNumber,
 } from './payroll-utils'
 
@@ -329,6 +330,101 @@ describe('computeEmployeePayroll — Karnataka statutory rules', () => {
       50_000, [component({ component_code: 'BASIC', monthly_amount: 50_000 }), pt], [], 22, 0, 22, 6
     )
     expect(high.deductions.find((d) => d.component_code === 'PT')?.amount).toBe(200)
+  })
+})
+
+/**
+ * QA-23. A statutory deduction that only happens when somebody remembered to
+ * tick it is not a statutory deduction. The first December run proved it:
+ * ten of eleven employees were paid with no provident fund and no
+ * professional tax, and the labour welfare fund was taken from nobody.
+ */
+describe('withStatutoryComponents', () => {
+  const orgStatutory = [
+    component({ component_code: 'PF_EMP', component_type: 'deduction', is_statutory: true, statutory_type: 'pf_employee' }),
+    component({ component_code: 'PF_ER', component_type: 'employer_contribution', is_statutory: true, statutory_type: 'pf_employer' }),
+    component({ component_code: 'PT', component_type: 'deduction', is_statutory: true, statutory_type: 'pt' }),
+    component({ component_code: 'LWF', component_type: 'deduction', is_statutory: true, statutory_type: 'lwf', monthly_amount: 150 }),
+    component({ component_code: 'TDS', component_type: 'deduction', is_statutory: true, statutory_type: 'tds', monthly_amount: 5_000 }),
+  ]
+
+  it('adds the statutory lines an employee is missing', () => {
+    const attached = [component({ component_code: 'BASIC', monthly_amount: 40_000 })]
+    const merged = withStatutoryComponents(attached, orgStatutory)
+    const types = merged.map((c) => c.statutory_type).filter(Boolean)
+    expect(types).toContain('pf_employee')
+    expect(types).toContain('pt')
+    expect(types).toContain('lwf')
+  })
+
+  it('never adds TDS, which is declared by the employee and typed in', () => {
+    const merged = withStatutoryComponents([], orgStatutory)
+    expect(merged.map((c) => c.statutory_type)).not.toContain('tds')
+  })
+
+  it('leaves a component the employee already carries exactly as it is', () => {
+    const mine = component({
+      component_code: 'PF_EMP', component_type: 'deduction',
+      is_statutory: true, statutory_type: 'pf_employee', monthly_amount: 999,
+    })
+    const merged = withStatutoryComponents([mine], orgStatutory)
+    const pf = merged.filter((c) => c.statutory_type === 'pf_employee')
+    expect(pf).toHaveLength(1)
+    expect(pf[0].monthly_amount).toBe(999)
+  })
+
+  it('adds nothing when the organisation has no statutory components', () => {
+    const attached = [component({ component_code: 'BASIC', monthly_amount: 40_000 })]
+    expect(withStatutoryComponents(attached, [])).toHaveLength(1)
+  })
+})
+
+describe('computeEmployeePayroll — statutory deductions are not optional', () => {
+  const orgStatutory = [
+    component({ component_code: 'PF_EMP', component_type: 'deduction', is_statutory: true, statutory_type: 'pf_employee' }),
+    component({ component_code: 'PT', component_type: 'deduction', is_statutory: true, statutory_type: 'pt' }),
+    component({ component_code: 'LWF', component_type: 'deduction', is_statutory: true, statutory_type: 'lwf', monthly_amount: 150 }),
+  ]
+
+  // Exactly the demo employees who came out of the December run untouched:
+  // earnings only, no statutory lines attached at all.
+  const earningsOnly = [
+    component({ component_code: 'BASIC', monthly_amount: 40_000 }),
+    component({ component_code: 'HRA', monthly_amount: 20_000 }),
+    component({ component_code: 'DA', monthly_amount: 4_000 }),
+  ]
+
+  it('deducts PF and professional tax from somebody who carries neither', () => {
+    const r = computeEmployeePayroll(64_000, earningsOnly, [], 23, 0, 23, 11, orgStatutory)
+    expect(r.grossEarnings).toBe(64_000)
+    expect(r.totalDeductions).toBe(2_000)  // PF 1,800 + PT 200, no LWF in November
+    expect(r.netPay).toBe(62_000)
+  })
+
+  it('takes the Karnataka labour welfare fund in December', () => {
+    const r = computeEmployeePayroll(64_000, earningsOnly, [], 23, 0, 23, 12, orgStatutory)
+    expect(r.totalDeductions).toBe(2_150)  // PF 1,800 + PT 200 + LWF 150
+    expect(r.netPay).toBe(61_850)
+  })
+
+  it('still pays nothing extra when the employee already has the components', () => {
+    const withPf = [
+      ...earningsOnly,
+      component({ component_code: 'PF_EMP', component_type: 'deduction', is_statutory: true, statutory_type: 'pf_employee' }),
+      component({ component_code: 'PT', component_type: 'deduction', is_statutory: true, statutory_type: 'pt' }),
+    ]
+    const r = computeEmployeePayroll(64_000, withPf, [], 23, 0, 23, 12, orgStatutory)
+    // One PF line and one PT line, not two of each.
+    expect(r.deductions.filter((d) => d.component_code === 'PF_EMP')).toHaveLength(1)
+    expect(r.totalDeductions).toBe(2_150)
+  })
+
+  it('charges no professional tax below the Karnataka threshold', () => {
+    const small = [component({ component_code: 'BASIC', monthly_amount: 20_000 })]
+    const r = computeEmployeePayroll(20_000, small, [], 23, 0, 23, 11, orgStatutory)
+    // PF 1,800 on the capped basic, ESI is not in this org's list, PT nil.
+    expect(r.deductions.find((d) => d.component_code === 'PT')).toBeUndefined()
+    expect(r.totalDeductions).toBe(1_800)
   })
 })
 

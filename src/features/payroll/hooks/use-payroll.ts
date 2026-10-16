@@ -15,8 +15,7 @@ import {
   upsertStructureComponents,
   getEmployeeCompensations,
   getEmployeeCompensation,
-  createEmployeeCompensation,
-  createCompensationComponents,
+  assignCompensationAtomically,
   getPayrollCycles,
   createPayrollCycle,
   updatePayrollCycleStatus,
@@ -203,21 +202,22 @@ export function useEmployeeCompensation(employeeId: string) {
 export function useAssignCompensation() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       compensation,
       components,
     }: {
       compensation: Partial<EmployeeCompensation>
       components: Partial<EmployeeCompensationComponent>[]
-    }) => {
-      const created = await createEmployeeCompensation(compensation)
-      if (components.length > 0) {
-        await createCompensationComponents(
-          components.map((c) => ({ ...c, employee_compensation_id: created.id }))
-        )
-      }
-      return created
-    },
+    }) =>
+      assignCompensationAtomically({
+        employee_id: compensation.employee_id!,
+        salary_structure_id: compensation.salary_structure_id!,
+        annual_ctc: Number(compensation.annual_ctc ?? 0),
+        monthly_gross: Number(compensation.monthly_gross ?? 0),
+        effective_from: compensation.effective_from!,
+        revision_reason: compensation.revision_reason ?? null,
+        components: components as Array<Record<string, unknown>>,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employee-compensations'] })
     },

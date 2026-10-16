@@ -4,7 +4,6 @@ import type {
   SalaryComponent,
   SalaryStructure,
   SalaryStructureComponent,
-  EmployeeCompensation,
   EmployeeCompensationComponent,
   PayrollCycle,
   PayrollRun,
@@ -15,6 +14,7 @@ import type {
   PayrollAdjustment,
 } from '@/types/database.types'
 import { workingDaysInMonth, computeEmployeePayroll, generatePayslipNumber, generatePayrollCSV, downloadCSV, getMonthName } from '../utils/payroll-utils'
+import type { PayrollComponentInput } from '../utils/payroll-utils'
 import type { PayrollCSVRow } from '../utils/payroll-utils'
 
 // ============================================
@@ -168,23 +168,42 @@ export async function getEmployeeCompensation(employeeId: string) {
   return data
 }
 
-export async function createEmployeeCompensation(data: Partial<EmployeeCompensation>) {
-  // Mark existing current compensation as not current
-  const { error: updateError } = await supabase
-    .from('employee_compensation')
-    .update({ is_current: false })
-    .eq('employee_id', data.employee_id!)
-    .eq('is_current', true)
-  if (updateError) throw updateError
-
-  // Insert new compensation record
-  const { data: newData, error } = await supabase
-    .from('employee_compensation')
-    .insert(data)
-    .select()
-    .single()
+/**
+ * Assign compensation and its components, as one transaction.
+ *
+ * This used to be three calls from the browser: demote the current row,
+ * insert the new one, insert the components. Two things went wrong with that.
+ *
+ * The insert always failed, because `created_by` is a foreign key to
+ * employees and the dialog passed the auth profile id. And because the
+ * demotion had already happened by then, a failed attempt left the employee
+ * with **no current compensation at all** — trying to give somebody a salary
+ * took away the one they had.
+ *
+ * The database function does the lot or none of it, and works out `created_by`
+ * from the caller, so no screen has to know which of the two ids the column
+ * wants.
+ */
+export async function assignCompensationAtomically(params: {
+  employee_id: string
+  salary_structure_id: string
+  annual_ctc: number
+  monthly_gross: number
+  effective_from: string
+  revision_reason: string | null
+  components: Array<Record<string, unknown>>
+}) {
+  const { data, error } = await supabase.rpc('assign_employee_compensation', {
+    p_employee_id: params.employee_id,
+    p_salary_structure_id: params.salary_structure_id,
+    p_annual_ctc: params.annual_ctc,
+    p_monthly_gross: params.monthly_gross,
+    p_effective_from: params.effective_from,
+    p_revision_reason: params.revision_reason,
+    p_components: params.components,
+  })
   if (error) throw error
-  return newData
+  return data as string
 }
 
 export async function createCompensationComponents(components: Partial<EmployeeCompensationComponent>[]) {
@@ -356,6 +375,43 @@ export async function computePayrollForRun(runId: string, orgId: string) {
   if (adjError) throw adjError
 
   /**
+   * QA-23. Provident fund, professional tax and labour welfare fund were
+   * applied only when somebody had attached them to that employee's salary
+   * structure. In the first December run, ten of eleven people were paid
+   * with no PF and no professional tax, and nobody at all had the December
+   * labour welfare fund taken.
+   *
+   * These are owed by law, so they are loaded here for the whole
+   * organisation and applied to everybody. Anything already attached to an
+   * employee is left untouched.
+   */
+  const { data: orgStatutory, error: statError } = await supabase
+    .from('salary_components')
+    .select('id, component_code, component_type, calculation_type, default_value, is_statutory, statutory_type')
+    .eq('organization_id', orgId)
+    .eq('is_statutory', true)
+    .eq('is_active', true)
+  if (statError) throw statError
+
+  const statutoryComponents: PayrollComponentInput[] = ((orgStatutory ?? []) as Array<{
+    id: string
+    component_code: string
+    component_type: string
+    calculation_type: string
+    default_value: number | null
+    is_statutory: boolean
+    statutory_type: string | null
+  }>).map((c) => ({
+    salary_component_id: c.id,
+    component_code: c.component_code,
+    component_type: c.component_type,
+    calculation_type: c.calculation_type,
+    monthly_amount: Number(c.default_value ?? 0),
+    is_statutory: true,
+    statutory_type: c.statutory_type,
+  }))
+
+  /**
    * Working days are the days of the month that are not a Saturday or a
    * Sunday — August's rule. This was hardcoded to 22, which is right for
    * roughly no month at all.
@@ -439,7 +495,8 @@ export async function computePayrollForRun(runId: string, orgId: string) {
       totalWorkingDays - lopDays, // presentDays
       lopDays,
       totalWorkingDays,
-      cycle.payroll_month
+      cycle.payroll_month,
+      statutoryComponents
     )
 
     const runEmployee: Partial<PayrollRunEmployee> = {
@@ -527,7 +584,8 @@ export async function computePayrollForRun(runId: string, orgId: string) {
       totalWorkingDays - lopDays,
       lopDays,
       totalWorkingDays,
-      cycle.payroll_month
+      cycle.payroll_month,
+      statutoryComponents
     )
 
     const earningsToInsert = result.earnings.map((e) => ({

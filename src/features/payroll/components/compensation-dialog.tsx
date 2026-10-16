@@ -33,7 +33,7 @@ import {
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { useAssignCompensation, useSalaryStructures } from '../hooks/use-payroll'
 import { supabase } from '@/lib/supabase'
-import { formatCurrency, calculateComponentAmount } from '../utils/payroll-utils'
+import { formatCurrency, calculateComponentAmount, calculateStatutoryDeductions } from '../utils/payroll-utils'
 import type {
   EmployeeCompensationWithRelations,
   SalaryStructureWithComponents,
@@ -59,12 +59,15 @@ interface ActiveEmployee {
 
 interface ComponentBreakup {
   salary_component_id: string
+  component_code: string
   component_name: string
   component_type: string
   calculation_type: string
   calculation_value: number
   monthly_amount: number
   annual_amount: number
+  /** Shown instead of the structure's rule when the figure came from elsewhere. */
+  calculation_note: string | null
 }
 
 interface CompensationDialogProps {
@@ -79,7 +82,7 @@ export function CompensationDialog({
   compensation,
 }: CompensationDialogProps) {
   const isRevising = !!compensation
-  const { organization, profile } = useAuth()
+  const { organization } = useAuth()
   const { data: structures } = useSalaryStructures()
   const assignCompensation = useAssignCompensation()
   const [employees, setEmployees] = useState<ActiveEmployee[]>([])
@@ -185,28 +188,110 @@ export function CompensationDialog({
       ? Math.round((monthlyGross * basicComp.default_value) / 100)
       : Math.round(monthlyGross * 0.4)
 
-    // Second pass: compute all components
-    return components
+    const active = components
       .filter((c) => c.is_active && c.salary_component)
       .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
-      .map((c) => {
-        const monthly = calculateComponentAmount(
-          c.calculation_type,
-          c.default_value,
-          basicMonthly,
-          monthlyGross
-        )
-        return {
-          salary_component_id: c.salary_component_id,
-          component_name: c.salary_component!.component_name,
-          component_type: c.salary_component!.component_type,
-          calculation_type: c.calculation_type,
-          calculation_value: c.default_value,
-          monthly_amount: monthly,
-          annual_amount: monthly * 12,
-        }
-      })
+
+    /**
+     * Statutory amounts come from the same calculator payroll uses, not from
+     * the percentage written on the structure.
+     *
+     * The structure says PF is 12% of basic, which on a basic of 40,000 reads
+     * 4,800. Payroll pays 1,800, because provident fund is 12% of a basic
+     * capped at 15,000. The preview was showing one figure and the payslip
+     * another, and the wrong one was being saved onto the employee.
+     */
+    const statutory = calculateStatutoryDeductions(basicMonthly, monthlyGross)
+    const statutoryAmount = (type: string | null | undefined): number | null => {
+      switch (type) {
+        case 'pf_employee': return statutory.pfEmployee
+        case 'pf_employer': return statutory.pfEmployer
+        case 'esi_employee': return statutory.esiEmployee
+        case 'esi_employer': return statutory.esiEmployer
+        case 'pt': return statutory.pt
+        case 'lwf': return statutory.lwf
+        default: return null  // TDS and anything else stay as configured
+      }
+    }
+
+    const rows = active.map((c) => {
+      const comp = c.salary_component!
+      const fromStructure = calculateComponentAmount(
+        c.calculation_type,
+        c.default_value,
+        basicMonthly,
+        monthlyGross
+      )
+      const statutoryOverride = comp.is_statutory ? statutoryAmount(comp.statutory_type) : null
+      const monthly = statutoryOverride ?? fromStructure
+      return {
+        salary_component_id: c.salary_component_id,
+        component_code: comp.component_code,
+        component_name: comp.component_name,
+        component_type: comp.component_type,
+        calculation_type: c.calculation_type,
+        calculation_value: c.default_value,
+        monthly_amount: monthly,
+        annual_amount: monthly * 12,
+        // Set where the figure does not come from the structure's own rule,
+        // so the Calculation column never states something we did not apply.
+        calculation_note:
+          statutoryOverride !== null && statutoryOverride !== fromStructure
+            ? 'Statutory limit applied'
+            : (null as string | null),
+      }
+    })
+
+    /**
+     * Special allowance is the balancing figure.
+     *
+     * The only structure that exists pays basic 40% of gross, HRA 50% of
+     * basic and DA 10% of basic — 64% of gross between them — with special
+     * allowance left at a flat zero. Anybody assigned through it was given
+     * 64% of the salary they had agreed: a 12,00,000 CTC produced components
+     * adding up to 7,68,000, and payroll then paid exactly that.
+     *
+     * Every employee seeded before this screen existed carries a special
+     * allowance of 36% of gross, which is the remainder. That is the
+     * convention in Indian payroll and plainly the intent here, so the
+     * shortfall is put where the existing data already puts it.
+     */
+    const SA_CODE = 'SA'
+    const earningsTotal = rows
+      .filter((r) => r.component_type === 'earning')
+      .reduce((sum, r) => sum + r.monthly_amount, 0)
+    const shortfall = monthlyGross - earningsTotal
+    const sa = rows.find((r) => r.component_code === SA_CODE)
+
+    if (sa && shortfall > 0) {
+      sa.monthly_amount += shortfall
+      sa.annual_amount = sa.monthly_amount * 12
+      sa.calculation_note = 'Balance of gross'
+    }
+
+    return rows
   }, [selectedStructure, monthlyGross])
+
+  /**
+   * What the employee will actually be paid, worked out the way the payslip
+   * works it out. The old "Total" row added the earnings and the deductions
+   * together and called the result a total, which for somebody on 1,00,000 a
+   * month read 69,000.
+   */
+  const totals = useMemo(() => {
+    const sum = (type: string) =>
+      breakup.filter((c) => c.component_type === type)
+        .reduce((acc, c) => acc + c.monthly_amount, 0)
+    const gross = sum('earning')
+    const deductions = sum('deduction')
+    return {
+      gross,
+      deductions,
+      net: gross - deductions,
+      employer: sum('employer_contribution'),
+      balances: Math.abs(gross - monthlyGross) <= 1,
+    }
+  }, [breakup, monthlyGross])
 
   const onSubmit = async (data: CompensationFormData) => {
     if (!organization?.id) return
@@ -222,7 +307,9 @@ export function CompensationDialog({
           effective_from: data.effective_from,
           is_current: true,
           revision_reason: data.revision_reason || null,
-          created_by: profile?.id || null,
+          // created_by is worked out in the database. It is a foreign key to
+          // employees, and this screen only has the auth profile id — passing
+          // that was what made every assignment fail.
         },
         components: breakup.map((c) => ({
           salary_component_id: c.salary_component_id,
@@ -236,8 +323,8 @@ export function CompensationDialog({
         isRevising ? 'Compensation revised successfully' : 'Compensation assigned successfully'
       )
       onOpenChange(false)
-    } catch {
-      toast.error('Failed to save compensation')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save compensation')
     }
   }
 
@@ -397,7 +484,7 @@ export function CompensationDialog({
                                 </span>
                               </TableCell>
                               <TableCell className="text-xs">
-                                {formatCalcLabel(comp.calculation_type, comp.calculation_value)}
+                                {comp.calculation_note ?? formatCalcLabel(comp.calculation_type, comp.calculation_value)}
                               </TableCell>
                               <TableCell className="text-right">
                                 {formatCurrency(comp.monthly_amount)}
@@ -407,22 +494,46 @@ export function CompensationDialog({
                               </TableCell>
                             </TableRow>
                           ))}
-                          <TableRow className="font-semibold bg-muted/50">
-                            <TableCell colSpan={3}>Total</TableCell>
+                          <TableRow className="bg-muted/50">
+                            <TableCell colSpan={3}>Gross earnings</TableCell>
                             <TableCell className="text-right">
-                              {formatCurrency(
-                                breakup.reduce((sum, c) => sum + c.monthly_amount, 0)
-                              )}
+                              {formatCurrency(totals.gross)}
                             </TableCell>
                             <TableCell className="text-right">
-                              {formatCurrency(
-                                breakup.reduce((sum, c) => sum + c.annual_amount, 0)
-                              )}
+                              {formatCurrency(totals.gross * 12)}
+                            </TableCell>
+                          </TableRow>
+                          <TableRow className="bg-muted/50">
+                            <TableCell colSpan={3}>Less deductions</TableCell>
+                            <TableCell className="text-right">
+                              −{formatCurrency(totals.deductions)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              −{formatCurrency(totals.deductions * 12)}
+                            </TableCell>
+                          </TableRow>
+                          <TableRow className="font-semibold bg-muted/50">
+                            <TableCell colSpan={3}>Take home</TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(totals.net)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(totals.net * 12)}
                             </TableCell>
                           </TableRow>
                         </TableBody>
                       </Table>
                     </div>
+
+                    {!totals.balances && (
+                      <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                        This salary structure adds up to {formatCurrency(totals.gross)} a
+                        month, but the agreed salary is {formatCurrency(monthlyGross)}. Saving
+                        it would pay this person{' '}
+                        {formatCurrency(Math.abs(monthlyGross - totals.gross))} a month less
+                        than agreed. Correct the structure on the Structures tab first.
+                      </p>
+                    )}
                   </div>
                 </>
               )}
@@ -433,7 +544,7 @@ export function CompensationDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={assignCompensation.isPending}>
+            <Button type="submit" disabled={assignCompensation.isPending || !totals.balances}>
               {assignCompensation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}

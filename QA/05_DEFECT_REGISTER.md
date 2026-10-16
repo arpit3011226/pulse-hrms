@@ -248,6 +248,168 @@ reportable**, not optional.
 
 ---
 
+## QA-24 — The only salary structure paid 64% of the agreed salary · P0 · FIXED
+
+**Module** Payroll · Compensation **Fixed in** `compensation-dialog.tsx`
+**Found by** assigning compensation and then running payroll on it
+
+Three faults in the compensation preview, all visible on one screen.
+
+### a. Components did not add up to the salary agreed
+
+`Standard CTC` — the only structure in the system — is built as:
+
+| Component | Rule | Share of gross |
+|---|---|---|
+| Basic | 40% of gross | 40% |
+| HRA | 50% of basic | 20% |
+| DA | 10% of basic | 4% |
+| Special Allowance | **flat ₹0** | 0% |
+
+That is **64% of gross**, and nothing fills the other 36%. Payroll pays the
+sum of the components, so anybody assigned through this screen was paid 64%
+of what they had been promised. Sneha Reddy was assigned ₹12,00,000 a year
+and the December run paid her a gross of **₹64,000 against ₹1,00,000**.
+
+Every employee seeded before this screen existed carries a special allowance
+of exactly 36% of gross — the remainder. That is the convention in Indian
+payroll and plainly the intent, so the shortfall now goes there.
+
+**And a guard, because the structure can still be misconfigured:** if the
+earnings do not add up to the agreed salary the screen says so in plain words
+and the Save button is disabled. The old behaviour was to save it quietly.
+
+### b. Provident fund shown at ₹4,800 where payroll pays ₹1,800
+
+The preview applied the structure's "12% of basic" literally. Payroll applies
+the statutory cap — 12% of a basic capped at ₹15,000. The screen and the
+payslip disagreed, and **the wrong figure was the one written to the
+employee's record**. The preview now calls the same calculator payroll calls.
+
+### c. The "Total" row added earnings and deductions together
+
+For somebody on ₹1,00,000 a month it read ₹69,000, which is neither gross nor
+net nor anything else. Replaced with three honest rows: gross earnings, less
+deductions, take home.
+
+The Calculation column also stated rules that were no longer being applied, so
+a figure that does not come from the structure's own rule now says where it
+does come from — "Balance of gross", "Statutory limit applied".
+
+**Verified in the UI.** Assigning ₹12,00,000:
+
+```
+Basic Salary          Earning    40% of Gross               ₹40,000
+House Rent Allowance  Earning    50% of Basic               ₹20,000
+Dearness Allowance    Earning    10% of Basic                ₹4,000
+Special Allowance     Earning    Balance of gross           ₹36,000
+PF Employee           Deduction  Statutory limit applied     ₹1,800
+Professional Tax      Deduction  Flat ₹200                     ₹200
+Gross earnings                                            ₹1,00,000
+Less deductions                                             −₹2,000
+Take home                                                   ₹98,000
+```
+
+**And verified through a payroll run.** After reassigning the two affected
+employees, every one of the twelve was paid exactly the gross agreed:
+
+```
+EMP-0016  Vikram Mehta    agreed 2,50,000   paid 2,50,000   net 2,47,850
+EMP-0017  Sneha Reddy     agreed 1,00,000   paid 1,00,000   net   97,850
+          …ten more, all matching
+12 employees   gross 14,16,667   deductions 25,800   net 13,90,867
+```
+
+Deductions are 12 × ₹2,150 — PF ₹1,800, PT ₹200, December LWF ₹150 each.
+
+**Worth knowing:** the structure itself is still written with special
+allowance as flat ₹0. The screen compensates for it. If you would rather the
+structure be correct in its own right, set special allowance to 36% of gross
+on the Structures tab — but then it has to be recalculated by hand whenever
+basic, HRA or DA change, which is why it is done as a balance instead.
+
+---
+
+## QA-23 — Statutory deductions were opt-in · P1 · FIXED
+
+**Module** Payroll **Fixed in** `payroll-utils.ts` and `payroll.api.ts`
+**Found by** running a full December 2026 payroll cycle through the screens
+
+The first December run finished and reported success. The totals were
+₹11,30,667 gross against ₹11,28,667 net — **₹2,000 of deductions across
+eleven people.** Per employee:
+
+| Employee | Gross | Deductions |
+|---|---|---|
+| Arpit Saxena | ₹2,00,000 | ₹0 |
+| Karan Mehta | ₹1,50,000 | ₹0 |
+| Mishka S | ₹1,25,000 | ₹0 |
+| Neha Gupta | ₹1,16,667 | ₹0 |
+| …seven more | | ₹0 |
+| Sneha Reddy (EMP-0017) | ₹64,000 | ₹2,000 |
+
+Ten of eleven people were paid with **no provident fund and no professional
+tax at all**, and **nobody** had the December labour welfare fund taken —
+not even the one employee whose structure did carry PF and PT, because it had
+no LWF line.
+
+**Cause.** The calculator walks only the components attached to that
+employee's compensation:
+
+```js
+for (const comp of components) {
+  if (comp.is_statutory && comp.statutory_type) { ...calculate... }
+}
+```
+
+A statutory deduction therefore happened only if whoever set up the salary
+structure had remembered to tick it. The ten demo employees carry Basic, HRA,
+DA and Special Allowance and nothing else, so nothing was deducted. QA-20 made
+the arithmetic reachable; it could still only reach components that were
+there.
+
+**Why this is not cosmetic.** Under-deducting PF is not a display problem. The
+employer owes the arrears with interest under section 7Q and damages under
+section 14B of the EPF Act, and the employee's account is short by that much.
+The same money has to come out whether or not the form was filled in
+correctly, so the deduction cannot be opt-in.
+
+**Fix.** `withStatutoryComponents` merges the organisation's active statutory
+components into each employee's list before the calculation. A component the
+employee already carries always wins, so anything deliberately configured for
+one person is untouched; only genuinely missing statutory lines are added.
+
+TDS is deliberately excluded — it is driven by the employee's own investment
+declaration and is typed in, so there is nothing to apply automatically.
+
+**Verified by re-running the same cycle through the UI.** All eleven
+employees, every line checked against the database:
+
+```
+code       employee          gross     deduction lines                      net
+EMP001     Arpit Saxena    200000.00   LWF 150, PF_EMP 1800, PT 200    197850.00
+EMP-0003   Mishka S        125000.00   LWF 150, PF_EMP 1800, PT 200    122850.00
+EMP007     Karan Mehta     150000.00   LWF 150, PF_EMP 1800, PT 200    147850.00
+EMP008     Neha Gupta      116667.00   LWF 150, PF_EMP 1800, PT 200    114517.00
+EMP006     Ananya Singh    100000.00   LWF 150, PF_EMP 1800, PT 200     97850.00
+EMP010     Sneha Reddy      91667.00   LWF 150, PF_EMP 1800, PT 200     89517.00
+EMP004     Priya Patel      83333.00   LWF 150, PF_EMP 1800, PT 200     81183.00
+EMP003     Vikas Sharma     75000.00   LWF 150, PF_EMP 1800, PT 200     72850.00
+EMP005     Rahul Kumar      66667.00   LWF 150, PF_EMP 1800, PT 200     64517.00
+EMP-0017   Sneha Reddy      64000.00   LWF 150, PF_EMP 1800, PT 200     61850.00
+EMP009     Amit Sharma      58333.00   LWF 150, PF_EMP 1800, PT 200     56183.00
+```
+
+PF is ₹1,800 for everybody, which is correct: 12% of a basic capped at
+₹15,000, not 12% of the actual basic. Professional tax is ₹200 because all
+eleven are above the Karnataka ₹25,000 threshold. LWF is ₹150 because the
+month is December. Deductions total ₹23,650, and ₹11,30,667 − ₹23,650 =
+₹11,07,017, which is the net the screen shows.
+
+Eight unit tests cover the merge and the December case.
+
+---
+
 ## QA-20 — The statutory calculations were unreachable · P1 · FIXED
 
 **Module** Payroll **Fixed in** migration 00065
@@ -328,3 +490,5 @@ per-state table.
 |---|---|
 | Should leadership see **all** leave balances, or only their own team's? | Today leadership sees 16 rows (own + direct reports); HR sees 76 (everyone). If leadership is meant to have an org-wide view, that is a gap |
 | Should `salary_components` definitions (Basic, HRA, PF and their default values) be readable by every employee? | They currently are. Reference data, arguably fine, but it exposes the pay structure |
+| Should provident fund be deducted from **everybody**, or can a high earner be excluded? | PF is now applied to all. In law an employee who has never been a member and joins above a basic of ₹15,000 may be excluded on Form 11. Pulse does not model that exclusion, so it over-deducts for such a person rather than under-deducting. Confirm whether August has anybody in that position |
+| Is ₹150 the right Karnataka LWF employee share? | Flagged under QA-17 as well. Worth one check with your CA before go-live — the run now actually takes it, so the figure matters |
