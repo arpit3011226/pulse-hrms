@@ -19,6 +19,7 @@ export interface SubmitResignationData {
 
 export interface ResignationFilters {
   approval_status?: EmployeeExitRecord['approval_status']
+  exit_type?: EmployeeExitRecord['exit_type']
 }
 
 // ============================================================================
@@ -111,6 +112,18 @@ export async function submitResignation(data: SubmitResignationData) {
 // GET RESIGNATION REQUESTS
 // ============================================================================
 
+/**
+ * Every exit on the books, whatever kind.
+ *
+ * QA-27. This used to filter to `exit_type = 'resignation'`, and it is the
+ * only list HR has. The Initiate Separation screen offers five other kinds —
+ * termination, retirement, absconding, contract end and mutual separation —
+ * and each one was written to the database and then disappeared. HR got no
+ * error, no record in the list, and no way to approve, track or run
+ * clearances on it.
+ *
+ * Pass `exit_type` in the filters to narrow it deliberately.
+ */
 export async function getResignationRequests(orgId: string, filters?: ResignationFilters) {
   let query = supabase
     .from('employee_exit_records')
@@ -123,7 +136,10 @@ export async function getResignationRequests(orgId: string, filters?: Resignatio
       )
     `)
     .eq('organization_id', orgId)
-    .eq('exit_type', 'resignation')
+
+  if (filters?.exit_type) {
+    query = query.eq('exit_type', filters.exit_type)
+  }
 
   if (filters?.approval_status) {
     query = query.eq('approval_status', filters.approval_status)
@@ -429,8 +445,15 @@ export async function rejectResignation(
   remarks: string,
   level: 'manager' | 'hr'
 ) {
+  /**
+   * QA-26. Rejecting used to write only `approval_status`, leaving `status`
+   * wherever it was. A resignation approved by HR and then rejected kept
+   * `status = notice_period`, so the record still read as an exit in
+   * progress and the HR dashboard went on counting it.
+   */
   const updatePayload: Partial<EmployeeExitRecord> = {
     approval_status: level === 'manager' ? 'manager_rejected' : 'hr_rejected',
+    status: 'rejected',
   }
 
   if (level === 'manager') {

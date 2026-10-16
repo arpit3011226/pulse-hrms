@@ -114,8 +114,12 @@ export function ThingsToDoWidget({ employeeId }: { employeeId?: string }) {
           supabase.from('helpdesk_tickets').select('id', { count: 'exact', head: true })
             .eq('organization_id', orgId).in('status', ['open', 'in_progress'])
             .lt('resolution_due_at', new Date().toISOString()),
+          // QA-28: this counted everything that was not `completed`, so a
+          // withdrawn or rejected exit was still reported as in progress.
+          // Only the states where somebody still has something to do count.
           supabase.from('employee_exit_records').select('id', { count: 'exact', head: true })
-            .eq('organization_id', orgId).neq('status', 'completed'),
+            .eq('organization_id', orgId)
+            .in('status', ['initiated', 'notice_period', 'clearance_pending', 'clearance_completed']),
           supabase.from('data_requests').select('id', { count: 'exact', head: true })
             .eq('organization_id', orgId).eq('status', 'pending'),
           supabase.from('final_settlements').select('id', { count: 'exact', head: true })

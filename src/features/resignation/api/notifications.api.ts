@@ -43,26 +43,39 @@ export async function markAllNotificationsAsRead(profileId: string) {
   if (error) throw error
 }
 
+/**
+ * QA-29: notifications were never delivered to anybody but yourself.
+ *
+ * Both of these used to end in `.select()`, which asks PostgREST to hand the
+ * inserted rows back. Reading a notification is governed by:
+ *
+ *     user_read_own_notifications  USING (recipient_profile_id = auth.uid())
+ *
+ * You may write a notification for a colleague, but you may not read it. So
+ * the insert went in, the RETURNING was refused, and the whole statement was
+ * rolled back with a 403. Every caller wraps this in a try/catch that logs
+ * and carries on, so nothing surfaced — the resignation was saved, the
+ * console said "Failed to send resignation notifications", and the manager
+ * was never told.
+ *
+ * Proven at the database: the same insert succeeds without RETURNING and is
+ * refused with it.
+ *
+ * Nothing used the returned rows, so they are no longer asked for. Writing a
+ * notification is fire and forget.
+ */
+
 // Create a single notification
 export async function createNotification(notification: Omit<AppNotification, 'id' | 'created_at' | 'is_read'>) {
-  const { data, error } = await supabase
-    .from('notifications')
-    .insert(notification)
-    .select()
-    .single()
+  const { error } = await supabase.from('notifications').insert(notification)
   if (error) throw error
-  return data
 }
 
 // Create multiple notifications (broadcast)
 export async function createBulkNotifications(notifications: Omit<AppNotification, 'id' | 'created_at' | 'is_read'>[]) {
-  if (notifications.length === 0) return []
-  const { data, error } = await supabase
-    .from('notifications')
-    .insert(notifications)
-    .select()
+  if (notifications.length === 0) return
+  const { error } = await supabase.from('notifications').insert(notifications)
   if (error) throw error
-  return data
 }
 
 // Helper: get profile IDs by role(s) in an org

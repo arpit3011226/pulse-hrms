@@ -248,6 +248,120 @@ reportable**, not optional.
 
 ---
 
+## QA-29 — In-app notifications never reached anybody · P1 · FIXED
+
+**Module** Everything that notifies **Fixed in** `notifications.api.ts`
+**Found by** a swallowed console error during the separation smoke test
+
+Initiating a separation printed this to the console and carried on:
+
+```
+Failed to load resource: the server responded with a status of 403
+Failed to send resignation notifications
+```
+
+Both notification helpers ended in `.select()`, which asks PostgREST to hand
+the inserted rows back. Reading a notification is governed by:
+
+```sql
+user_read_own_notifications  USING (recipient_profile_id = auth.uid())
+```
+
+You may **write** a notification for a colleague. You may not **read** it. So
+the RETURNING was refused and the whole statement rolled back. Proven at the
+database — the identical insert succeeds without RETURNING and is refused
+with it:
+
+```
+insert into notifications (...) values (...) returning id;
+  ERROR 42501: new row violates row-level security policy
+
+insert into notifications (...) values (...);
+  inserted ok
+```
+
+Every caller wraps this in `try { ... } catch { console.error(...) }`, so the
+resignation saved, the screen said nothing, and the manager was never told.
+
+**21 call sites across six features** — resignation, self-service,
+reimbursements, general requests, workflows and mentorship. All silently
+dead. The workflow engine's only action is to send a notification, so every
+workflow in Pulse was firing into nothing.
+
+**Fix.** Stop asking for the rows. Nothing used them, and writing a
+notification is fire and forget.
+
+**Verified by re-running the separation.** Notifications went from 8 to 15;
+the reporting manager, both HR admins, the super admin and leadership each
+received one.
+
+---
+
+## QA-28 — The dashboard counted withdrawn and rejected exits as in progress · P2 · FIXED
+
+**Module** Dashboard **Fixed in** `things-to-do-widget.tsx`
+
+```js
+.neq('status', 'completed')
+```
+
+Anything not finished counted, so a withdrawn resignation and a rejected one
+were both reported to HR as exits in progress. The widget read "3 exits in
+progress" when exactly one was live. Now it counts only `initiated`,
+`notice_period`, `clearance_pending` and `clearance_completed`, and reads
+"1 exit in progress".
+
+---
+
+## QA-27 — Five of the six kinds of separation vanished · P1 · FIXED
+
+**Module** Separation **Fixed in** `resignation.api.ts`
+
+The "All Requests" tab is the only list HR has, and it was filtered:
+
+```js
+.eq('exit_type', 'resignation')
+```
+
+The Initiate Separation screen offers **termination, retirement, absconding,
+contract end and mutual separation**. Each one was written to the database
+and then disappeared — no error, no row in the list, no way to approve it,
+track it or run clearances on it.
+
+Proven by initiating a mutual separation: the record was in the database with
+`approval_status = submitted`, and the screen showed nothing.
+
+**Fix.** The list shows every exit. `exit_type` is available as a filter for
+anyone who wants to narrow it deliberately. Verified in the UI — the mutual
+separation now appears with its own badge.
+
+---
+
+## QA-26 — A rejected exit stayed "in progress" for ever · P2 · FIXED
+
+**Module** Separation **Fixed in** migration 00068, `resignation.api.ts`
+
+`employee_exit_records` keeps two columns for one journey: `approval_status`
+(who has signed it off) and `status` (where the exit has reached).
+`rejectResignation` only ever wrote the first.
+
+One record in the demo data read:
+
+```
+status = notice_period        approval_status = hr_rejected
+```
+
+HR approved it, which set `status` to `notice_period`; HR then rejected it,
+which changed nothing but the approval. The record still said the person was
+serving notice.
+
+`status` had no value meaning "not going ahead" — only `withdrawn`, which is
+the employee pulling out, not the company declining. Recording a rejection as
+a withdrawal would be wrong on the record and wrong in any report built from
+it, so `rejected` was added to the constraint and the stale row repaired.
+
+---
+
 ## QA-25 — Provident fund for contractors and interns, and no contractor TDS · P1 · FIXED
 
 **Module** Payroll **Fixed in** migration 00067, `payroll-utils.ts`,

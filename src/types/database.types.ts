@@ -489,7 +489,8 @@ export interface EmployeeExitRecord {
   exit_type: 'resignation' | 'termination' | 'retirement' | 'absconding' | 'contract_end' | 'mutual_separation'
   exit_reason: string | null
   regretted_attrition: boolean
-  status: 'initiated' | 'notice_period' | 'clearance_pending' | 'clearance_completed' | 'completed' | 'withdrawn'
+  /** 'withdrawn' is the employee pulling out; 'rejected' is the company declining it. */
+  status: 'initiated' | 'notice_period' | 'clearance_pending' | 'clearance_completed' | 'completed' | 'withdrawn' | 'rejected'
   exit_interview_done: boolean
   exit_interview_notes: string | null
   clearance_status: 'pending' | 'in_progress' | 'completed'
