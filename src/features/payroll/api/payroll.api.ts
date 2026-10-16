@@ -324,7 +324,7 @@ export async function computePayrollForRun(runId: string, orgId: string) {
   // 3. Get all active employees with is_current compensation and components
   const { data: compensations, error: compError } = await supabase
     .from('employee_compensation')
-    .select('*, employee:employees!employee_id(id, first_name, last_name, email, employee_code, status), employee_compensation_components(*, salary_component:salary_components(id, component_name, component_code, component_type, is_statutory, statutory_type))')
+    .select('*, employee:employees!employee_id(id, first_name, last_name, email, employee_code, status, employment_type), employee_compensation_components(*, salary_component:salary_components(id, component_name, component_code, component_type, is_statutory, statutory_type))')
     .eq('organization_id', orgId)
     .eq('is_current', true)
   if (compError) throw compError
@@ -496,7 +496,8 @@ export async function computePayrollForRun(runId: string, orgId: string) {
       lopDays,
       totalWorkingDays,
       cycle.payroll_month,
-      statutoryComponents
+      statutoryComponents,
+      (comp.employee as { employment_type?: string | null } | null)?.employment_type
     )
 
     const runEmployee: Partial<PayrollRunEmployee> = {
@@ -585,7 +586,8 @@ export async function computePayrollForRun(runId: string, orgId: string) {
       lopDays,
       totalWorkingDays,
       cycle.payroll_month,
-      statutoryComponents
+      statutoryComponents,
+      (comp.employee as { employment_type?: string | null } | null)?.employment_type
     )
 
     const earningsToInsert = result.earnings.map((e) => ({

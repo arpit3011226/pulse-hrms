@@ -33,7 +33,8 @@ import {
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { useAssignCompensation, useSalaryStructures } from '../hooks/use-payroll'
 import { supabase } from '@/lib/supabase'
-import { formatCurrency, calculateComponentAmount, calculateStatutoryDeductions } from '../utils/payroll-utils'
+import { formatCurrency, calculateComponentAmount, calculateStatutoryDeductions, withStatutoryComponents } from '../utils/payroll-utils'
+import type { PayrollComponentInput } from '../utils/payroll-utils'
 import type {
   EmployeeCompensationWithRelations,
   SalaryStructureWithComponents,
@@ -55,6 +56,8 @@ interface ActiveEmployee {
   first_name: string
   last_name: string
   employee_code: string | null
+  /** Decides provident fund and contractor TDS in the preview below. */
+  employment_type: string | null
 }
 
 interface ComponentBreakup {
@@ -106,6 +109,7 @@ export function CompensationDialog({
     },
   })
 
+  const watchedEmployeeId = watch('employee_id')
   const watchedStructureId = watch('salary_structure_id')
   const watchedCtc = watch('annual_ctc')
 
@@ -116,7 +120,7 @@ export function CompensationDialog({
     setLoadingEmployees(true)
     supabase
       .from('employees')
-      .select('id, first_name, last_name, employee_code')
+      .select('id, first_name, last_name, employee_code, employment_type')
       .eq('organization_id', organization.id)
       .eq('status', 'active')
       .order('first_name')
@@ -130,6 +134,52 @@ export function CompensationDialog({
           return
         }
         setEmployees(data || [])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, organization?.id])
+
+  /**
+   * The organisation's statutory components.
+   *
+   * Payroll merges these into every employee's calculation whether or not the
+   * salary structure carries them, so the preview has to do the same or it
+   * shows a different answer from the payslip. A contractor's 10% TDS is not
+   * in any structure, and without this the screen would quietly leave it out.
+   */
+  const [orgStatutory, setOrgStatutory] = useState<PayrollComponentInput[]>([])
+  const [orgStatutoryNames, setOrgStatutoryNames] = useState<Record<string, string>>({})
+  useEffect(() => {
+    if (!open || !organization?.id) return
+    let cancelled = false
+    supabase
+      .from('salary_components')
+      .select('id, component_name, component_code, component_type, calculation_type, default_value, statutory_type')
+      .eq('organization_id', organization.id)
+      .eq('is_statutory', true)
+      .eq('is_active', true)
+      .then(({ data, error }) => {
+        if (cancelled) return
+        if (error) {
+          console.error('Failed to fetch statutory components:', error)
+          toast.error('Could not load the statutory deductions. The preview may be incomplete.')
+          return
+        }
+        setOrgStatutoryNames(
+          Object.fromEntries((data ?? []).map((c) => [c.id, c.component_name]))
+        )
+        setOrgStatutory(
+          (data ?? []).map((c) => ({
+            salary_component_id: c.id,
+            component_code: c.component_code,
+            component_type: c.component_type,
+            calculation_type: c.calculation_type,
+            monthly_amount: Number(c.default_value ?? 0),
+            is_statutory: true,
+            statutory_type: c.statutory_type,
+          }))
+        )
       })
     return () => {
       cancelled = true
@@ -171,6 +221,19 @@ export function CompensationDialog({
   // watch() reports the form input, which is still a string until zod coerces it.
   const monthlyGross = Number(watchedCtc) > 0 ? Number(watchedCtc) / 12 : 0
 
+  /**
+   * Provident fund does not apply to a contractor or an intern, and a
+   * contractor has 10% deducted at source instead. The preview has to know
+   * which, or it shows a deduction the payslip will not make.
+   *
+   * On a revision the employee picker is disabled and the list may not hold
+   * the row, so the compensation's own employee is used as the fallback.
+   */
+  const employmentType =
+    employees.find((e) => e.id === watchedEmployeeId)?.employment_type ??
+    (compensation?.employee as { employment_type?: string | null } | undefined)?.employment_type ??
+    null
+
   const breakup: ComponentBreakup[] = useMemo(() => {
     if (!selectedStructure?.salary_structure_components || monthlyGross <= 0) {
       return []
@@ -188,9 +251,58 @@ export function CompensationDialog({
       ? Math.round((monthlyGross * basicComp.default_value) / 100)
       : Math.round(monthlyGross * 0.4)
 
-    const active = components
+    const fromStructureRows = components
       .filter((c) => c.is_active && c.salary_component)
       .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+      .map((c) => ({
+        salary_component_id: c.salary_component_id,
+        component_code: c.salary_component!.component_code,
+        component_name: c.salary_component!.component_name,
+        component_type: c.salary_component!.component_type,
+        calculation_type: c.calculation_type,
+        default_value: c.default_value,
+        is_statutory: !!c.salary_component!.is_statutory,
+        statutory_type: c.salary_component!.statutory_type ?? null,
+      }))
+
+    /**
+     * Merge in the statutory lines the structure does not carry, exactly as
+     * payroll does, so the screen and the payslip agree. A contractor's 10%
+     * TDS lives in no structure and would otherwise never be shown.
+     */
+    const merged = withStatutoryComponents(
+      fromStructureRows.map((r) => ({
+        salary_component_id: r.salary_component_id,
+        component_code: r.component_code,
+        component_type: r.component_type,
+        calculation_type: r.calculation_type,
+        monthly_amount: 0,
+        is_statutory: r.is_statutory,
+        statutory_type: r.statutory_type,
+      })),
+      orgStatutory,
+      employmentType
+    )
+
+    const nameFor = new Map(fromStructureRows.map((r) => [r.salary_component_id, r.component_name]))
+    const active = merged.map((m) => {
+      const own = fromStructureRows.find((r) => r.salary_component_id === m.salary_component_id)
+      return {
+        salary_component_id: m.salary_component_id,
+        calculation_type: m.calculation_type,
+        default_value: own ? own.default_value : m.monthly_amount,
+        salary_component: {
+          component_code: m.component_code,
+          component_name:
+            nameFor.get(m.salary_component_id) ??
+            orgStatutoryNames[m.salary_component_id] ??
+            m.component_code,
+          component_type: m.component_type,
+          is_statutory: m.is_statutory,
+          statutory_type: m.statutory_type,
+        },
+      }
+    })
 
     /**
      * Statutory amounts come from the same calculator payroll uses, not from
@@ -201,7 +313,7 @@ export function CompensationDialog({
      * capped at 15,000. The preview was showing one figure and the payslip
      * another, and the wrong one was being saved onto the employee.
      */
-    const statutory = calculateStatutoryDeductions(basicMonthly, monthlyGross)
+    const statutory = calculateStatutoryDeductions(basicMonthly, monthlyGross, null, employmentType)
     const statutoryAmount = (type: string | null | undefined): number | null => {
       switch (type) {
         case 'pf_employee': return statutory.pfEmployee
@@ -210,6 +322,7 @@ export function CompensationDialog({
         case 'esi_employer': return statutory.esiEmployer
         case 'pt': return statutory.pt
         case 'lwf': return statutory.lwf
+        case 'tds_contractor': return statutory.tdsContractor
         default: return null  // TDS and anything else stay as configured
       }
     }
@@ -269,8 +382,13 @@ export function CompensationDialog({
       sa.calculation_note = 'Balance of gross'
     }
 
-    return rows
-  }, [selectedStructure, monthlyGross])
+    /**
+     * Payroll drops any line that works out to nothing, so the preview does
+     * too. Otherwise a contractor — who pays no provident fund — was shown a
+     * "PF Employee ₹0" row that never reaches the payslip.
+     */
+    return rows.filter((r) => r.monthly_amount > 0)
+  }, [selectedStructure, monthlyGross, employmentType, orgStatutory, orgStatutoryNames])
 
   /**
    * What the employee will actually be paid, worked out the way the payslip

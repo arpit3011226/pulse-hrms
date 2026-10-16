@@ -248,6 +248,82 @@ reportable**, not optional.
 
 ---
 
+## QA-25 — Provident fund for contractors and interns, and no contractor TDS · P1 · FIXED
+
+**Module** Payroll **Fixed in** migration 00067, `payroll-utils.ts`,
+`payroll.api.ts`, `compensation-dialog.tsx`
+**Raised by** the business, 16 October 2026
+
+Two rules that were not in the system at all:
+
+1. **Provident fund does not apply to a contractor or an intern.** Neither is
+   on the rolls as an employee, so there is no EPF membership to contribute
+   to. QA-23 had just made PF apply to everybody with current compensation,
+   which was right for staff and wrong for these two.
+2. **A contractor has 10% deducted at source, under tax code 1027.** Taken on
+   the whole payment: a contractor raises an invoice rather than drawing a
+   salary, so there is no basic and no exempt portion to carve out.
+
+**Fix.** `employment_type` now reaches the calculator. Provident fund is
+skipped for `contract` and `intern`, and a new Contractor TDS component — 10%,
+tax code 1027 — is applied to `contract` only. An unknown or missing
+employment type is treated as an ordinary employee: PF applies, no TDS.
+Erring towards deducting is the safe direction, because an over-deduction is
+refunded whereas a short deduction costs interest and damages.
+
+PF is refused for a contractor **even if somebody attached it by hand** to
+that person's salary structure. The rule is not a default that configuration
+can override.
+
+A `tax_code` column was added to `salary_components`, because the code has to
+reach the payslip and the quarterly return. It sits on the component rather
+than on each deduction, so it stays correct for every run.
+
+### Found while fixing it: the preview did not match the payslip
+
+The compensation preview reads the salary structure, while payroll merges in
+the organisation's statutory components. For a contractor that meant the
+screen showed **no TDS at all** while payroll would deduct ₹7,000, and showed
+a "PF Employee ₹0" row that never reaches a payslip. The preview now runs the
+same merge payroll runs and drops any line that works out to nothing, exactly
+as payroll does.
+
+**Verified in the UI.** A contractor on ₹8,40,000 a year:
+
+```
+Basic Salary          Earning    40% of Gross      ₹28,000
+House Rent Allowance  Earning    50% of Basic      ₹14,000
+Dearness Allowance    Earning    10% of Basic       ₹2,800
+Special Allowance     Earning    Balance of gross  ₹25,200
+Professional Tax      Deduction  Flat ₹200            ₹200
+Contractor TDS        Deduction  10% of Gross       ₹7,000
+Gross earnings                                     ₹70,000
+Less deductions                                    −₹7,200
+Take home                                          ₹62,800
+```
+
+No provident fund line at all. An intern on ₹3,60,000 shows professional tax
+and nothing else.
+
+**And verified through a December payroll run** of fourteen people:
+
+```
+EMP-0019  contract    gross 70,000    PT 200, LWF 150, TDS_CONTRACTOR 7,000   net 62,650
+EMP-0018  intern      gross 30,000    PT 200, LWF 150                         net 29,650
+12 others full_time                   PT 200, LWF 150, PF_EMP 1,800
+```
+
+The tax code reaches the deduction:
+
+```
+EMP-0019  Contractor TDS  tax code 1027  amount 7,000
+```
+
+14 unit tests cover the two rules, including the case where PF is attached to
+a contractor by hand and must still be refused.
+
+---
+
 ## QA-24 — The only salary structure paid 64% of the agreed salary · P0 · FIXED
 
 **Module** Payroll · Compensation **Fixed in** `compensation-dialog.tsx`
@@ -490,5 +566,8 @@ per-state table.
 |---|---|
 | Should leadership see **all** leave balances, or only their own team's? | Today leadership sees 16 rows (own + direct reports); HR sees 76 (everyone). If leadership is meant to have an org-wide view, that is a gap |
 | Should `salary_components` definitions (Basic, HRA, PF and their default values) be readable by every employee? | They currently are. Reference data, arguably fine, but it exposes the pay structure |
-| Should provident fund be deducted from **everybody**, or can a high earner be excluded? | PF is now applied to all. In law an employee who has never been a member and joins above a basic of ₹15,000 may be excluded on Form 11. Pulse does not model that exclusion, so it over-deducts for such a person rather than under-deducting. Confirm whether August has anybody in that position |
+| Should professional tax and labour welfare fund apply to a contractor and an intern? | **Open.** You told us about provident fund and contractor TDS, and only those two were changed. A contractor and an intern are still charged professional tax ₹200 and, in December, labour welfare fund ₹150. Both Acts are written around persons in employment, so this may well be wrong — but guessing it would change what comes out of someone's payment |
+| Does the contractor rule apply to the **freelance** employment type too? | **Open.** Pulse has five types: full time, part time, contract, intern, freelance. "Contractor" was read as `contract` only. Nobody is on `freelance` today, so nothing is wrong yet |
+| Is the 10% contractor TDS the right rate for everybody, or does it vary? | 10% under code 1027 is applied to every contractor. If a contractor gives a lower-deduction certificate under section 197, or if a different section applies to some of them, Pulse has no way to record that |
+| Should provident fund be deducted from **every** full-time employee, or can a high earner be excluded? | PF applies to all staff. In law an employee who has never been a member and joins above a basic of ₹15,000 may be excluded on Form 11. Pulse does not model that exclusion, so it over-deducts for such a person rather than under-deducting. Confirm whether August has anybody in that position |
 | Is ₹150 the right Karnataka LWF employee share? | Flagged under QA-17 as well. Worth one check with your CA before go-live — the run now actually takes it, so the figure matters |

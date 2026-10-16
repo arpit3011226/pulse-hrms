@@ -497,6 +497,20 @@ export const INDIA_ESI_EMPLOYER_RATE = 3.25
 export const INDIA_ESI_GROSS_LIMIT = 21000
 export const INDIA_PF_BASIC_LIMIT = 15000
 
+/**
+ * Provident fund does not apply to a contractor or an intern. They are not on
+ * the rolls as employees, so there is no EPF membership to contribute to.
+ */
+export const PF_EXEMPT_EMPLOYMENT_TYPES = ['contract', 'intern'] as const
+
+/**
+ * A contractor is paid against an invoice, not a salary, so tax is deducted at
+ * source instead. 10% of the payment, under tax code 1027.
+ */
+export const CONTRACTOR_TDS_RATE = 10
+export const CONTRACTOR_TDS_TAX_CODE = '1027'
+export const CONTRACTOR_EMPLOYMENT_TYPES = ['contract'] as const
+
 export const DEFAULT_INDIA_SALARY_COMPONENTS = [
   { component_name: 'Basic Salary', component_code: 'BASIC', component_type: 'earning' as const, category: 'fixed' as const, calculation_type: 'percentage_of_gross' as const, default_value: 40, is_taxable: true, is_statutory: false, statutory_type: null, display_order: 1 },
   { component_name: 'House Rent Allowance', component_code: 'HRA', component_type: 'earning' as const, category: 'fixed' as const, calculation_type: 'percentage_of_basic' as const, default_value: 50, is_taxable: true, is_statutory: false, statutory_type: null, display_order: 2 },

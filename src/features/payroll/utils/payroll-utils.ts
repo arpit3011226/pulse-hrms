@@ -7,6 +7,9 @@ import {
   INDIA_ESI_EMPLOYER_RATE,
   INDIA_ESI_GROSS_LIMIT,
   INDIA_PF_BASIC_LIMIT,
+  PF_EXEMPT_EMPLOYMENT_TYPES,
+  CONTRACTOR_EMPLOYMENT_TYPES,
+  CONTRACTOR_TDS_RATE,
 } from '@/lib/constants'
 
 export function calculateComponentAmount(
@@ -74,20 +77,63 @@ export function labourWelfareFund(month: number | null | undefined): number {
 }
 
 /**
+ * Whether provident fund applies to this kind of engagement.
+ *
+ * It does not for a contractor or an intern. Neither is on the rolls as an
+ * employee, so there is no EPF membership to contribute to. Anybody else,
+ * including part-time staff, is covered.
+ *
+ * An unknown or missing type is treated as covered. Erring towards deducting
+ * is the safe direction: an over-deduction is refunded, a short deduction
+ * costs the employer interest and damages.
+ */
+export function isPfApplicable(employmentType?: string | null): boolean {
+  return !PF_EXEMPT_EMPLOYMENT_TYPES.includes(
+    (employmentType ?? '') as (typeof PF_EXEMPT_EMPLOYMENT_TYPES)[number]
+  )
+}
+
+/** Whether this engagement is a contractor, who is paid under deduction of tax. */
+export function isContractor(employmentType?: string | null): boolean {
+  return CONTRACTOR_EMPLOYMENT_TYPES.includes(
+    (employmentType ?? '') as (typeof CONTRACTOR_EMPLOYMENT_TYPES)[number]
+  )
+}
+
+/**
+ * Tax deducted at source on a contractor's payment — 10%, under tax code 1027.
+ *
+ * Taken on the whole payment, because a contractor raises an invoice rather
+ * than drawing a salary: there is no basic, and no exempt portion to carve
+ * out. Nil for everybody else, who are taxed through their own TDS figure
+ * from their investment declaration instead.
+ */
+export function contractorTds(grossMonthly: number, employmentType?: string | null): number {
+  if (!isContractor(employmentType)) return 0
+  return Math.round((grossMonthly * CONTRACTOR_TDS_RATE) / 100)
+}
+
+/**
  * The statutory deductions for one month.
  *
  * `payrollMonth` (1-12) is needed because labour welfare fund is annual and
  * falls in December. Leave it out and no LWF is charged, which is the right
  * answer for any month but December.
+ *
+ * `employmentType` decides provident fund and contractor TDS. Leave it out
+ * and the person is treated as an ordinary employee: PF applies, no TDS.
  */
 export function calculateStatutoryDeductions(
   basicMonthly: number,
   grossMonthly: number,
-  payrollMonth?: number | null
+  payrollMonth?: number | null,
+  employmentType?: string | null
 ) {
+  const pfApplies = isPfApplicable(employmentType)
   const pfBasic = Math.min(basicMonthly, INDIA_PF_BASIC_LIMIT)
-  const pfEmployee = Math.round((pfBasic * INDIA_PF_RATE) / 100)
-  const pfEmployer = Math.round((pfBasic * INDIA_PF_RATE) / 100)
+  const pfAmount = pfApplies ? Math.round((pfBasic * INDIA_PF_RATE) / 100) : 0
+  const pfEmployee = pfAmount
+  const pfEmployer = pfAmount
 
   const esiApplicable = grossMonthly <= INDIA_ESI_GROSS_LIMIT
   const esiEmployee = esiApplicable ? Math.round((grossMonthly * INDIA_ESI_EMPLOYEE_RATE) / 100) : 0
@@ -95,8 +141,9 @@ export function calculateStatutoryDeductions(
 
   const pt = professionalTaxKarnataka(grossMonthly)
   const lwf = labourWelfareFund(payrollMonth)
+  const tdsContractor = contractorTds(grossMonthly, employmentType)
 
-  return { pfEmployee, pfEmployer, esiEmployee, esiEmployer, pt, lwf }
+  return { pfEmployee, pfEmployer, esiEmployee, esiEmployer, pt, lwf, tdsContractor }
 }
 
 /**
@@ -129,6 +176,23 @@ const ALWAYS_APPLIED_STATUTORY = new Set([
 ])
 
 /**
+ * Statutory lines that apply only to some kinds of engagement.
+ *
+ * Provident fund is not added for a contractor or an intern. Contractor TDS
+ * is added only for a contractor, and never for anybody else — an employee's
+ * tax comes from their own declaration, not from a flat 10%.
+ */
+function appliesToEngagement(statutoryType: string, employmentType?: string | null): boolean {
+  if (statutoryType === 'pf_employee' || statutoryType === 'pf_employer') {
+    return isPfApplicable(employmentType)
+  }
+  if (statutoryType === 'tds_contractor') {
+    return isContractor(employmentType)
+  }
+  return ALWAYS_APPLIED_STATUTORY.has(statutoryType)
+}
+
+/**
  * Adds the organisation's statutory components to an employee's own list.
  *
  * QA-23. The calculator used to walk only the components attached to the
@@ -150,7 +214,8 @@ const ALWAYS_APPLIED_STATUTORY = new Set([
  */
 export function withStatutoryComponents(
   attached: PayrollComponentInput[],
-  orgStatutory: PayrollComponentInput[]
+  orgStatutory: PayrollComponentInput[],
+  employmentType?: string | null
 ): PayrollComponentInput[] {
   const present = new Set(
     attached
@@ -162,7 +227,7 @@ export function withStatutoryComponents(
     (c) =>
       c.is_statutory &&
       c.statutory_type &&
-      ALWAYS_APPLIED_STATUTORY.has(c.statutory_type) &&
+      appliesToEngagement(c.statutory_type, employmentType) &&
       !present.has(c.statutory_type)
   )
 
@@ -207,9 +272,18 @@ export function computeEmployeePayroll(
    * The organisation's statutory components. Any of them the employee does
    * not already carry is applied anyway — see withStatutoryComponents.
    */
-  orgStatutoryComponents: PayrollComponentInput[] = []
+  orgStatutoryComponents: PayrollComponentInput[] = [],
+  /**
+   * full_time, contract, intern and so on. Decides provident fund and
+   * contractor TDS. Left out, the person is treated as an ordinary employee.
+   */
+  employmentType?: string | null
 ): PayrollComputationResult {
-  const components = withStatutoryComponents(attachedComponents, orgStatutoryComponents)
+  const components = withStatutoryComponents(
+    attachedComponents,
+    orgStatutoryComponents,
+    employmentType
+  )
 
   const earnings: ComponentAmount[] = []
   const deductions: ComponentAmount[] = []
@@ -234,7 +308,12 @@ export function computeEmployeePayroll(
 
     // Override statutory amounts with actual calculations
     if (comp.is_statutory && comp.statutory_type) {
-      const statutory = calculateStatutoryDeductions(basicAmount, effectiveGross, payrollMonth)
+      const statutory = calculateStatutoryDeductions(
+        basicAmount,
+        effectiveGross,
+        payrollMonth,
+        employmentType
+      )
       switch (comp.statutory_type) {
         case 'pf_employee': amount = statutory.pfEmployee; break
         case 'pf_employer': amount = statutory.pfEmployer; break
@@ -242,6 +321,7 @@ export function computeEmployeePayroll(
         case 'esi_employer': amount = statutory.esiEmployer; break
         case 'pt': amount = statutory.pt; break
         case 'lwf': amount = statutory.lwf; break
+        case 'tds_contractor': amount = statutory.tdsContractor; break
         case 'tds': amount = comp.monthly_amount; break // TDS entered manually
       }
     }
