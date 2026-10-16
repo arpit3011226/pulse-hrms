@@ -482,6 +482,15 @@ export const ADJUSTMENT_TYPES = [
   { value: 'deduction', label: 'Deduction' },
 ] as const
 
+// ── Karnataka, where August's people are ────────────────────────────────────
+// Professional tax is a state levy with a threshold, and the labour welfare
+// fund is taken once a year in December. Both move with state notifications:
+// confirm against the current one before a financial year, rather than
+// trusting these indefinitely.
+export const KARNATAKA_PT_EXEMPTION_LIMIT = 25000
+export const KARNATAKA_PT_MONTHLY = 200
+export const KARNATAKA_LWF_ANNUAL = 150
+
 export const INDIA_PF_RATE = 12
 export const INDIA_ESI_EMPLOYEE_RATE = 0.75
 export const INDIA_ESI_EMPLOYER_RATE = 3.25

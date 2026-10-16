@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  workingDaysInMonth,
+  professionalTaxKarnataka,
+  labourWelfareFund,
   calculateComponentAmount,
   calculateLopDeduction,
   calculateStatutoryDeductions,
@@ -86,12 +89,70 @@ describe('calculateStatutoryDeductions', () => {
     expect(esiEmployer).toBe(0)
   })
 
-  it('charges professional tax as a flat 200 regardless of earnings', () => {
-    expect(calculateStatutoryDeductions(5_000, 8_000).pt).toBe(200)
+  it('applies the Karnataka professional tax threshold', () => {
+    expect(calculateStatutoryDeductions(5_000, 8_000).pt).toBe(0)
     expect(calculateStatutoryDeductions(90_000, 300_000).pt).toBe(200)
-    // DEFECT QA-17: professional tax is a state subject with slabs, and is nil
-    // below the state's threshold. A flat 200 over-deducts from low earners
-    // and is wrong for several states outright.
+  })
+
+  it('charges labour welfare fund only in December', () => {
+    expect(calculateStatutoryDeductions(20_000, 50_000, 12).lwf).toBe(150)
+    expect(calculateStatutoryDeductions(20_000, 50_000, 11).lwf).toBe(0)
+    expect(calculateStatutoryDeductions(20_000, 50_000).lwf).toBe(0)
+  })
+})
+
+describe('workingDaysInMonth', () => {
+  it('counts weekdays, excluding Saturdays and Sundays', () => {
+    // October 2026: 31 days, starts on a Thursday → 22 weekdays
+    expect(workingDaysInMonth(2026, 10)).toBe(22)
+    // February 2026: 28 days, starts on a Sunday → 20 weekdays
+    expect(workingDaysInMonth(2026, 2)).toBe(20)
+  })
+
+  it('handles a leap February', () => {
+    // February 2028 has 29 days, starting on a Tuesday → 21 weekdays
+    expect(workingDaysInMonth(2028, 2)).toBe(21)
+  })
+
+  it('never returns the hardcoded 22 for every month', () => {
+    const counts = new Set(
+      Array.from({ length: 12 }, (_, i) => workingDaysInMonth(2026, i + 1))
+    )
+    // The old code assumed 22 all year. A real year has a spread.
+    expect(counts.size).toBeGreaterThan(1)
+    for (const n of counts) {
+      expect(n).toBeGreaterThanOrEqual(20)
+      expect(n).toBeLessThanOrEqual(23)
+    }
+  })
+})
+
+describe('professionalTaxKarnataka', () => {
+  it('charges nothing below the exemption limit', () => {
+    expect(professionalTaxKarnataka(24_999)).toBe(0)
+    expect(professionalTaxKarnataka(10_000)).toBe(0)
+  })
+
+  it('charges 200 at and above the limit', () => {
+    expect(professionalTaxKarnataka(25_000)).toBe(200)
+    expect(professionalTaxKarnataka(300_000)).toBe(200)
+  })
+})
+
+describe('labourWelfareFund', () => {
+  it('is taken once a year, in December', () => {
+    expect(labourWelfareFund(12)).toBe(150)
+  })
+
+  it('is nil in every other month', () => {
+    for (const m of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+      expect(labourWelfareFund(m)).toBe(0)
+    }
+  })
+
+  it('is nil when the month is unknown', () => {
+    expect(labourWelfareFund(null)).toBe(0)
+    expect(labourWelfareFund(undefined)).toBe(0)
   })
 })
 
@@ -232,6 +293,42 @@ describe('computeEmployeePayroll', () => {
     // sets those people aside and names them instead.
     expect(r.grossEarnings).toBe(0)
     expect(r.netPay).toBe(0)
+  })
+})
+
+describe('computeEmployeePayroll — Karnataka statutory rules', () => {
+  const withLwf = [
+    component({ component_code: 'BASIC', monthly_amount: 30_000 }),
+    component({
+      component_code: 'LWF', component_type: 'deduction',
+      is_statutory: true, statutory_type: 'lwf', monthly_amount: 0,
+    }),
+  ]
+
+  it('deducts the labour welfare fund in December', () => {
+    const dec = computeEmployeePayroll(30_000, withLwf, [], 22, 0, 22, 12)
+    expect(dec.deductions.find((d) => d.component_code === 'LWF')?.amount).toBe(150)
+  })
+
+  it('does not deduct it in any other month', () => {
+    const nov = computeEmployeePayroll(30_000, withLwf, [], 22, 0, 22, 11)
+    expect(nov.deductions.find((d) => d.component_code === 'LWF')).toBeUndefined()
+  })
+
+  it('exempts a low earner from professional tax', () => {
+    const pt = component({
+      component_code: 'PT', component_type: 'deduction',
+      is_statutory: true, statutory_type: 'pt', monthly_amount: 0,
+    })
+    const low = computeEmployeePayroll(
+      20_000, [component({ component_code: 'BASIC', monthly_amount: 20_000 }), pt], [], 22, 0, 22, 6
+    )
+    expect(low.deductions.find((d) => d.component_code === 'PT')).toBeUndefined()
+
+    const high = computeEmployeePayroll(
+      50_000, [component({ component_code: 'BASIC', monthly_amount: 50_000 }), pt], [], 22, 0, 22, 6
+    )
+    expect(high.deductions.find((d) => d.component_code === 'PT')?.amount).toBe(200)
   })
 })
 

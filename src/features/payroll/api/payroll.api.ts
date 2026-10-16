@@ -14,7 +14,7 @@ import type {
   Payslip,
   PayrollAdjustment,
 } from '@/types/database.types'
-import { computeEmployeePayroll, generatePayslipNumber, generatePayrollCSV, downloadCSV, getMonthName } from '../utils/payroll-utils'
+import { workingDaysInMonth, computeEmployeePayroll, generatePayslipNumber, generatePayrollCSV, downloadCSV, getMonthName } from '../utils/payroll-utils'
 import type { PayrollCSVRow } from '../utils/payroll-utils'
 
 // ============================================
@@ -355,7 +355,41 @@ export async function computePayrollForRun(runId: string, orgId: string) {
     .eq('is_processed', false)
   if (adjError) throw adjError
 
-  const totalWorkingDays = 22 // MVP simplification
+  /**
+   * Working days are the days of the month that are not a Saturday or a
+   * Sunday — August's rule. This was hardcoded to 22, which is right for
+   * roughly no month at all.
+   */
+  const totalWorkingDays = workingDaysInMonth(cycle.payroll_year, cycle.payroll_month)
+
+  /**
+   * Days of unpaid leave in this month, per employee.
+   *
+   * Loss of pay was never applied: the two calls below passed a literal zero.
+   * An approved leave of a type marked unpaid is the defined source for it.
+   *
+   * Absence recorded through attendance is a second possible source and is
+   * deliberately not used — there is no agreed rule yet for when an unmarked
+   * day becomes loss of pay, and guessing one would quietly dock people.
+   */
+  const monthStart = new Date(cycle.payroll_year, cycle.payroll_month - 1, 1)
+  const monthEnd = new Date(cycle.payroll_year, cycle.payroll_month, 0)
+  const asDate = (d: Date) => d.toISOString().slice(0, 10)
+
+  const { data: unpaidLeave, error: lopError } = await supabase
+    .from('leave_requests')
+    .select('employee_id, total_days, leave_type:leave_types!inner(is_paid)')
+    .eq('organization_id', orgId)
+    .eq('status', 'approved')
+    .eq('leave_types.is_paid', false)
+    .lte('start_date', asDate(monthEnd))
+    .gte('end_date', asDate(monthStart))
+  if (lopError) throw lopError
+
+  const lopByEmployee = new Map<string, number>()
+  for (const row of (unpaidLeave ?? []) as Array<{ employee_id: string; total_days: number }>) {
+    lopByEmployee.set(row.employee_id, (lopByEmployee.get(row.employee_id) ?? 0) + Number(row.total_days || 0))
+  }
 
   const runEmployees: Partial<PayrollRunEmployee>[] = []
   const allEarnings: Partial<PayrollEarning>[] = []
@@ -396,13 +430,16 @@ export async function computePayrollForRun(runId: string, orgId: string) {
       statutory_type: cc.salary_component?.statutory_type || null,
     }))
 
+    const lopDays = Math.min(lopByEmployee.get(empId) ?? 0, totalWorkingDays)
+
     const result = computeEmployeePayroll(
       comp.monthly_gross,
       components,
       empAdjustments,
-      totalWorkingDays, // presentDays
-      0, // lopDays
-      totalWorkingDays
+      totalWorkingDays - lopDays, // presentDays
+      lopDays,
+      totalWorkingDays,
+      cycle.payroll_month
     )
 
     const runEmployee: Partial<PayrollRunEmployee> = {
@@ -415,8 +452,8 @@ export async function computePayrollForRun(runId: string, orgId: string) {
       net_pay: result.netPay,
       total_employer_contributions: result.totalEmployerContributions,
       working_days: totalWorkingDays,
-      present_days: totalWorkingDays,
-      lop_days: 0,
+      present_days: totalWorkingDays - lopDays,
+      lop_days: lopDays,
       payroll_status: 'computed',
     }
     runEmployees.push(runEmployee)
@@ -481,13 +518,16 @@ export async function computePayrollForRun(runId: string, orgId: string) {
       statutory_type: cc.salary_component?.statutory_type || null,
     }))
 
+    const lopDays = Math.min(lopByEmployee.get(empId) ?? 0, totalWorkingDays)
+
     const result = computeEmployeePayroll(
       comp.monthly_gross,
       components,
       empAdjustments,
+      totalWorkingDays - lopDays,
+      lopDays,
       totalWorkingDays,
-      0,
-      totalWorkingDays
+      cycle.payroll_month
     )
 
     const earningsToInsert = result.earnings.map((e) => ({

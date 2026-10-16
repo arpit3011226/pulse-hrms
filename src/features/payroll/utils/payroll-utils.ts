@@ -1,4 +1,7 @@
 import {
+  KARNATAKA_PT_EXEMPTION_LIMIT,
+  KARNATAKA_PT_MONTHLY,
+  KARNATAKA_LWF_ANNUAL,
   INDIA_PF_RATE,
   INDIA_ESI_EMPLOYEE_RATE,
   INDIA_ESI_EMPLOYER_RATE,
@@ -23,7 +26,65 @@ export function calculateComponentAmount(
   }
 }
 
-export function calculateStatutoryDeductions(basicMonthly: number, grossMonthly: number) {
+/**
+ * Working days in a month: every day that is not a Saturday or a Sunday.
+ *
+ * This is the denominator for a day's pay, so a day of unpaid leave costs the
+ * same whether the month is long or short. It used to be hardcoded to 22,
+ * which is right for roughly no month at all — a 2026 month ranges from 20 to
+ * 23 working days.
+ *
+ * Declared holidays are NOT excluded. A public holiday is a paid day off, so
+ * taking it out of the denominator would quietly raise the cost of every day
+ * of unpaid leave in that month.
+ *
+ * `month` is 1-12, as it is stored on the payroll cycle.
+ */
+export function workingDaysInMonth(year: number, month: number): number {
+  const days = new Date(year, month, 0).getDate()
+  let count = 0
+  for (let d = 1; d <= days; d++) {
+    const weekday = new Date(year, month - 1, d).getDay()
+    if (weekday !== 0 && weekday !== 6) count++
+  }
+  return count
+}
+
+/**
+ * Professional tax, Karnataka.
+ *
+ * A state levy with a threshold, not a flat charge. Karnataka exempts monthly
+ * salary below 25,000 and charges 200 at or above it.
+ *
+ * Thresholds move with state budgets. If August takes on people outside
+ * Karnataka this needs a per-state table, and the figure should be confirmed
+ * against the current notification rather than trusted here indefinitely.
+ */
+export function professionalTaxKarnataka(grossMonthly: number): number {
+  return grossMonthly >= KARNATAKA_PT_EXEMPTION_LIMIT ? KARNATAKA_PT_MONTHLY : 0
+}
+
+/**
+ * Labour Welfare Fund, Karnataka — taken once a year, in December.
+ *
+ * `month` is 1-12. Nil in every other month.
+ */
+export function labourWelfareFund(month: number | null | undefined): number {
+  return month === 12 ? KARNATAKA_LWF_ANNUAL : 0
+}
+
+/**
+ * The statutory deductions for one month.
+ *
+ * `payrollMonth` (1-12) is needed because labour welfare fund is annual and
+ * falls in December. Leave it out and no LWF is charged, which is the right
+ * answer for any month but December.
+ */
+export function calculateStatutoryDeductions(
+  basicMonthly: number,
+  grossMonthly: number,
+  payrollMonth?: number | null
+) {
   const pfBasic = Math.min(basicMonthly, INDIA_PF_BASIC_LIMIT)
   const pfEmployee = Math.round((pfBasic * INDIA_PF_RATE) / 100)
   const pfEmployer = Math.round((pfBasic * INDIA_PF_RATE) / 100)
@@ -32,9 +93,10 @@ export function calculateStatutoryDeductions(basicMonthly: number, grossMonthly:
   const esiEmployee = esiApplicable ? Math.round((grossMonthly * INDIA_ESI_EMPLOYEE_RATE) / 100) : 0
   const esiEmployer = esiApplicable ? Math.round((grossMonthly * INDIA_ESI_EMPLOYER_RATE) / 100) : 0
 
-  const pt = 200 // Default flat PT
+  const pt = professionalTaxKarnataka(grossMonthly)
+  const lwf = labourWelfareFund(payrollMonth)
 
-  return { pfEmployee, pfEmployer, esiEmployee, esiEmployer, pt }
+  return { pfEmployee, pfEmployer, esiEmployee, esiEmployer, pt, lwf }
 }
 
 export function calculateLopDeduction(
@@ -76,7 +138,9 @@ export function computeEmployeePayroll(
   adjustments: { adjustment_type: string; amount: number; salary_component_id: string | null }[],
   _workingDays: number,
   lopDays: number,
-  totalWorkingDays: number
+  totalWorkingDays: number,
+  /** 1-12. Needed for labour welfare fund, which falls in December. */
+  payrollMonth?: number | null
 ): PayrollComputationResult {
   const earnings: ComponentAmount[] = []
   const deductions: ComponentAmount[] = []
@@ -101,13 +165,14 @@ export function computeEmployeePayroll(
 
     // Override statutory amounts with actual calculations
     if (comp.is_statutory && comp.statutory_type) {
-      const statutory = calculateStatutoryDeductions(basicAmount, effectiveGross)
+      const statutory = calculateStatutoryDeductions(basicAmount, effectiveGross, payrollMonth)
       switch (comp.statutory_type) {
         case 'pf_employee': amount = statutory.pfEmployee; break
         case 'pf_employer': amount = statutory.pfEmployer; break
         case 'esi_employee': amount = statutory.esiEmployee; break
         case 'esi_employer': amount = statutory.esiEmployer; break
         case 'pt': amount = statutory.pt; break
+        case 'lwf': amount = statutory.lwf; break
         case 'tds': amount = comp.monthly_amount; break // TDS entered manually
       }
     }

@@ -248,13 +248,78 @@ reportable**, not optional.
 
 ---
 
+## QA-20 — The statutory calculations were unreachable · P1 · FIXED
+
+**Module** Payroll **Fixed in** migration 00065
+
+`computeEmployeePayroll` only calculates PF, ESI and professional tax when the
+component carries a `statutory_type`:
+
+```js
+if (comp.is_statutory && comp.statutory_type) { ...calculate... }
+```
+
+**Every statutory component had `statutory_type` NULL.** The condition never
+held. PF, PT and TDS all fell through to whatever flat amount had been typed
+onto the component, and the 12%, the ₹15,000 cap and the ₹21,000 ESI threshold
+were all dead code.
+
+**Fix** The field is filled in, which makes the existing calculation work.
+Nothing in the application changed shape — the code was always ready for it.
+
+**Also added**, both statutory and both missing entirely: Labour Welfare Fund,
+and ESI for employee and employer. Without the component, the deduction simply
+never happens.
+
+---
+
+## QA-18 — Loss of pay is never applied · P1 · FIXED
+
+**Module** Payroll **Fixed in** `payroll.api.ts` and `payroll-utils.ts`
+
+`computePayrollForRun` passed `lopDays = 0` as a literal and hardcoded
+`totalWorkingDays = 22` with the comment "MVP simplification". Attendance and
+unpaid leave had no effect on pay at all.
+
+**Fix, to the rule you gave:** a working month is every day that is not a
+Saturday or a Sunday. 2026 ranges from 20 to 23 working days, so the hardcoded
+22 was wrong for seven months out of twelve — verified against Python's own
+calendar, not just against our code.
+
+Loss of pay is taken from **approved leave of a type marked unpaid**,
+overlapping the payroll month. Absence recorded through attendance is a second
+possible source and is deliberately not used: there is no agreed rule yet for
+when an unmarked day becomes loss of pay, and guessing one would quietly dock
+people.
+
+Declared holidays are **not** excluded from the working-day count. A public
+holiday is a paid day off, so removing it from the denominator would quietly
+raise the cost of every day of unpaid leave in that month.
+
+---
+
+## QA-17 — Professional tax was a flat ₹200 · P2 · FIXED
+
+**Module** Payroll **Fixed in** `payroll-utils.ts`
+
+Now the Karnataka threshold: nil below ₹25,000 a month, ₹200 at or above it.
+Labour Welfare Fund of ₹150 is taken once a year, in December, per your rule.
+
+**Caveat worth keeping:** state thresholds move with budgets, and the LWF
+figure in particular should be confirmed against the current Karnataka
+notification — the employee share has historically been lower than ₹150. Both
+values sit together in `src/lib/constants.ts` so they are changed in one
+place. If August takes on anybody outside Karnataka, professional tax needs a
+per-state table.
+
+---
+
 ## Open
 
 | ID | Defect | Severity | Note |
 |---|---|---|---|
 | QA-15 | Salary component dropdown reported missing | Unknown | **Closed — will not action** at your request |
-| QA-17 | Flat professional tax | P2 | Needs the state slabs |
-| QA-18 | Loss of pay never applied | P1 | Needs a business rule, then a feature |
+
 | QA-19 | One cached document URL still served by the CDN | P1 residual | Origin closed. Purge from the dashboard, or wait for the entry to expire |
 
 ## Needs business decision
