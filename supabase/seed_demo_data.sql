@@ -557,5 +557,36 @@ BEGIN
     AND NOT EXISTS (SELECT 1 FROM employee_bank_accounts ba WHERE ba.employee_id = e.id)
   ON CONFLICT DO NOTHING;
 
+  -- ── Mentor profiles ───────────────────────────────────────────────────
+  -- Without a few of these the Find a Mentor tab is empty, and an empty
+  -- directory reads exactly like a broken one — which is how a real fault
+  -- there went unnoticed for so long.
+  INSERT INTO mentor_profiles (employee_id, organization_id, is_accepting, headline, about, focus_areas, max_mentees)
+  SELECT e.id, e.organization_id, v.accepting, v.headline, v.about, v.areas, v.max_mentees
+  FROM (VALUES
+    ('EMP-0016', true,
+     'Twenty years of running operations, mostly by making fewer decisions',
+     'I have built and rebuilt teams through two reorganisations. Most useful on the awkward parts: telling somebody they are not ready, disagreeing with your own manager in public, and deciding what not to do. Not the right person for deep technical work.',
+     ARRAY['Leadership','Stakeholder management','Handling difficult conversations','Giving feedback to your manager'], 3),
+    ('EMP-0015', true,
+     'Engineer who became a manager and nearly went back',
+     'The first year of managing was harder than any system I have built. Happy to talk through whether you actually want the job, what changes, and what you give up. Also run hiring for the team, so I can help with interviews from either side.',
+     ARRAY['Moving into management','People management','Hiring and interviewing','Career planning'], 2),
+    ('EMP007', true,
+     'Tech lead — the technical side, and the bit where you have to explain it',
+     'I spend as much time writing documents as code now. Good for technical depth, design reviews, and for the moment you realise being right is not the same as being persuasive.',
+     ARRAY['Technical depth','Communication','Working across teams','Presenting to a room'], 2),
+    ('EMP-0013', true,
+     'HR, but the practical half of it',
+     'Performance conversations, career planning, and what to do when the process does not fit your situation. I would rather you came early than tidy.',
+     ARRAY['Performance management','Career planning','Giving feedback to your manager'], 3),
+    ('EMP008', false,
+     'Marketing, brand, and talking to customers without jargon',
+     'Currently full, but ask anyway and I will say when a slot opens. Best on positioning, client conversations and presenting to people who do not share your context.',
+     ARRAY['Client handling','Presenting to a room','Communication'], 2)
+  ) AS v(code, accepting, headline, about, areas, max_mentees)
+  JOIN employees e ON e.employee_code = v.code AND e.organization_id = v_org_id
+  WHERE NOT EXISTS (SELECT 1 FROM mentor_profiles mp WHERE mp.employee_id = e.id);
+
   RAISE NOTICE 'Demo data seeded successfully! Org: %, Employees: 10', v_org_id;
 END $$;

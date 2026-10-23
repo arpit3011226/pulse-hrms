@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Loader2, X } from 'lucide-react'
+import { Loader2, X, Plus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { MENTORING_AREAS } from '@/lib/constants'
 import { Switch } from '@/components/ui/switch'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -119,7 +120,31 @@ function MentorProfileForm({
 
           <div className="space-y-1.5">
             <Label>Areas</Label>
-            <div className="flex gap-2">
+            <p className="text-xs text-muted-foreground">
+              Pick what you can genuinely help with. These are what people search
+              and filter on, so the closer they are the better the match.
+            </p>
+            {/*
+              These used to be typed in free hand, so "Leadership", "leadership"
+              and "Leading teams" never grouped and the directory could only be
+              searched by name. Picking from a shared list fixes that; the box
+              below still takes anything the list does not cover.
+            */}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {MENTORING_AREAS.filter((a) => !areas.includes(a)).map((a) => (
+                <Button
+                  key={a}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 rounded-full text-xs font-normal"
+                  onClick={() => setAreas((prev) => [...prev, a])}
+                >
+                  <Plus className="mr-1 h-3 w-3" /> {a}
+                </Button>
+              ))}
+            </div>
+            <div className="flex gap-2 pt-1">
               <Input
                 value={areaDraft}
                 onChange={(e) => setAreaDraft(e.target.value)}
@@ -129,7 +154,7 @@ function MentorProfileForm({
                     addArea()
                   }
                 }}
-                placeholder="e.g. Client handling"
+                placeholder="Something else you can help with"
                 maxLength={40}
               />
               <Button variant="outline" onClick={addArea} disabled={!areaDraft.trim()}>

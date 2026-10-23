@@ -46,6 +46,36 @@ export const DEFAULT_ORG_SETTINGS: OrganizationSettings = {
   week_start_day: 1,
 }
 
+/**
+ * What a mentor can help with.
+ *
+ * Focus areas used to be typed in free hand, one at a time, so "Leadership",
+ * "leadership" and "Leading teams" were three different things and the
+ * directory could never group anybody. HR asked for a directory built on
+ * skills and experience rather than on names, which needs a shared list.
+ *
+ * Mentors can still type something that is not here — the list is a starting
+ * point, not a cage — but anything picked from it groups and filters properly.
+ */
+export const MENTORING_AREAS = [
+  'Leadership',
+  'Moving into management',
+  'People management',
+  'Performance management',
+  'Giving feedback to your manager',
+  'Handling difficult conversations',
+  'Project management',
+  'Stakeholder management',
+  'Working across teams',
+  'Client handling',
+  'Communication',
+  'Presenting to a room',
+  'Career planning',
+  'Time management and priorities',
+  'Hiring and interviewing',
+  'Technical depth',
+] as const
+
 export const EMPLOYMENT_TYPES = [
   { value: 'full_time', label: 'Full Time' },
   { value: 'part_time', label: 'Part Time' },

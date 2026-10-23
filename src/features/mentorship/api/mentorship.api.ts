@@ -11,18 +11,35 @@ import { createBulkNotifications } from '@/features/resignation/api/notification
  */
 
 const PAIR_SELECT =
-  '*, mentee:employees!mentorships_mentee_id_fkey(id, first_name, last_name, employee_code, designation:designations(title), department:departments(name)), mentor:employees!mentorships_mentor_id_fkey(id, first_name, last_name, employee_code, designation:designations(title), department:departments(name))'
+  '*, mentee:employees!mentorships_mentee_id_fkey(id, first_name, last_name, employee_code, designation:designations(title), department:departments!employees_department_id_fkey(name)), mentor:employees!mentorships_mentor_id_fkey(id, first_name, last_name, employee_code, designation:designations(title), department:departments!employees_department_id_fkey(name))'
 
 const REQUEST_SELECT =
-  '*, mentee:employees!mentorship_requests_mentee_id_fkey(id, first_name, last_name, employee_code, designation:designations(title), department:departments(name)), mentor:employees!mentorship_requests_mentor_id_fkey(id, first_name, last_name, employee_code)'
+  '*, mentee:employees!mentorship_requests_mentee_id_fkey(id, first_name, last_name, employee_code, designation:designations(title), department:departments!employees_department_id_fkey(name)), mentor:employees!mentorship_requests_mentor_id_fkey(id, first_name, last_name, employee_code)'
 
 // ── Mentor profiles ─────────────────────────────────────────────────────────
 
 /** Everyone who has offered to mentor, with how many mentees they are carrying. */
+/**
+ * Departments are embedded through an explicit foreign key.
+ *
+ * There are two ways employees and departments are joined — an employee
+ * belongs to a department, and a department has a head who is an employee.
+ * Asked for plain `departments(...)` under an employee, PostgREST cannot
+ * choose between them and refuses the whole query:
+ *
+ *   PGRST201 — Could not embed because more than one relationship was found
+ *              for 'employees' and 'departments'
+ *
+ * Every mentorship read did this, so the pairs list, the requests list and
+ * the mentor directory all threw. Nothing surfaced: the directory simply
+ * said "Nobody has offered to mentor yet", which it would have said with a
+ * hundred mentors on the books. That is why mentors could only be found by
+ * name.
+ */
 export async function getMentorDirectory(orgId: string) {
   const { data, error } = await supabase
     .from('mentor_profiles')
-    .select('*, employee:employees(id, first_name, last_name, employee_code, designation:designations(title), department:departments(name))')
+    .select('*, employee:employees(id, first_name, last_name, employee_code, designation:designations(title), department:departments!employees_department_id_fkey(name))')
     .eq('organization_id', orgId)
   if (error) throw error
 

@@ -35,6 +35,7 @@ export function FindMentorTab({
   const { data: directory, isLoading } = useMentorDirectory()
   const { data: employees } = useEmployees()
   const [query, setQuery] = useState('')
+  const [area, setArea] = useState<string | null>(null)
   const [target, setTarget] = useState<MentorshipPerson | null>(null)
 
   const volunteers = (directory ?? []) as unknown as MentorProfileRow[]
@@ -43,11 +44,27 @@ export function FindMentorTab({
     [volunteers]
   )
 
+  /**
+   * Only the areas somebody actually offers. Listing all sixteen when two are
+   * covered would send people down dead ends.
+   */
+  const offeredAreas = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const v of volunteers) {
+      // Your own profile is not in the list below, so it must not be counted
+      // here either — otherwise a chip says 2 and then shows one person.
+      if (v.employee_id === myEmployeeId) continue
+      for (const a of v.focus_areas ?? []) counts.set(a, (counts.get(a) ?? 0) + 1)
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+  }, [volunteers, myEmployeeId])
+
   const q = query.trim().toLowerCase()
 
   const matchingVolunteers = useMemo(() => {
     return volunteers.filter((v) => {
       if (v.employee_id === myEmployeeId) return false
+      if (area && !(v.focus_areas ?? []).includes(area)) return false
       if (!q) return true
       const person = one(v.employee as unknown) as MentorshipPerson | undefined
       const haystack = [
@@ -57,7 +74,7 @@ export function FindMentorTab({
       ].join(' ').toLowerCase()
       return haystack.includes(q)
     })
-  }, [volunteers, q, myEmployeeId])
+  }, [volunteers, q, area, myEmployeeId])
 
   // Only offered once someone searches, so the page opens on the volunteers
   // rather than on a list of everybody in the company.
@@ -107,6 +124,38 @@ export function FindMentorTab({
         />
       </div>
 
+      {/*
+        Browsing by what someone can help with, rather than only by name. HR's
+        note was that mentors could be picked by name alone, with nothing to
+        judge the choice on.
+      */}
+      {offeredAreas.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Button
+            type="button"
+            variant={area === null ? 'secondary' : 'ghost'}
+            size="sm"
+            className="h-7 rounded-full text-xs"
+            onClick={() => setArea(null)}
+          >
+            All areas
+          </Button>
+          {offeredAreas.map(([name, count]) => (
+            <Button
+              key={name}
+              type="button"
+              variant={area === name ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 rounded-full text-xs font-normal"
+              onClick={() => setArea(area === name ? null : name)}
+            >
+              {name}
+              <span className="pl-1.5 text-muted-foreground">{count}</span>
+            </Button>
+          ))}
+        </div>
+      )}
+
       <div>
         <h3 className="pb-3 text-sm font-medium">
           Offering to mentor
@@ -119,7 +168,7 @@ export function FindMentorTab({
 
         {matchingVolunteers.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            {q
+            {q || area
               ? 'Nobody offering to mentor matches that.'
               : 'Nobody has offered to mentor yet. You can still ask anyone — search for them by name.'}
           </p>
