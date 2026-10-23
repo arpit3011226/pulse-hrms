@@ -519,7 +519,22 @@ export const ADJUSTMENT_TYPES = [
 // trusting these indefinitely.
 export const KARNATAKA_PT_EXEMPTION_LIMIT = 25000
 export const KARNATAKA_PT_MONTHLY = 200
-export const KARNATAKA_LWF_ANNUAL = 150
+/**
+ * Karnataka labour welfare fund, taken once a year in December.
+ *
+ * 50 from the employee and 100 from the employer. Pulse had 150 as the
+ * employee's share, which is the *combined* figure — the two were added
+ * together and the whole lot deducted from the employee. Everybody was
+ * losing an extra 100 a year, and the employer's own share was not being
+ * recorded at all.
+ *
+ * The state adds a further 50 of its own, which is not ours to account for.
+ *
+ * Rates are revised by the Welfare Board from time to time, so check the
+ * current notification before each December run.
+ */
+export const KARNATAKA_LWF_EMPLOYEE = 50
+export const KARNATAKA_LWF_EMPLOYER = 100
 
 export const INDIA_PF_RATE = 12
 export const INDIA_ESI_EMPLOYEE_RATE = 0.75

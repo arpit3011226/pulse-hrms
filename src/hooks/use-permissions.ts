@@ -88,6 +88,23 @@ export function usePermissions() {
       canViewPayroll: useNew ? canRead(levels, 'payroll_processing') : legacyHas('view_payroll'),
       canManagePayroll: useNew ? canManage(levels, 'payroll_processing') : legacyHas('manage_payroll'),
 
+      /**
+       * Actually running a payroll — computing it, generating payslips,
+       * publishing them.
+       *
+       * Deliberately narrower than canManagePayroll, and it mirrors the
+       * database exactly: payroll_earnings, payroll_deductions and payslips
+       * are writable only by a payroll admin or a super admin. HR may set up
+       * a cycle and manage compensation; HR may not compute the money. That
+       * is a segregation of duties and the policies already said so.
+       *
+       * Before this, HR was shown the Compute button and the run half
+       * completed — the per-employee totals went in, every earning and
+       * deduction line was refused, and the result looked finished while
+       * every payslip behind it was empty.
+       */
+      canRunPayroll: role === 'payroll_admin' || role === 'super_admin',
+
       // ── Recruitment ──
       canManageRecruitment: useNew ? canManage(levels, 'recruitment_jobs') : legacyHas('manage_recruitment'),
       canViewCandidates: useNew

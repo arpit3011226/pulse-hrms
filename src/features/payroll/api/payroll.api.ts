@@ -538,6 +538,20 @@ export async function computePayrollForRun(runId: string, orgId: string) {
     .select()
   if (insertEmpError) throw insertEmpError
 
+  /**
+   * Everything from here on is undone if any of it fails.
+   *
+   * There is no transaction across these calls, so a failure part way used to
+   * leave the per-employee rows behind with the run still marked draft. The
+   * totals looked right, every payslip behind them was empty, and pressing
+   * Compute again added a second set of rows on top of the first.
+   *
+   * It is not hypothetical: payroll_earnings is writable only by a payroll
+   * admin, so an HR admin pressing Compute got exactly this — eleven rows of
+   * totals and not one line of detail.
+   */
+  try {
+
   // 7. For each employee: bulk insert payroll_earnings and payroll_deductions
   for (let i = 0; i < activeCompensations.length; i++) {
     const comp = activeCompensations[i]
@@ -635,6 +649,13 @@ export async function computePayrollForRun(runId: string, orgId: string) {
     })
     .eq('id', runId)
   if (updateRunError) throw updateRunError
+
+  } catch (err) {
+    // Put the run back exactly as it was, so Compute can be pressed again
+    // without stacking a second set of rows on the first.
+    await supabase.from('payroll_run_employees').delete().eq('payroll_run_id', runId)
+    throw err
+  }
 
   // 9. Mark adjustments as processed
   const adjustmentIds = (adjustments || []).map((a) => a.id)

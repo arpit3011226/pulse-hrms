@@ -3,6 +3,7 @@ import {
   workingDaysInMonth,
   professionalTaxKarnataka,
   labourWelfareFund,
+  labourWelfareFundEmployer,
   calculateComponentAmount,
   calculateLopDeduction,
   calculateStatutoryDeductions,
@@ -100,7 +101,7 @@ describe('calculateStatutoryDeductions', () => {
   })
 
   it('charges labour welfare fund only in December', () => {
-    expect(calculateStatutoryDeductions(20_000, 50_000, 12).lwf).toBe(150)
+    expect(calculateStatutoryDeductions(20_000, 50_000, 12).lwf).toBe(50)
     expect(calculateStatutoryDeductions(20_000, 50_000, 11).lwf).toBe(0)
     expect(calculateStatutoryDeductions(20_000, 50_000).lwf).toBe(0)
   })
@@ -145,8 +146,15 @@ describe('professionalTaxKarnataka', () => {
 })
 
 describe('labourWelfareFund', () => {
+  // 50 from the employee, 100 from the employer. Pulse used to deduct the
+  // pair of them, 150, from the employee alone.
   it('is taken once a year, in December', () => {
-    expect(labourWelfareFund(12)).toBe(150)
+    expect(labourWelfareFund(12)).toBe(50)
+  })
+
+  it('charges the employer their own share, not the employee', () => {
+    expect(labourWelfareFundEmployer(12)).toBe(100)
+    expect(labourWelfareFundEmployer(11)).toBe(0)
   })
 
   it('is nil in every other month', () => {
@@ -312,7 +320,7 @@ describe('computeEmployeePayroll — Karnataka statutory rules', () => {
 
   it('deducts the labour welfare fund in December', () => {
     const dec = computeEmployeePayroll(30_000, withLwf, [], 22, 0, 22, 12)
-    expect(dec.deductions.find((d) => d.component_code === 'LWF')?.amount).toBe(150)
+    expect(dec.deductions.find((d) => d.component_code === 'LWF')?.amount).toBe(50)
   })
 
   it('does not deduct it in any other month', () => {
@@ -348,7 +356,7 @@ describe('withStatutoryComponents', () => {
     component({ component_code: 'PF_EMP', component_type: 'deduction', is_statutory: true, statutory_type: 'pf_employee' }),
     component({ component_code: 'PF_ER', component_type: 'employer_contribution', is_statutory: true, statutory_type: 'pf_employer' }),
     component({ component_code: 'PT', component_type: 'deduction', is_statutory: true, statutory_type: 'pt' }),
-    component({ component_code: 'LWF', component_type: 'deduction', is_statutory: true, statutory_type: 'lwf', monthly_amount: 150 }),
+    component({ component_code: 'LWF', component_type: 'deduction', is_statutory: true, statutory_type: 'lwf', monthly_amount: 50 }),
     component({ component_code: 'TDS', component_type: 'deduction', is_statutory: true, statutory_type: 'tds', monthly_amount: 5_000 }),
   ]
 
@@ -387,7 +395,7 @@ describe('computeEmployeePayroll — statutory deductions are not optional', () 
   const orgStatutory = [
     component({ component_code: 'PF_EMP', component_type: 'deduction', is_statutory: true, statutory_type: 'pf_employee' }),
     component({ component_code: 'PT', component_type: 'deduction', is_statutory: true, statutory_type: 'pt' }),
-    component({ component_code: 'LWF', component_type: 'deduction', is_statutory: true, statutory_type: 'lwf', monthly_amount: 150 }),
+    component({ component_code: 'LWF', component_type: 'deduction', is_statutory: true, statutory_type: 'lwf', monthly_amount: 50 }),
   ]
 
   // Exactly the demo employees who came out of the December run untouched:
@@ -407,8 +415,25 @@ describe('computeEmployeePayroll — statutory deductions are not optional', () 
 
   it('takes the Karnataka labour welfare fund in December', () => {
     const r = computeEmployeePayroll(64_000, earningsOnly, [], 23, 0, 23, 12, orgStatutory)
-    expect(r.totalDeductions).toBe(2_150)  // PF 1,800 + PT 200 + LWF 150
-    expect(r.netPay).toBe(61_850)
+    // The employee pays 50, not 150. 150 is the employee and the employer
+    // added together, and deducting the pair from one side cost everybody
+    // an extra 100 a year.
+    expect(r.totalDeductions).toBe(2_050)  // PF 1,800 + PT 200 + LWF 50
+    expect(r.netPay).toBe(61_950)
+  })
+
+  it('does not charge the employer share to the employee', () => {
+    const withEmployerLwf = [
+      ...orgStatutory,
+      component({
+        component_code: 'LWF_ER', component_type: 'employer_contribution',
+        is_statutory: true, statutory_type: 'lwf_employer',
+      }),
+    ]
+    const r = computeEmployeePayroll(64_000, earningsOnly, [], 23, 0, 23, 12, withEmployerLwf)
+    expect(r.deductions.find((d) => d.component_code === 'LWF_ER')).toBeUndefined()
+    expect(r.totalDeductions).toBe(2_050)
+    expect(r.totalEmployerContributions).toBe(100)
   })
 
   it('still pays nothing extra when the employee already has the components', () => {
@@ -420,7 +445,7 @@ describe('computeEmployeePayroll — statutory deductions are not optional', () 
     const r = computeEmployeePayroll(64_000, withPf, [], 23, 0, 23, 12, orgStatutory)
     // One PF line and one PT line, not two of each.
     expect(r.deductions.filter((d) => d.component_code === 'PF_EMP')).toHaveLength(1)
-    expect(r.totalDeductions).toBe(2_150)
+    expect(r.totalDeductions).toBe(2_050)
   })
 
   it('charges no professional tax below the Karnataka threshold', () => {
@@ -501,7 +526,7 @@ describe('computeEmployeePayroll — contractors and interns', () => {
     component({ component_code: 'PF_EMP', component_type: 'deduction', is_statutory: true, statutory_type: 'pf_employee' }),
     component({ component_code: 'PF_ER', component_type: 'employer_contribution', is_statutory: true, statutory_type: 'pf_employer' }),
     component({ component_code: 'PT', component_type: 'deduction', is_statutory: true, statutory_type: 'pt' }),
-    component({ component_code: 'LWF', component_type: 'deduction', is_statutory: true, statutory_type: 'lwf', monthly_amount: 150 }),
+    component({ component_code: 'LWF', component_type: 'deduction', is_statutory: true, statutory_type: 'lwf', monthly_amount: 50 }),
     component({ component_code: 'TDS_CONTRACTOR', component_type: 'deduction', is_statutory: true, statutory_type: 'tds_contractor' }),
   ]
 
@@ -563,7 +588,7 @@ describe('computeEmployeePayroll — contractors and interns', () => {
 
   it('still takes it from a part-time employee, who is on the rolls', () => {
     const r = computeEmployeePayroll(70_000, earningsOnly, [], 23, 0, 23, 12, orgStatutory, 'part_time')
-    expect(r.deductions.find((d) => d.component_code === 'LWF')?.amount).toBe(150)
+    expect(r.deductions.find((d) => d.component_code === 'LWF')?.amount).toBe(50)
     expect(r.deductions.find((d) => d.component_code === 'PT')?.amount).toBe(200)
   })
 })

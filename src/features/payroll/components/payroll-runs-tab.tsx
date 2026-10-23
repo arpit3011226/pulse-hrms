@@ -131,7 +131,7 @@ function ApprovalStatusBadge({ status }: { status?: string }) {
 // --------------------------------------------------
 
 export function PayrollRunsTab() {
-  const { canManagePayroll, isAdmin, isHR, role } = usePermissions()
+  const { canManagePayroll, canRunPayroll, isAdmin, isHR, role } = usePermissions()
   const currentYear = new Date().getFullYear()
 
   // State
@@ -509,7 +509,12 @@ export function PayrollRunsTab() {
         const run = row.original
         return (
           <div className="flex items-center gap-1">
-            {run.run_status === 'draft' && canManagePayroll && (
+            {/*
+              canRunPayroll, not canManagePayroll: the earning and deduction
+              lines are writable only by a payroll admin. HR used to be shown
+              this and the run half completed.
+            */}
+            {run.run_status === 'draft' && canRunPayroll && (
               <Button
                 variant="outline"
                 size="sm"
@@ -533,7 +538,7 @@ export function PayrollRunsTab() {
                   <Eye className="mr-1 h-3 w-3" />
                   Details
                 </Button>
-                {canManagePayroll && (
+                {canRunPayroll && (
                   <>
                     <Button
                       variant="outline"

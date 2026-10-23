@@ -1,7 +1,8 @@
 import {
   KARNATAKA_PT_EXEMPTION_LIMIT,
   KARNATAKA_PT_MONTHLY,
-  KARNATAKA_LWF_ANNUAL,
+  KARNATAKA_LWF_EMPLOYEE,
+  KARNATAKA_LWF_EMPLOYER,
   INDIA_PF_RATE,
   INDIA_ESI_EMPLOYEE_RATE,
   INDIA_ESI_EMPLOYER_RATE,
@@ -68,12 +69,21 @@ export function professionalTaxKarnataka(grossMonthly: number): number {
 }
 
 /**
- * Labour Welfare Fund, Karnataka — taken once a year, in December.
+ * Labour welfare fund, Karnataka — taken once a year, in December.
+ *
+ * The employee pays 50 and the employer pays 100. Pulse used to deduct 150
+ * from the employee, which is the two added together, so everybody lost an
+ * extra 100 a year and the employer's share was never recorded.
  *
  * `month` is 1-12. Nil in every other month.
  */
 export function labourWelfareFund(month: number | null | undefined): number {
-  return month === 12 ? KARNATAKA_LWF_ANNUAL : 0
+  return month === 12 ? KARNATAKA_LWF_EMPLOYEE : 0
+}
+
+/** The employer's own share of the same fund. Not deducted from anybody. */
+export function labourWelfareFundEmployer(month: number | null | undefined): number {
+  return month === 12 ? KARNATAKA_LWF_EMPLOYER : 0
 }
 
 /**
@@ -150,9 +160,10 @@ export function calculateStatutoryDeductions(
   const covered = isStatutoryEmployee(employmentType)
   const pt = covered ? professionalTaxKarnataka(grossMonthly) : 0
   const lwf = covered ? labourWelfareFund(payrollMonth) : 0
+  const lwfEmployer = covered ? labourWelfareFundEmployer(payrollMonth) : 0
   const tdsContractor = contractorTds(grossMonthly, employmentType)
 
-  return { pfEmployee, pfEmployer, esiEmployee, esiEmployer, pt, lwf, tdsContractor }
+  return { pfEmployee, pfEmployer, esiEmployee, esiEmployer, pt, lwf, lwfEmployer, tdsContractor }
 }
 
 /**
@@ -182,6 +193,7 @@ const ALWAYS_APPLIED_STATUTORY = new Set([
   'esi_employer',
   'pt',
   'lwf',
+  'lwf_employer',
 ])
 
 /**
@@ -198,6 +210,7 @@ const EMPLOYEE_ONLY_STATUTORY = new Set([
   'pf_employer',
   'pt',
   'lwf',
+  'lwf_employer',
 ])
 
 function appliesToEngagement(statutoryType: string, employmentType?: string | null): boolean {
@@ -339,6 +352,7 @@ export function computeEmployeePayroll(
         case 'esi_employer': amount = statutory.esiEmployer; break
         case 'pt': amount = statutory.pt; break
         case 'lwf': amount = statutory.lwf; break
+        case 'lwf_employer': amount = statutory.lwfEmployer; break
         case 'tds_contractor': amount = statutory.tdsContractor; break
         case 'tds': amount = comp.monthly_amount; break // TDS entered manually
       }
