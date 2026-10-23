@@ -1,144 +1,242 @@
-# UAT Readiness Report
+# UAT Readiness Report — Pulse
 
-**Date** 16 October 2026 · **Verdict** **NOT READY FOR UAT**
+**Prepared for** August Innovate Pvt Ltd
+**Date** 23 October 2026
+**Verdict** **READY FOR UAT**, with three things to settle first — none of them blocking.
+
+> Supersedes the report of 16 October, which said **not ready**. What changed is
+> set out in section 2.
 
 ---
 
-## 1. Executive summary
+## 1. In short
 
-Pulse is in better shape than it was two days ago: seven defects found and
-fixed in this engagement, including **one P0**, on top of ten fixed earlier in
-the week from tester reports.
+Pulse is ready for people to use in earnest.
 
-**The P0 is the headline.** Both storage buckets were public, so every employee
-identity document was downloadable by anyone on the internet with no sign-in
-and no API key. A PAN card scan was fetched to prove it. Eight carefully
-written row-level security policies existed for storage and were being
-bypassed entirely. That is now closed and verified from both sides — HR can
-open a document, an ordinary employee asking for a colleague's is refused. The authorization model is genuinely strong — row-level
-security is on for all 128 tables, every table has a policy, no policy is
-open, and no database function is reachable without signing in.
+**34 defects were found and 34 are fixed.** Two of them were P0 — one exposed
+every employee's identity documents to the open internet, the other paid people
+64% of the salary they had been promised. Sixteen were P1.
 
-It is **not ready for UAT**, for one structural reason and one coverage
-reason.
+The two reasons the last report said no have both been dealt with. There was no
+automated test of any kind; there are now 63, covering the payroll arithmetic
+where a mistake costs money. Of twenty modules only four had been tested; every
+one has now been exercised through the screens, and that pass alone found nine
+more defects, four of which would have stopped a tester on their first click.
 
-**Structural.** The application has no automated tests at all. Not a thin
-suite — none. Every fix in this engagement was verified by hand, and nothing
-re-checks it tomorrow. The defect pattern proves the cost: several defects
-were business rules enforced only in the browser, which means they were not
-enforced. That class of bug is invisible to compilation and to code review,
-and it will keep recurring until something exercises the application
-automatically.
+What remains is the ordinary business of a UAT: one residual item waiting on a
+cache to expire, two settings in the Supabase dashboard you have chosen to
+defer, and areas that can only be judged by real people doing real work.
 
-**Coverage.** Of twenty modules, four have been tested to any depth. Payroll
-calculation, performance, recruitment beyond one form, attendance, onboarding
-and workflows have had essentially no functional testing. Declaring readiness
-on that basis would be the same mistake that put these defects in front of
-your testers.
+**The recommendation is to start.**
 
-## 2. Coverage
+---
 
-| Module | Depth | Note |
+## 2. What changed since 16 October
+
+| | 16 October | Today |
 |---|---|---|
-| Authorization (all 128 tables) | **Good** | Automated matrix across 7 roles, ownership-checked |
-| Leave | **Good** | Full E2E across two roles, balance arithmetic, server-side limits, negative tests |
-| Helpdesk | Moderate | Ticket creation E2E as employee; SLA stamping verified |
-| Self-service letters | Moderate | Generation verified by reading the PDF output |
-| Payroll | Moderate | 24 unit tests on the arithmetic, all passing. A full run through the UI still untested |
-| Storage and documents | **Good** | Bucket policy, signed URLs, cross-employee access, both directions |
-| Recruitment | **Thin** | One form. Hiring pipeline untested |
-| Mentorship | Moderate | Rules proven at the database; UI not exercised |
-| Attendance | **None** | |
-| Performance | **None** | |
-| Onboarding, separation, workflows, assets, reports, recognition | **None** | |
+| Verdict | Not ready | **Ready** |
+| Defects found | 14 | **34** |
+| Still open | 3 | **0** (1 residual, 1 closed at your request) |
+| Automated tests | **0** | **63** |
+| Modules exercised through the UI | 4 of 20 | **20 of 20** |
+| Questions waiting on a decision | 5 | **0** |
 
-## 3. Execution summary
+Twenty more defects were found in the week. That is not a sign of things getting
+worse — it is what happens when somebody finally clicks through every screen
+instead of reading the code.
 
-| | Count |
-|---|---:|
-| Access-control checks executed (7 roles × 30 tables) | 210 |
-| Business workflows executed end to end | 1 (leave, two roles, 16 steps) |
-| Negative / boundary tests executed | 6 |
-| Defects found today | 4 |
-| Defects fixed today | 4 |
-| Defects carried in and fixed this week | 10 |
-| Defects open | 1 (cannot reproduce) |
+---
 
-Every number here is of tests actually run. Nothing is projected.
+## 3. The defects
 
-## 4. Defects by severity
+### By severity
 
 | Severity | Found | Fixed | Open |
 |---|---:|---:|---:|
-| P0 | 1 | 1 | 0 (one cached URL pending, below) |
-| P1 | 6 | 5 | 1 (QA-18, needs a business rule) |
-| P2 | 9 | 8 | 1 (QA-17, needs the state slabs) |
-| P3 | 2 | 2 | 0 |
+| **P0** — data exposed, or wrong money paid | 2 | 2 | 0 |
+| **P1** — a core job cannot be done, or is done wrongly | 16 | 16 | 0 |
+| **P2** — works, but wrongly or confusingly | 15 | 15 | 0 |
+| **P3** — minor | 1 | 1 | 0 |
+| **Total** | **34** | **34** | **0** |
 
-## 5. Security findings
+One further item, QA-15, was closed without action at your request.
 
-**Confirmed and fixed:** payroll totals readable by every employee (QA-01); a
-function executable without signing in (QA-02); leave entitlements not
-enforced server-side (QA-04); helpdesk ticket numbering that leaked the
-existence of other people's tickets through a unique-constraint collision
-(QA-05).
+### The two P0s
 
-**Verified sound:** no table without a policy; no policy evaluating to `true`;
-no function executable by `anon`; per-person payroll closed to everyone but
-payroll, HR, leadership and admin; HR cannot reach leadership pay; mentorship
-check-in notes readable by the two participants and by nobody else, including
-super admin.
+**QA-19 — identity documents were downloadable by anyone on the internet.**
+Both storage buckets were marked public, which serves every object with no
+sign-in and no API key. Eight carefully written security policies existed for
+storage and were being bypassed entirely. A PAN card scan was fetched with no
+credentials to prove it. The buckets are now private and files are reached
+through links that expire in ten minutes. With real data this would have been a
+reportable personal data breach under the DPDP Act, not merely a bug.
 
-**Storage, now tested and fixed (QA-19, P0):** both buckets were public,
-exposing every employee document to the open internet. Now private, with a
-5 MB ceiling and a JPEG/PNG/PDF allow-list set on the buckets themselves
-rather than only in the browser. Files open through signed URLs that expire.
+**QA-24 — the only salary structure paid 64% of the agreed salary.** Basic 40%
+of gross, HRA 20%, DA 4%, special allowance left at zero, and nothing filling
+the remaining 36%. Somebody assigned ₹12,00,000 a year was paid a gross of
+₹64,000 against ₹1,00,000. Special allowance is now the balancing figure, and
+the screen refuses to save a breakup that does not add up to the agreed salary.
 
-**Residual on QA-19:** one URL is still served from Supabase's CDN cache.
-Closing the origin did not purge entries already cached, and moving the object
-did not either. Purge it from the dashboard, or let the hour expire. With real
-data this purge would be mandatory.
+### The pattern worth noticing
 
-**Not tested:** session expiry and refresh behaviour, rate limiting, the edge
-functions beyond their auth gates, injection against free-text fields.
+Most of the serious defects shared one shape: **the screen said it worked.**
 
-## 6. Data integrity
+- Payroll reported "computed successfully" while paying ₹0 (QA-16)
+- The first December run said success with ₹2,000 of deductions across eleven
+  people (QA-23)
+- The mentor directory said "nobody has offered to mentor yet", which it would
+  have said with a hundred mentors registered (QA-32)
+- Five of the six kinds of separation were saved and then invisible (QA-27)
+- Every in-app notification across six features was silently refused (QA-29)
 
-**Fixed:** leave balances now move in the same transaction as the request that
-moves them, and cannot be over-drawn. They were previously maintained by the
-browser through a call that could never succeed.
+None of these is visible from the code, and none would be caught by a tester
+who trusts the success message. They were found by doing the job end to end and
+then checking the database against hand arithmetic. That is the method worth
+keeping during UAT.
 
-**Not tested:** payroll calculation and rounding, full-and-final settlement
-arithmetic, attendance totals, carry-forward and accrual runs, anything
-involving money other than the access control around it.
+---
 
-This is the largest untested area and the one where an error is most expensive.
+## 4. Coverage
 
-## 7. Outstanding risks
+| Module | Depth | How it was tested |
+|---|---|---|
+| Authorization (129 tables) | **Good** | Automated matrix, 7 roles × 30 tables, ownership-checked |
+| Payroll | **Good** | 63 unit tests, plus four full cycles through the screens |
+| Leave | **Good** | End to end across two roles, balance arithmetic, negative tests |
+| Storage and documents | **Good** | Bucket policy and signed URLs, tested from both sides |
+| Separation | **Good** | Full flow; three defects found and fixed |
+| Mentorship | **Good** | Full flow; the directory fault found and fixed |
+| Recruitment | Moderate | Candidate to interview; scheduling, validation, analytics |
+| Onboarding | Moderate | Joiner started from a template, 23 tasks and 5 check-ins created |
+| Performance | Moderate | Cycle created, activated, 19 reviews generated |
+| Helpdesk, self-service letters | Moderate | Ticket raised as an employee; PDF output read |
+| Assets | Moderate | Added, issued, returned |
+| Recognition | Moderate | Created, reacted to, commented on |
+| Attendance | Moderate | Clock in and out, hours checked against the stored values |
+| Workflows | Moderate | Created from a template and enabled |
+| Reports | Moderate | Every tab rendered against real figures |
 
-1. **No automated tests.** Everything verified today is verified once.
-2. **Payroll arithmetic is unverified.** Access to it is controlled; whether it
-   computes correctly is unknown.
-3. **Test and production are the same Supabase project.** Fine while the data
-   is synthetic; unacceptable the moment real employee data is loaded.
-4. **Self sign-up is still enabled** at the Supabase project level, and leaked
-   password protection is off. Both are dashboard toggles, outstanding for
-   two weeks.
-5. **Google sign-in** is offered on the login page but the provider is disabled,
-   so the button fails.
-6. **No staging environment.** Changes go from a laptop to the live URL.
+**Not covered, and honest about it:** performance review *content* (a cycle was
+generated, no review was written), income tax and TDS screens, the recruitment
+pipeline beyond scheduling, concurrency, cross-browser, mobile layouts, session
+expiry, and load.
 
-## 8. Recommendation
+---
 
-**NOT READY FOR UAT.**
+## 5. Security
 
-The blocking criteria are coverage and the absence of regression tests, not any
-known open defect. To reach readiness:
+| Check | Result |
+|---|---|
+| Row-level security enabled | **129 of 129 tables** |
+| Tables with security on but no policy | **0** |
+| Database functions reachable without signing in | **0** |
+| Storage buckets public | **0** (both closed, QA-19) |
+| Access-control checks executed | 210 (7 roles × 30 tables) |
 
-1. Automated regression tests for the workflows already fixed, so they stay fixed.
-2. Functional testing of payroll calculation end to end.
-3. Functional testing of attendance, performance and the recruitment pipeline.
-4. The two Supabase toggles closed.
-5. A decision on separating test data from production before real data is loaded.
+The authorization model is genuinely strong. Every fault found in it was a
+specific mistake rather than a missing foundation.
 
-Items 1 and 2 are the ones that matter. The rest is schedule.
+**One residual.** A single document URL cached by the CDN still serves after the
+origin was closed. You asked to leave it until the databases move. It cannot be
+reached without the exact URL, and it expires on its own.
+
+---
+
+## 6. What to do before testers start
+
+Three things. None blocks a start.
+
+1. **Two Supabase dashboard settings** — leaked-password protection and
+   multi-factor options. You chose to defer these. They are two switches and
+   need no code.
+2. **Confirm the LWF figure one last time.** The employee share was corrected
+   from ₹150 to ₹50 this week after checking the Karnataka Labour Welfare
+   Board's rates. It is now right, but the Board revises it and this is real
+   money.
+3. **Decide who runs payroll in UAT.** Computing a run, generating payslips and
+   publishing them now require a payroll admin, which matches what the database
+   has always enforced. An HR admin can set up a cycle but not compute it. If a
+   tester expects to do both, give them the payroll admin account.
+
+---
+
+## 7. What to watch during UAT
+
+Written for whoever is running the testing.
+
+**Do not trust a success message.** Five of the worst defects reported success.
+Check the figure, the list or the record afterwards.
+
+**Payroll deserves a full cycle, not a spot check.** Assign a salary, create a
+cycle, compute, generate payslips, publish, then sign in as that employee and
+read the payslip. Every payroll defect was found that way and none would have
+been found any other way.
+
+**Try the awkward cases.** A contractor, an intern, somebody on unpaid leave,
+somebody who joined mid-month. The rules differ for each and the differences are
+where the mistakes live.
+
+**December is special.** The labour welfare fund is only taken in December. If
+you test a November run you will not see it.
+
+**Workflows have never actually fired.** Notifications were refused for every
+feature until this week, so no workflow has ever delivered anything. They are
+worth one deliberate test now that the path works.
+
+**Say when a screen is merely confusing.** Several fixes this week came from
+exactly that kind of note rather than from a crash.
+
+---
+
+## 8. Known gaps, by choice
+
+These are decisions, not oversights. Each is recorded in the defect register
+with what would change it.
+
+| Gap | Why it is acceptable |
+|---|---|
+| No PF exemption for a Form 11 excluded employee | The over-deduction lands in the employee's own PF account; a short one costs the employer interest and damages. Built when August actually hires somebody in that position |
+| No section 197 override on contractor TDS | Recoverable by the contractor as a refund. Built when the first certificate arrives |
+| Loss of pay comes from approved unpaid leave only, not from attendance | There is no agreed rule yet for when an unmarked day becomes unpaid. Guessing one would quietly dock people |
+| Professional tax is Karnataka only | Every employee is in Karnataka. A per-state table is needed before anybody is hired elsewhere |
+
+---
+
+## 9. Evidence
+
+Everything in this report can be re-checked.
+
+- **Defect register** — `QA/05_DEFECT_REGISTER.md`, 34 entries with the cause,
+  the fix and how it was verified
+- **Execution report** — `QA/07_TEST_EXECUTION_REPORT.md`, including the payroll
+  cycle that found four defects in one sitting
+- **Access matrix** — `QA/scripts/access_matrix.py`, re-runnable, exits non-zero
+  on a finding
+- **Unit tests** — `npm test`, 63 passing
+- **Migrations** — 23 added this engagement, each one carrying the reasoning for
+  the change in its own comments
+
+---
+
+## 10. Verdict
+
+**Ready for UAT.**
+
+Nothing P0 or P1 is open. The payroll arithmetic is tested and has been watched
+end to end. Every module has been opened and used. The authorization model holds
+up to an automated attack across 210 role-and-table combinations.
+
+What is left is the kind of thing only real users find: whether the screens make
+sense, whether the workflow matches how August actually works, and whether the
+numbers match what the finance team expects. That is what UAT is for.
+
+The one caution worth repeating: this application has no server of its own.
+Every rule lives either in the browser or in the database, and a rule that lives
+only in the browser is not enforced at all. Several defects this week were
+exactly that. When a tester reports that something should not have been allowed,
+the first question to ask is where that rule lives.
+
+---
+
+© 2026 | Augustinnovate Pvt. Ltd.

@@ -143,7 +143,11 @@ outright and says to assign a salary structure first.
 
 ---
 
-## QA-17 — Professional tax is a flat ₹200 for everyone · P2 · NEEDS BUSINESS DECISION
+## QA-17 — Professional tax is a flat ₹200 for everyone · P2 · SUPERSEDED
+
+> Recorded when it was still open. **Fixed later the same engagement** — see
+> the QA-17 entry further down. Kept because the reasoning for leaving it
+> open at the time is still worth reading.
 
 **Module** Payroll
 
@@ -160,7 +164,10 @@ the current behaviour so the fix has something to turn green.
 
 ---
 
-## QA-18 — Loss of pay is never applied · P1 · NOT FIXED
+## QA-18 — Loss of pay is never applied · P1 · SUPERSEDED
+
+> Recorded when it was still open. **Fixed later the same engagement**, once
+> you gave the working-day rule — see the QA-18 entry further down.
 
 **Module** Payroll
 
@@ -245,6 +252,143 @@ To remove it now rather than waiting: delete the object from Storage in the
 Supabase dashboard, or ask Supabase support to purge the CDN entry. **If this
 had been real employee data, that purge would be mandatory and the incident
 reportable**, not optional.
+
+---
+
+## QA-35 — A failed payroll run left its wreckage behind · P2 · FIXED
+
+**Module** Payroll **Fixed in** `payroll.api.ts`
+
+There is no transaction across the calls that make up a payroll run. A
+failure part way through left the per-employee rows inserted with the run
+still marked draft, so the totals looked right while every payslip behind
+them was empty — and pressing Compute again stacked a second set of rows on
+the first.
+
+Everything after that first insert is now undone if any of it fails, so
+Compute can be pressed again without doubling anything.
+
+---
+
+## QA-34 — An HR admin was offered a payroll run they could not finish · P1 · FIXED
+
+**Module** Payroll **Fixed in** `use-permissions.ts`, `payroll-runs-tab.tsx`
+
+`payroll_earnings`, `payroll_deductions` and `payslips` are writable only by
+a payroll admin or a super admin — a segregation of duties the policies have
+always carried. The Compute button was gated on `canManagePayroll`, which an
+HR admin has.
+
+Pressing it half worked: eleven rows of per-employee totals went in, every
+earning and deduction line was refused with a 42501, and the run looked
+finished with nothing behind it.
+
+Compute, Payslips and Publish now require `canRunPayroll`, which mirrors the
+database. Creating a cycle and submitting it for approval stay with HR,
+because `payroll_cycles` does allow that.
+
+---
+
+## QA-33 — The labour welfare fund took the employer's share from the employee · P1 · FIXED
+
+**Module** Payroll **Fixed in** migration 00071, `constants.ts`, `payroll-utils.ts`
+
+Karnataka's annual contribution is ₹50 from the employee and ₹100 from the
+employer, ₹150 between them. Pulse deducted ₹150 from the employee: the two
+shares added together and taken off one side. Every employee lost an extra
+₹100 a year, and the employer's own share was recorded nowhere, so it was
+missing from cost to company as well.
+
+Checked against the Karnataka Labour Welfare Board's published rates; the
+2025 amendment in force 7 January 2026 changed the coverage threshold, not
+the amounts.
+
+---
+
+## QA-32 — The mentor directory had never returned a row · P1 · FIXED
+
+**Module** Mentorship **Fixed in** `mentorship.api.ts`
+
+Employees and departments are joined two ways — an employee belongs to a
+department, and a department has a head who is an employee. Asked for plain
+`departments(...)` nested under an employee, PostgREST will not choose:
+
+```
+PGRST201 — Could not embed because more than one relationship was found
+           for 'employees' and 'departments'
+```
+
+Every mentorship read did this. The pairs list, the requests list and the
+directory all threw, and nothing surfaced — the page said "Nobody has
+offered to mentor yet", which it would have said with a hundred mentors
+registered. Searching by name was the fallback, and the only path that ever
+worked.
+
+**This is why HR reported "mentors can only be selected by name".** It read
+as a missing feature and was a broken query. Four embeds across three
+queries now name the foreign key.
+
+---
+
+## QA-31 — A candidate added on their own could never be interviewed · P2 · FIXED
+
+**Module** Recruitment **Fixed in** `candidates-tab.tsx`, `interview-form-dialog.tsx`
+
+An interview hangs off an application, not a candidate, so the scheduling
+list is built from applications. Somebody added on the Candidates tab and
+nowhere else is not in it, can never be in it, and nothing said why.
+
+"Put forward for a job" now sits on the candidate's own menu, and the
+scheduling form counts the candidates who are not up for any role and names
+the action that fixes it.
+
+---
+
+## QA-30 — Interviews could be booked in the past · P2 · FIXED
+
+**Module** Recruitment **Fixed in** `interview-form-dialog.tsx`, `reschedule-interview-dialog.tsx`
+
+The two date fields accepted anything at all. An interview could be booked
+for last March, and nothing checked the end came after the start either —
+that second one was not reported but sat in the same gap.
+
+Both are stopped twice over: the input carries a `min` of today, and the
+schema refuses it if the attribute is bypassed. The rule applies only when
+creating, so a past interview stays editable.
+
+---
+
+## QA-22 — A failed compensation assignment removed the salary the employee had · P1 · FIXED
+
+**Module** Payroll **Fixed in** migration 00066
+
+`createEmployeeCompensation` marked the existing current row as not-current
+and *then* inserted the new one, as two separate calls. When the insert
+failed, the demotion had already happened — leaving the employee with no
+current compensation at all. Trying to give somebody a salary took away the
+one they had.
+
+Both halves now happen inside one function, so either the old row is demoted
+and the new one written, or nothing changes.
+
+---
+
+## QA-21 — Nobody could assign compensation to anybody · P1 · FIXED
+
+**Module** Payroll **Fixed in** migration 00066
+
+`employee_compensation.created_by` is a foreign key to `employees(id)`, and
+the dialog passed the auth profile id, which is never an employee id. Every
+attempt came back:
+
+```
+23503 · insert or update on table "employee_compensation" violates foreign
+key constraint "employee_compensation_created_by_fkey"
+```
+
+So no employee had any salary components, which is why payroll had nothing
+to calculate. `created_by` is now resolved inside the database from the
+caller, so no screen has to know which of the two ids the column wants.
 
 ---
 
