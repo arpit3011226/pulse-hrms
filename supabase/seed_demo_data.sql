@@ -537,7 +537,7 @@ BEGIN
   VALUES
     (v_org_id, 'Office Closed on Holi', 'The office will remain closed on March 4th (Wednesday) for Holi. Wishing everyone a colorful celebration!', 'normal', 'all', '{}', '{}', false, true, v_profile_id, '2026-03-01'),
     (v_org_id, 'Q4 Town Hall - March 25', 'Please join us for the quarterly town hall meeting on March 25th at 3 PM IST. We will discuss company performance and upcoming plans.', 'high', 'all', '{}', '{}', true, true, v_profile_id, '2026-03-15'),
-    (v_org_id, 'New Health Insurance Policy', 'We have upgraded our health insurance coverage. Employees can now claim up to 5L per annum. Check the HR portal for details.', 'urgent', 'all', '{}', '{}', true, true, v_profile_id, '2026-03-10'),
+    (v_org_id, 'New Health Insurance Policy', 'Our health insurance coverage is now in place. Employees can claim up to ₹2 lakh per annum. Check the HR portal for details.', 'urgent', 'all', '{}', '{}', true, true, v_profile_id, '2026-03-10'),
     (v_org_id, 'Engineering Sprint Planning', 'Sprint planning for Sprint 24 is scheduled for Monday 10 AM. All engineers please prepare your backlog items.', 'normal', 'departments', '{}', ARRAY[v_dept_eng_id], false, true, v_profile_id, '2026-03-17'),
     (v_org_id, 'Payroll Processing Update', 'March payroll has been computed. Final approval pending. Expected disbursement by March 28.', 'normal', 'roles', ARRAY['payroll_admin', 'leadership']::text[], '{}', false, true, v_profile_id, '2026-03-19')
   ON CONFLICT DO NOTHING;

@@ -32,7 +32,16 @@ export function RescheduleInterviewDialog({ open, onOpenChange, interview }: Pro
     setReason('')
   }, [open, interview])
 
-  const valid = !!start && !!end && new Date(end) > new Date(start) && !!reason.trim()
+  /** Midnight this morning, so a slot earlier today is still allowed. */
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+  const minForInput = `${startOfToday.getFullYear()}-${String(startOfToday.getMonth() + 1).padStart(2, '0')}-${String(startOfToday.getDate()).padStart(2, '0')}T00:00`
+
+  // Moving an interview is always a move forwards. The end-after-start check
+  // was already here; the past-date one was not.
+  const inPast = !!start && new Date(start) < startOfToday
+  const valid =
+    !!start && !!end && new Date(end) > new Date(start) && !inPast && !!reason.trim()
 
   async function submit() {
     if (!interview) return
@@ -77,15 +86,18 @@ export function RescheduleInterviewDialog({ open, onOpenChange, interview }: Pro
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>New start *</Label>
-              <Input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} />
+              <Input type="datetime-local" min={minForInput} value={start} onChange={(e) => setStart(e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label>New end *</Label>
-              <Input type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} />
+              <Input type="datetime-local" min={minForInput} value={end} onChange={(e) => setEnd(e.target.value)} />
             </div>
           </div>
           {start && end && new Date(end) <= new Date(start) && (
             <p className="text-xs text-destructive">The end must be after the start.</p>
+          )}
+          {inPast && (
+            <p className="text-xs text-destructive">An interview cannot be moved into the past.</p>
           )}
           <div className="space-y-1.5">
             <Label>Why is it moving? *</Label>

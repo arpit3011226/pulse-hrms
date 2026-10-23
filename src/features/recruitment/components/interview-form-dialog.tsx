@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -23,18 +23,54 @@ import { useQuery } from '@tanstack/react-query'
 import type { InterviewWithRelations } from '@/types/database.types'
 import { toast } from 'sonner'
 
-const interviewSchema = z.object({
-  candidate_application_id: z.string().min(1, 'Application is required'),
-  interview_stage_id: z.string().min(1, 'Interview stage is required'),
-  interviewer_id: z.string().min(1, 'Interviewer is required'),
-  scheduled_start: z.string().min(1, 'Start time is required'),
-  scheduled_end: z.string().min(1, 'End time is required'),
-  mode: z.string().min(1, 'Mode is required'),
-  location_or_link: z.string().optional(),
-  notes: z.string().optional(),
-})
+/**
+ * The scheduling form accepted anything at all for the two date fields: an
+ * interview could be booked for last March, or made to end before it began.
+ * Nothing stopped it and nothing said so afterwards.
+ *
+ * The schema is built per use because the past-date rule applies only when
+ * creating. An interview that has already happened must stay editable — you
+ * should be able to correct the notes on last week's round without the form
+ * refusing the date it actually took place on.
+ */
+function buildInterviewSchema(isEditing: boolean) {
+  return z
+    .object({
+      candidate_application_id: z.string().min(1, 'Application is required'),
+      interview_stage_id: z.string().min(1, 'Interview stage is required'),
+      interviewer_id: z.string().min(1, 'Interviewer is required'),
+      scheduled_start: z.string().min(1, 'Start time is required'),
+      scheduled_end: z.string().min(1, 'End time is required'),
+      mode: z.string().min(1, 'Mode is required'),
+      location_or_link: z.string().optional(),
+      notes: z.string().optional(),
+    })
+    .refine(
+      (d) => !d.scheduled_start || !d.scheduled_end
+        || new Date(d.scheduled_end) > new Date(d.scheduled_start),
+      { message: 'The end must be after the start.', path: ['scheduled_end'] }
+    )
+    .refine(
+      (d) => isEditing || !d.scheduled_start || new Date(d.scheduled_start) >= startOfToday(),
+      { message: 'An interview cannot be scheduled in the past.', path: ['scheduled_start'] }
+    )
+}
 
-type InterviewFormData = z.infer<typeof interviewSchema>
+/** Midnight this morning, so a slot earlier today is still allowed. */
+function startOfToday(): Date {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+/** For the input's own `min`, which stops most of it before the form is submitted. */
+function todayForInput(): string {
+  const d = startOfToday()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T00:00`
+}
+
+type InterviewFormData = z.infer<ReturnType<typeof buildInterviewSchema>>
 
 interface InterviewFormDialogProps {
   open: boolean
@@ -44,6 +80,7 @@ interface InterviewFormDialogProps {
 
 export function InterviewFormDialog({ open, onOpenChange, interview }: InterviewFormDialogProps) {
   const isEditing = !!interview
+  const schema = useMemo(() => buildInterviewSchema(isEditing), [isEditing])
   const { organization } = useAuth()
   const createInterview = useCreateInterview()
   const updateInterview = useUpdateInterview()
@@ -79,7 +116,7 @@ export function InterviewFormDialog({ open, onOpenChange, interview }: Interview
     watch,
     formState: { errors },
   } = useForm<InterviewFormData>({
-    resolver: zodResolver(interviewSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       candidate_application_id: '',
       interview_stage_id: '',
@@ -240,6 +277,7 @@ export function InterviewFormDialog({ open, onOpenChange, interview }: Interview
                   <Input
                     id="scheduled_start"
                     type="datetime-local"
+                    min={isEditing ? undefined : todayForInput()}
                     {...register('scheduled_start')}
                   />
                   {errors.scheduled_start && (
@@ -251,6 +289,7 @@ export function InterviewFormDialog({ open, onOpenChange, interview }: Interview
                   <Input
                     id="scheduled_end"
                     type="datetime-local"
+                    min={isEditing ? undefined : todayForInput()}
                     {...register('scheduled_end')}
                   />
                   {errors.scheduled_end && (
