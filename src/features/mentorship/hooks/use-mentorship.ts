@@ -180,3 +180,23 @@ export function useLogCheckin() {
     onSuccess: bust,
   })
 }
+
+export function useSaveMentorshipFeedback() {
+  const bust = useBust()
+  const { organization } = useAuth()
+  return useMutation({
+    mutationFn: (p: Omit<api.MentorshipFeedbackInput, 'organization_id'>) =>
+      api.saveMentorshipFeedback({ ...p, organization_id: organization!.id }),
+    onSuccess: bust,
+  })
+}
+
+/** Programme-wide feedback. Returns nothing for anyone who may not read it. */
+export function useMentorshipFeedback(enabled: boolean) {
+  const { organization } = useAuth()
+  return useQuery({
+    queryKey: ['mentorship-feedback', organization?.id],
+    queryFn: () => api.getMentorshipFeedback(organization!.id),
+    enabled: enabled && !!organization?.id,
+  })
+}

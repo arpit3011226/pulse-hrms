@@ -328,3 +328,39 @@ async function notifyEmployee(
     },
   ])
 }
+
+// ============================================================================
+// End-of-programme feedback
+// ============================================================================
+
+export interface MentorshipFeedbackInput {
+  organization_id: string
+  mentorship_id: string
+  given_by: string
+  given_as: 'mentee' | 'mentor'
+  rating: number
+  would_recommend: boolean | null
+  what_changed: string | null
+}
+
+/**
+ * One response per person per mentorship. Saved with upsert so somebody can
+ * come back and change their mind — an honest answer revised is worth more
+ * than a first answer frozen in place.
+ */
+export async function saveMentorshipFeedback(input: MentorshipFeedbackInput) {
+  const { error } = await supabase
+    .from('mentorship_feedback')
+    .upsert({ ...input, updated_at: new Date().toISOString() }, { onConflict: 'mentorship_id,given_by' })
+  if (error) throw error
+}
+
+/** Every response for the programme view. Only HR and leadership can read these. */
+export async function getMentorshipFeedback(orgId: string) {
+  const { data, error } = await supabase
+    .from('mentorship_feedback')
+    .select('*')
+    .eq('organization_id', orgId)
+  if (error) throw error
+  return data ?? []
+}

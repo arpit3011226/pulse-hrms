@@ -365,6 +365,8 @@ export function MentorshipWorkspace({
           onOpenChange={setEndOpen}
           mentorship={mentorship}
           otherPersonId={myPart === 'mentee' ? mentorship.mentor_id : mentorship.mentee_id}
+          myEmployeeId={myEmployeeId}
+          myRole={myPart}
         />
       )}
     </div>

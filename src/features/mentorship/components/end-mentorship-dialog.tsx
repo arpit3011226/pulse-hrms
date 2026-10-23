@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { useEndMentorship } from '../hooks/use-mentorship'
+import { useEndMentorship, useSaveMentorshipFeedback } from '../hooks/use-mentorship'
 import type { MentorshipRow } from '../types'
 import { toast } from 'sonner'
 
@@ -19,6 +19,10 @@ interface EndMentorshipDialogProps {
   mentorship: MentorshipRow
   /** Whoever is not pressing the button gets told. */
   otherPersonId: string
+  /** The employee closing it, so their feedback is attributed to them. */
+  myEmployeeId: string
+  /** Which side of the pair they are, so the two views can be read apart. */
+  myRole: 'mentee' | 'mentor'
 }
 
 /**
@@ -28,13 +32,25 @@ interface EndMentorshipDialogProps {
  * working: a mentor carries three people at most, so without a way to finish
  * one, every mentor fills up permanently and nobody new can be taken on.
  */
+const RATINGS: { value: number; label: string }[] = [
+  { value: 5, label: '5 — It changed how I work' },
+  { value: 4, label: '4 — Clearly worth the time' },
+  { value: 3, label: '3 — Some use' },
+  { value: 2, label: '2 — Not much came of it' },
+  { value: 1, label: '1 — No use at all' },
+]
+
 export function EndMentorshipDialog({
-  open, onOpenChange, mentorship, otherPersonId,
+  open, onOpenChange, mentorship, otherPersonId, myEmployeeId, myRole,
 }: EndMentorshipDialogProps) {
   const endMentorship = useEndMentorship()
+  const saveFeedback = useSaveMentorshipFeedback()
   // Mounted only while open, so these are the values every time it opens.
   const [status, setStatus] = useState<'completed' | 'ended'>('completed')
   const [reason, setReason] = useState('')
+  const [rating, setRating] = useState<string>('')
+  const [recommend, setRecommend] = useState<string>('')
+  const [changed, setChanged] = useState('')
 
   async function save() {
     try {
@@ -44,6 +60,27 @@ export function EndMentorshipDialog({
         reason: reason.trim(),
         notify_employee_id: otherPersonId,
       })
+
+      /**
+       * Feedback is optional and saved separately. If it fails, the
+       * mentorship is still closed — losing a rating is a nuisance, leaving
+       * a mentor's place permanently taken is not.
+       */
+      if (rating) {
+        try {
+          await saveFeedback.mutateAsync({
+            mentorship_id: mentorship.id,
+            given_by: myEmployeeId,
+            given_as: myRole,
+            rating: Number(rating),
+            would_recommend: recommend === '' ? null : recommend === 'yes',
+            what_changed: changed.trim() || null,
+          })
+        } catch {
+          toast.warning('Closed, but your feedback could not be saved.')
+        }
+      }
+
       toast.success(status === 'completed' ? 'Mentorship completed' : 'Mentorship ended')
       onOpenChange(false)
     } catch (err) {
@@ -89,6 +126,58 @@ export function EndMentorshipDialog({
             <p className="text-xs text-muted-foreground">
               The other person can read this, and so can HR.
             </p>
+          </div>
+
+          {/*
+            HR asked for a way to see whether the programme is worth running.
+            One number answers that in aggregate; the rest is optional. Both
+            sides answer separately, so neither view is merged into the other.
+          */}
+          <div className="space-y-3 rounded-md border p-3">
+            <div className="space-y-1.5">
+              <Label>How useful was this, honestly?</Label>
+              <Select value={rating} onValueChange={setRating}>
+                <SelectTrigger><SelectValue placeholder="Optional, but it is the only thing we can measure" /></SelectTrigger>
+                <SelectContent>
+                  {RATINGS.map((r) => (
+                    <SelectItem key={r.value} value={String(r.value)}>{r.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {rating && (
+              <>
+                <div className="space-y-1.5">
+                  <Label>
+                    {myRole === 'mentee'
+                      ? 'Would you suggest this mentor to a colleague?'
+                      : 'Would you take on another mentee?'}
+                  </Label>
+                  <Select value={recommend} onValueChange={setRecommend}>
+                    <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="what-changed">What changed?</Label>
+                  <Textarea
+                    id="what-changed"
+                    value={changed}
+                    onChange={(e) => setChanged(e.target.value)}
+                    rows={3}
+                    placeholder="Something you can do now that you could not before, or could not do as well."
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Only HR sees this one, so you can be blunt.
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

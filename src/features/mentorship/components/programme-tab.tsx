@@ -5,8 +5,8 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/shared/data-table'
 import { StatCard } from '@/components/shared/stat-card'
-import { Users, UserCheck, Clock, HeartPulse } from 'lucide-react'
-import { useMentorships, useMentorshipRequests } from '../hooks/use-mentorship'
+import { Users, UserCheck, Clock, HeartPulse, Star } from 'lucide-react'
+import { useMentorships, useMentorshipRequests, useMentorshipFeedback } from '../hooks/use-mentorship'
 import { useDateFiltered } from '@/hooks/use-date-range'
 import { one } from '@/lib/supabase-embed'
 import { formatDate } from '@/lib/utils'
@@ -37,7 +37,24 @@ export function ProgrammeTab() {
   const requests = (requestData ?? []) as unknown as MentorshipRequestRow[]
   const pairs = useDateFiltered(allPairs, 'started_on')
 
+  /**
+   * What people said when it finished. One number is the whole point: it is
+   * the only thing that answers "is this programme worth running" without
+   * reading every closing note.
+   */
+  const { data: feedbackData } = useMentorshipFeedback(true)
+  const feedback = (feedbackData ?? []) as { rating: number; would_recommend: boolean | null }[]
+  const averageRating = useMemo(() => {
+    if (feedback.length === 0) return null
+    const total = feedback.reduce((sum, f) => sum + f.rating, 0)
+    return (total / feedback.length).toFixed(1)
+  }, [feedback])
+
   const active = useMemo(() => pairs.filter((m) => m.status === 'active'), [pairs])
+  const finished = useMemo(
+    () => pairs.filter((m) => m.status === 'completed' || m.status === 'ended'),
+    [pairs]
+  )
   const overdue = useMemo(() => active.filter(isOverdue), [active])
   const struggling = useMemo(
     () => active.filter((m) => m.last_health && m.last_health !== 'on_track'),
@@ -158,6 +175,19 @@ export function ProgrammeTab() {
           icon={HeartPulse}
           color="rose"
           description="The pair said so themselves"
+        />
+        <StatCard
+          title="How useful it was"
+          value={averageRating ? `${averageRating} / 5` : '—'}
+          icon={Star}
+          color="purple"
+          description={
+            feedback.length === 0
+              ? finished.length > 0
+                ? `${finished.length} finished, none rated yet`
+                : 'Asked when a mentorship finishes'
+              : `${feedback.length} ${feedback.length === 1 ? 'response' : 'responses'} from ${finished.length} finished`
+          }
         />
       </div>
 
