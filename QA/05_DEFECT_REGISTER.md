@@ -708,12 +708,91 @@ per-state table.
 
 | QA-19 | One cached document URL still served by the CDN | P1 residual | Origin closed. Purge from the dashboard, or wait for the entry to expire |
 
+## Decisions taken
+
+All five open questions were decided on 23 October 2026, on instruction. Each
+one is recorded with what would change it, so a later disagreement starts from
+the reasoning rather than from scratch.
+
+### The Karnataka LWF figure was wrong — corrected
+
+**Decided:** employee ₹50, employer ₹100.
+
+Pulse deducted ₹150 from the employee. ₹150 is the **combined** figure: the
+two shares had been added together and the whole lot taken off one side.
+Every employee was losing an extra ₹100 a year, and the employer's own share
+was not recorded anywhere, so it was missing from cost to company too.
+
+Checked against the Karnataka Labour Welfare Board's published rates. The
+2025 amendment, in force 7 January 2026, changed the coverage threshold and
+the payment options, not the amounts.
+
+**What would change it:** the Board revises these from time to time. Worth one
+look each December before the run. Both figures sit together in
+`src/lib/constants.ts`.
+
+### Leadership now sees leave balances across the organisation
+
+**Decided:** yes, read only.
+
+Leadership already reads org-wide headcount, attrition and the payroll cost.
+Leave balance is the same class of number — a liability on the books, and the
+one most likely to arrive as a surprise in March when everybody takes what
+they are owed at once. Showing them the wage bill but not the leave bill was
+an odd place to draw the line, and it left the leave report covering their own
+team only.
+
+Adjusting a balance stays with HR and the super admin. Seeing a number is not
+the same as changing it.
+
+**Verified:** leadership 76 rows, HR 76, an ordinary employee still 4 — their
+own.
+
+### Salary component definitions stay readable by everybody
+
+**Decided:** no change.
+
+The table holds the rules, not anybody's pay: basic is 40% of gross, HRA 50%
+of basic, PF 12%, professional tax ₹200. All of it is in every offer letter
+and on every payslip already.
+
+It is also load-bearing. Six payslip queries join `salary_components` for the
+component names, so closing it would leave every employee looking at a payslip
+of blank rows against amounts. It protects nothing and breaks something.
+
+### Provident fund is deducted from every member of staff, with no exemption field
+
+**Decided:** no per-employee exemption, for now.
+
+In law an employee who has never been an EPF member and joins above a basic of
+₹15,000 may be excluded on Form 11. Pulse does not model that and deducts
+anyway.
+
+That errs in the recoverable direction. An over-deduction goes into the
+employee's own PF account — it is theirs, transferable and withdrawable, not
+lost. A short deduction costs the employer the arrears plus interest under
+section 7Q and damages under 14B. Building an exception path for a case that
+may not exist here is speculation; the cost of being wrong the other way is
+real.
+
+**What would change it:** August actually hiring somebody in that position.
+Then the field gets added with a real case to shape it, rather than a guess.
+
+### Contractor TDS stays at a flat 10% under code 1027, with no override
+
+**Decided:** no per-contractor rate, for now.
+
+A contractor holding a lower-deduction certificate under section 197 would be
+over-deducted. Same reasoning: it is recoverable by the contractor as a
+refund, and no contractor here holds one today.
+
+**What would change it:** the first certificate that arrives. It is a column
+on the employee and a branch in `contractorTds`, so it is a small change when
+there is a real one to test against.
+
+---
+
 ## Needs business decision
 
-| Question | Why it matters |
-|---|---|
-| Should leadership see **all** leave balances, or only their own team's? | Today leadership sees 16 rows (own + direct reports); HR sees 76 (everyone). If leadership is meant to have an org-wide view, that is a gap |
-| Should `salary_components` definitions (Basic, HRA, PF and their default values) be readable by every employee? | They currently are. Reference data, arguably fine, but it exposes the pay structure |
-| Is the 10% contractor TDS the right rate for everybody, or does it vary? | 10% under code 1027 is applied to every contractor. If a contractor gives a lower-deduction certificate under section 197, or if a different section applies to some of them, Pulse has no way to record that |
-| Should provident fund be deducted from **every** full-time employee, or can a high earner be excluded? | PF applies to all staff. In law an employee who has never been a member and joins above a basic of ₹15,000 may be excluded on Form 11. Pulse does not model that exclusion, so it over-deducts for such a person rather than under-deducting. Confirm whether August has anybody in that position |
-| Is ₹150 the right Karnataka LWF employee share? | Flagged under QA-17 as well. Worth one check with your CA before go-live — the run now actually takes it, so the figure matters |
+Nothing open.
+
