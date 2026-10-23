@@ -262,6 +262,14 @@ export function MentorshipWorkspace({
             <div className="flex flex-wrap items-end gap-2 pt-1">
               <div className="min-w-[200px] flex-1 space-y-1.5">
                 <Label className="text-xs">Add a goal</Label>
+                {/* HR asked for guidance on setting goals, not just a box. */}
+                {goals.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    A good goal is one you could show somebody is done. "Understand
+                    stakeholder management" never finishes; "run the monthly ops
+                    review on my own" does.
+                  </p>
+                )}
                 <Input
                   value={goalTitle}
                   onChange={(e) => setGoalTitle(e.target.value)}

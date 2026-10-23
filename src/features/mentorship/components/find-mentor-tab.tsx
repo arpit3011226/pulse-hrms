@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/shared/empty-state'
 import { RequestMentorDialog } from './request-mentor-dialog'
+import { MentorshipGuide } from './mentorship-guide'
 import { useEmployees } from '@/features/employees/hooks/use-employees'
 import { useMentorDirectory } from '../hooks/use-mentorship'
 import { one } from '@/lib/supabase-embed'
@@ -114,6 +115,12 @@ export function FindMentorTab({
 
   return (
     <div className="space-y-5">
+      {/*
+        Open for anyone who has not started yet, because that is exactly who
+        does not know what to ask for. Collapsed once they have a mentor.
+      */}
+      <MentorshipGuide defaultOpen={!hasPendingRequest} />
+
       <div className="relative max-w-md">
         <Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
         <Input
