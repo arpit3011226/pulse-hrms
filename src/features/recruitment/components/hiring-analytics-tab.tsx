@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import { Clock, TrendingDown, Target, Users } from 'lucide-react'
+import { Clock, TrendingDown, Target, Users, ChevronRight } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
@@ -7,28 +8,47 @@ import {
   useJobRequisitions, useCandidateApplications, useOfferLetters, useInterviewStages,
 } from '../hooks/use-recruitment'
 
+/**
+ * A summary figure, and where the detail behind it lives.
+ *
+ * HR's note was that these were a dead end: you could see nine open roles and
+ * had no way through to them. A figure with somewhere to go is a link; one
+ * that is only ever derived, like average time to hire, stays a plain card
+ * rather than pretending to be clickable.
+ */
 function Stat({
-  icon: Icon, label, value, hint, tone,
+  icon: Icon, label, value, hint, tone, to,
 }: {
   icon: React.ElementType
   label: string
   value: string
   hint?: string
   tone: string
+  /** The tab this figure is drawn from. Omitted when there is nothing to show. */
+  to?: string
 }) {
+  const body = (
+    <CardContent className="flex items-start gap-3 py-4">
+      <div className={`rounded-lg p-2.5 ${tone}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-2xl font-semibold leading-none">{value}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{label}</p>
+        {hint && <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p>}
+      </div>
+      {to && <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />}
+    </CardContent>
+  )
+
+  if (!to) return <Card>{body}</Card>
+
   return (
-    <Card>
-      <CardContent className="flex items-start gap-3 py-4">
-        <div className={`rounded-lg p-2.5 ${tone}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-2xl font-semibold leading-none">{value}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{label}</p>
-          {hint && <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p>}
-        </div>
-      </CardContent>
-    </Card>
+    <Link to="/recruitment" search={{ tab: to }} className="block">
+      <Card className="h-full transition-colors hover:border-primary/40 hover:bg-accent/40">
+        {body}
+      </Card>
+    </Link>
   )
 }
 
@@ -117,6 +137,7 @@ export function HiringAnalyticsTab() {
           value={String(stats.openRoles)}
           hint={`${stats.totalHeadcount} position${stats.totalHeadcount === 1 ? '' : 's'} to fill`}
           tone="bg-blue-50 text-blue-600"
+          to="requisitions"
         />
         <Stat
           icon={Users}
@@ -124,6 +145,7 @@ export function HiringAnalyticsTab() {
           value={String(stats.totalApplications)}
           hint={`${stats.rejected} not taken forward`}
           tone="bg-violet-50 text-violet-600"
+          to="applications"
         />
         <Stat
           icon={TrendingDown}
@@ -135,6 +157,7 @@ export function HiringAnalyticsTab() {
               : 'No offers answered yet'
           }
           tone="bg-emerald-50 text-emerald-600"
+          to="offers"
         />
         <Stat
           icon={Clock}
@@ -154,20 +177,30 @@ export function HiringAnalyticsTab() {
           <CardTitle className="text-base">Pipeline</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* Each band goes to the applications behind it, same as the cards. */}
           {stats.funnel.map((f) => (
-            <div key={f.stage}>
+            <Link
+              key={f.stage}
+              to="/recruitment"
+              search={{ tab: 'applications' }}
+              className="block rounded-md px-1 py-0.5 transition-colors hover:bg-accent/40"
+            >
               <div className="mb-1 flex items-center justify-between text-sm">
                 <span className="capitalize">{f.stage}</span>
                 <span className="font-medium">{f.count}</span>
               </div>
               <Progress value={(f.count / maxFunnel) * 100} className="h-2" />
-            </div>
+            </Link>
           ))}
           {stats.rejected > 0 && (
-            <div className="flex items-center justify-between border-t pt-3 text-sm">
+            <Link
+              to="/recruitment"
+              search={{ tab: 'applications' }}
+              className="flex items-center justify-between rounded-md border-t px-1 pt-3 text-sm transition-colors hover:bg-accent/40"
+            >
               <span className="text-muted-foreground">Not taken forward</span>
               <Badge variant="secondary">{stats.rejected}</Badge>
-            </div>
+            </Link>
           )}
         </CardContent>
       </Card>
