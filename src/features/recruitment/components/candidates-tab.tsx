@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { type ColumnDef } from '@tanstack/react-table'
-import { MoreHorizontal, Plus, Pencil, Trash2, KeyRound, Copy, Loader2 } from 'lucide-react'
+import { MoreHorizontal, Plus, Pencil, Trash2, KeyRound, Copy, Loader2, Briefcase } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -14,6 +14,7 @@ import { DataTable } from '@/components/shared/data-table'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { CandidateFormDialog } from './candidate-form-dialog'
+import { ApplicationFormDialog } from './application-form-dialog'
 import { useCandidates, useDeleteCandidate } from '../hooks/use-recruitment'
 import { usePermissions } from '@/hooks/use-permissions'
 import type { Candidate } from '@/types/database.types'
@@ -34,6 +35,7 @@ export function CandidatesTab() {
   const [editingCandidate, setEditingCandidate] = useState<Candidate | undefined>()
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
+  const [applyFor, setApplyFor] = useState<Candidate | null>(null)
   const [portalFor, setPortalFor] = useState<Candidate | null>(null)
   const [portalLink, setPortalLink] = useState<string | null>(null)
   const createLogin = useCreateLogin()
@@ -121,6 +123,15 @@ export function CandidatesTab() {
               <DropdownMenuItem onClick={() => { setEditingCandidate(candidate); setFormOpen(true) }}>
                 <Pencil className="mr-2 h-4 w-4" /> Edit
               </DropdownMenuItem>
+              {/*
+                An interview is scheduled against an application, not against a
+                candidate. Somebody added here and nowhere else can never be
+                put in front of a panel, and nothing on screen said so — they
+                simply were not in the list when you went to book a slot.
+              */}
+              <DropdownMenuItem onClick={() => setApplyFor(candidate)}>
+                <Briefcase className="mr-2 h-4 w-4" /> Put forward for a job
+              </DropdownMenuItem>
               {/* Without this the candidate portal exists but nobody can reach it. */}
               {candidate.profile_id ? (
                 <DropdownMenuItem disabled>
@@ -163,6 +174,12 @@ export function CandidatesTab() {
         open={formOpen}
         onOpenChange={(open) => { setFormOpen(open); if (!open) setEditingCandidate(undefined) }}
         candidate={editingCandidate}
+      />
+
+      <ApplicationFormDialog
+        open={!!applyFor}
+        onOpenChange={(open) => { if (!open) setApplyFor(null) }}
+        candidateId={applyFor?.id}
       />
 
       {/* Create a portal login, then hand the recruiter the link to send on. */}

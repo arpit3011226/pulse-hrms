@@ -16,6 +16,7 @@ import {
   useUpdateInterview,
   useCandidateApplications,
   useInterviewStages,
+  useCandidates,
 } from '../hooks/use-recruitment'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { supabase } from '@/lib/supabase'
@@ -105,6 +106,20 @@ export function InterviewFormDialog({ open, onOpenChange, interview }: Interview
   const eligibleApplications = (applications || []).filter(
     (a) => ['new', 'screening', 'in_progress'].includes(a.status)
   )
+
+  /**
+   * Candidates on the books who are not up for any role, and so cannot be
+   * scheduled. Counted here only to explain their absence from the list above.
+   */
+  const { data: candidates } = useCandidates()
+  const unattachedCandidates = useMemo(() => {
+    const withApplication = new Set(
+      ((applications || []) as { candidate_id?: string | null }[])
+        .map((a) => a.candidate_id)
+        .filter(Boolean) as string[]
+    )
+    return ((candidates || []) as { id: string }[]).filter((c) => !withApplication.has(c.id)).length
+  }, [candidates, applications])
 
   const activeStages = (stages || []).filter((s) => s.is_active)
 
@@ -228,6 +243,19 @@ export function InterviewFormDialog({ open, onOpenChange, interview }: Interview
                 </Select>
                 {errors.candidate_application_id && (
                   <p className="text-sm text-destructive">{errors.candidate_application_id.message}</p>
+                )}
+                {/*
+                  An interview hangs off an application, not a candidate. HR
+                  added somebody, came here to book a slot and could not find
+                  them, with nothing on screen to explain why.
+                */}
+                {unattachedCandidates > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Somebody missing? {unattachedCandidates}{' '}
+                    {unattachedCandidates === 1 ? 'candidate is' : 'candidates are'} not yet put
+                    forward for a job. Use <span className="font-medium">Put forward for a job</span>{' '}
+                    on the Candidates tab first — an interview is always booked against a role.
+                  </p>
                 )}
               </div>
 

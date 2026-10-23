@@ -28,9 +28,15 @@ type ApplicationFormData = z.infer<typeof applicationSchema>
 interface ApplicationFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /**
+   * Opens with this candidate already chosen. Used by "Put forward for a job"
+   * on the candidate list, so adding somebody and getting them in front of a
+   * panel is one path rather than two unconnected screens.
+   */
+  candidateId?: string
 }
 
-export function ApplicationFormDialog({ open, onOpenChange }: ApplicationFormDialogProps) {
+export function ApplicationFormDialog({ open, onOpenChange, candidateId: presetCandidateId }: ApplicationFormDialogProps) {
   const createApplication = useCreateCandidateApplication()
   const { data: candidates } = useCandidates()
   const { data: requisitions } = useJobRequisitions()
@@ -51,7 +57,7 @@ export function ApplicationFormDialog({ open, onOpenChange }: ApplicationFormDia
   } = useForm<ApplicationFormData>({
     resolver: zodResolver(applicationSchema),
     defaultValues: {
-      candidate_id: '',
+      candidate_id: presetCandidateId ?? '',
       job_requisition_id: '',
       applied_date: new Date().toISOString().split('T')[0],
     },
@@ -89,12 +95,12 @@ export function ApplicationFormDialog({ open, onOpenChange }: ApplicationFormDia
   useEffect(() => {
     if (open) {
       reset({
-        candidate_id: '',
+        candidate_id: presetCandidateId ?? '',
         job_requisition_id: '',
         applied_date: new Date().toISOString().split('T')[0],
       })
     }
-  }, [open, reset])
+  }, [open, reset, presetCandidateId])
 
   const onSubmit = async (data: ApplicationFormData) => {
     try {
