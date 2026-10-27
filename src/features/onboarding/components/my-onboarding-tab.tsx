@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { useAuth } from '@/features/auth/hooks/use-auth'
+import { AgreementsToSign } from './agreements-to-sign'
 import { getCurrentEmployee } from '@/features/attendance/api/attendance.api'
 import { useEmployeeOnboarding, useUpdateTaskStatus } from '../hooks/use-onboarding'
 import { CATEGORY_LABELS, CATEGORY_ORDER, taskProgress, type OnboardingCategory } from '../types'
@@ -27,6 +28,17 @@ export function MyOnboardingTab() {
   })
   const myId = me?.id as string | undefined
 
+  // Shown whether or not an onboarding run exists. Agreements are issued
+  // against the person, not against a run, and somebody with documents
+  // waiting must not be shown "nothing to do here".
+  const myName = me
+    ? `${(me as Record<string, unknown>).first_name ?? ''} ${(me as Record<string, unknown>).last_name ?? ''}`.trim()
+    : ''
+  const myCode = (me as Record<string, unknown> | undefined)?.employee_code as string | undefined
+  const agreements = (
+    <AgreementsToSign employeeId={myId} employeeName={myName} employeeCode={myCode} />
+  )
+
   const { data: run, isLoading } = useEmployeeOnboarding(myId)
   const updateTask = useUpdateTaskStatus()
 
@@ -40,17 +52,20 @@ export function MyOnboardingTab() {
 
   if (!run) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="mb-3 rounded-full bg-muted p-3">
-            <Rocket className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <p className="font-medium">No onboarding for you</p>
-          <p className="mt-1 max-w-md text-sm text-muted-foreground">
-            Either you have been here a while, or HR has not started one yet.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        {agreements}
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="mb-3 rounded-full bg-muted p-3">
+              <Rocket className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="font-medium">No onboarding for you</p>
+            <p className="mt-1 max-w-md text-sm text-muted-foreground">
+              Either you have been here a while, or HR has not started one yet.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
@@ -63,6 +78,8 @@ export function MyOnboardingTab() {
 
   return (
     <div className="space-y-6">
+      {agreements}
+
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Your first few months</CardTitle>

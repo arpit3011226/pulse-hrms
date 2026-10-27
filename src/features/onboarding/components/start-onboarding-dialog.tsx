@@ -13,6 +13,9 @@ import {
 } from '@/components/ui/select'
 import { useEmployees } from '@/features/employees/hooks/use-employees'
 import { useOnboardingTemplates, useOnboardingRuns, useStartOnboarding } from '../hooks/use-onboarding'
+import { useIssueAgreements } from '../hooks/use-agreements'
+import { useAuth } from '@/features/auth/hooks/use-auth'
+import { companyAddress, companyName } from '@/lib/document-branding'
 import { JOURNEY_MILESTONES } from '../types'
 import { toast } from 'sonner'
 
@@ -29,6 +32,8 @@ export function StartOnboardingDialog({ open, onOpenChange, employeeId, currentE
   const { data: templates } = useOnboardingTemplates()
   const { data: runs } = useOnboardingRuns()
   const startOnboarding = useStartOnboarding()
+  const issueAgreements = useIssueAgreements()
+  const { organization } = useAuth()
 
   const [selectedEmployee, setSelectedEmployee] = useState('')
   const [templateId, setTemplateId] = useState('')
@@ -86,7 +91,56 @@ export function StartOnboardingDialog({ open, onOpenChange, employeeId, currentE
         managerId: employee.reporting_manager_id ?? null,
         createdBy: currentEmployeeId ?? null,
       })
-      toast.success(`Onboarding started for ${employee.first_name}`)
+      /**
+       * The legal pack goes out with the onboarding, not as a separate thing
+       * somebody has to remember. NDA, confidentiality, POSH, IT use, code of
+       * conduct and the data protection undertaking.
+       *
+       * Placeholders are filled in now and the resulting text is frozen on
+       * each row, so editing a template later cannot change what this person
+       * was asked to sign.
+       *
+       * Issuing twice is harmless — anything they already hold at the same
+       * version is skipped — but a failure here must not undo an onboarding
+       * that has already started, so it is reported rather than thrown.
+       */
+      if (organization?.id) {
+        try {
+          const { issued, unresolved } = await issueAgreements.mutateAsync({
+            organization_id: organization.id,
+            employee_id: selectedEmployee,
+            context: {
+              employee_name: `${employee.first_name} ${employee.last_name}`.trim(),
+              employee_code: employee.employee_code ?? null,
+              designation: employee.designation?.title ?? null,
+              department: employee.department?.name ?? null,
+              date_of_joining: joiningDate,
+              company_name: companyName(organization),
+              company_address: companyAddress(organization),
+            },
+          })
+          toast.success(
+            `Onboarding started for ${employee.first_name}` +
+              (issued > 0 ? ` · ${issued} document${issued === 1 ? '' : 's'} sent to sign` : '')
+          )
+          // A template using a placeholder nothing can fill is a wording
+          // mistake, and it will be in every document issued from then on.
+          // Better said out loud now than found in a signed agreement.
+          if (unresolved.length > 0) {
+            toast.warning(
+              `These were left blank because nothing fills them: ${unresolved.join(', ')}. ` +
+                'Worth correcting the template.'
+            )
+          }
+        } catch {
+          toast.success(`Onboarding started for ${employee.first_name}`)
+          toast.warning(
+            'The documents to sign could not be sent. Issue them from their record once it is sorted.'
+          )
+        }
+      } else {
+        toast.success(`Onboarding started for ${employee.first_name}`)
+      }
       onOpenChange(false)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not start onboarding')
