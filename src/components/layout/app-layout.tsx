@@ -4,6 +4,7 @@ import { Topbar } from './topbar'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { Loader2 } from 'lucide-react'
 import { DateRangeProvider } from '@/components/shared/date-range-filter'
+import { landingPathFor } from '@/lib/landing'
 
 export function AppLayout() {
   const { session, isLoading, profile } = useAuth()
@@ -39,11 +40,13 @@ export function AppLayout() {
 
   // A candidate or an alumnus has one screen. Landing them on the staff
   // dashboard shows them a page built for employees, so send them to theirs.
-  if (profile?.role === 'candidate' && location.pathname !== '/my-application') {
-    return <Navigate to="/my-application" />
-  }
-  if (profile?.role === 'alumni' && location.pathname !== '/my-records') {
-    return <Navigate to="/my-records" />
+  //
+  // This is now a backstop rather than the main route: AuthLayout already
+  // sends them straight there on sign-in. It still matters for anybody who
+  // types a staff URL, or follows an old link.
+  const landing = landingPathFor(profile?.role)
+  if (landing !== '/dashboard' && location.pathname !== landing) {
+    return <Navigate to={landing} />
   }
 
   return (

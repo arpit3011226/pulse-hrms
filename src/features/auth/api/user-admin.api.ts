@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { publicAppLink } from '@/lib/app-url'
 
 /**
  * Creating a login needs the service role key, so it happens in the create-user
@@ -38,7 +39,7 @@ export async function createLogin(input: CreateLoginInput): Promise<CreateLoginR
   const { data, error } = await supabase.functions.invoke('create-user', {
     // So the set-password link brings them back to this deployment, not to
     // whatever Site URL happens to be configured on the project.
-    body: { ...input, redirect_to: `${window.location.origin}/login` },
+    body: { ...input, redirect_to: publicAppLink('/login') },
   })
   if (error) {
     // The function puts a readable reason in the body; surface that rather than

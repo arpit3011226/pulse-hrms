@@ -2,10 +2,12 @@ import { Navigate, Outlet, useLocation } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { AuthBackground } from '@/components/shared/auth-background'
+import { landingPathFor } from '@/lib/landing'
 
 /**
- * Wraps the signed-out screens. Someone already signed in is sent to their
- * dashboard; someone signed in without an organisation is sent to set one up.
+ * Wraps the signed-out screens. Someone already signed in is sent to the page
+ * that belongs to them — which is not the dashboard for a candidate or an
+ * alumnus; someone signed in without an organisation is sent to set one up.
  *
  * Lives here rather than in router.tsx so that file only exports routes — a file
  * that mixes components and other exports breaks fast refresh.
@@ -22,9 +24,19 @@ export function AuthLayout() {
     )
   }
 
-  // If logged in and has org, go to dashboard
+  // Signed in and set up: go where this person actually belongs.
+  //
+  // This used to send everybody to /dashboard and let AppLayout bounce the
+  // ones who did not belong there. That extra hop mounted the staff
+  // dashboard for a candidate, which fired queries they cannot answer and
+  // left them watching a spinner on the way through.
+  //
+  // The pathname check matters: <Navigate> commits a location while
+  // rendering, so redirecting to the page we are already on re-commits it
+  // and loops. AppLayout learned that the hard way; this is the same guard.
   if (session && profile?.organization_id) {
-    return <Navigate to="/dashboard" />
+    const landing = landingPathFor(profile.role)
+    return location.pathname === landing ? null : <Navigate to={landing} />
   }
 
   // If logged in but no org, redirect to onboarding (unless already there)

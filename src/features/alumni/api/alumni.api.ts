@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { publicAppLink } from '@/lib/app-url'
 
 /**
  * F38–F42 — Retire / Alumni.
@@ -265,7 +266,7 @@ export async function issueReactivationLink(profileId: string): Promise<{
   link: string | null
 }> {
   const { data, error } = await supabase.functions.invoke('issue-reactivation-link', {
-    body: { profile_id: profileId, redirect_to: `${window.location.origin}/login` },
+    body: { profile_id: profileId, redirect_to: publicAppLink('/login') },
   })
   if (error) {
     // The function puts a readable reason in the body; surface that rather

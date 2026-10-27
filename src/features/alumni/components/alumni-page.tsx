@@ -28,6 +28,7 @@ import {
 } from '../hooks/use-alumni'
 import type { FinalSettlement } from '../api/alumni.api'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { appUrlIsLocal } from '@/lib/app-url'
 import { toast } from 'sonner'
 
 const SETTLEMENT_STYLES: Record<string, string> = {
@@ -497,6 +498,12 @@ export function AlumniPage() {
                     <Copy className="h-3.5 w-3.5" />
                   </Button>
                 </div>
+                {appUrlIsLocal() && (
+                  <p className="mt-2 rounded-md bg-amber-50 p-2 text-xs text-amber-900">
+                    <strong>This link points at localhost</strong> and will not work for them.
+                    Set VITE_PUBLIC_APP_URL first.
+                  </p>
+                )}
                 <p className="mt-2 text-xs text-muted-foreground">
                   Send this to them yourself. It lets them set a password once, and it expires —
                   if they leave it too long, come back and make another.

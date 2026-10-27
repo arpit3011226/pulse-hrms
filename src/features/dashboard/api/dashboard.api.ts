@@ -482,8 +482,12 @@ export async function getCurrentEmployee(profileId: string) {
     .select('id, first_name, last_name, department_id, reporting_manager_id, date_of_joining, avatar_url, status, gender, designation_id, employment_type, personal:employee_personal(date_of_birth)')
     .eq('profile_id', profileId)
     .eq('status', 'active')
-    .single()
+    .maybeSingle()
 
+  // maybeSingle, not single. A candidate, an alumnus or anybody mid-exit has
+  // no active employee row, and .single() answered that with a 406 on every
+  // one of their sign-ins. The error was swallowed, so it changed nothing on
+  // screen and simply filled the console with noise that hides real faults.
   return data
 }
 

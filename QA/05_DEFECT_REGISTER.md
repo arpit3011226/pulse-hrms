@@ -270,6 +270,93 @@ Compute can be pressed again without doubling anything.
 
 ---
 
+## QA-42 — A candidate's sign-in went through the staff dashboard · P2 · FIXED
+
+**Module** Auth / Routing **Found by** August during UAT, 27 October **Fixed in** `landing.ts`, `auth-layout.tsx`, `app-layout.tsx`
+
+Reported as "logged in as candidate, screen stuck spinning for two or three
+minutes".
+
+AuthLayout sent every signed-in person with an organisation to `/dashboard`.
+AppLayout then bounced candidates and alumni to their own screen. So a
+candidate's sign-in took two route commits through a page built for staff,
+and on the way it fired `getCurrentEmployee`, which used `.single()` on an
+employee row a candidate does not have:
+
+```
+GET /rest/v1/employees?select=id,first_name,... → 406
+{"code":"PGRST116","details":"The result contains 0 rows"}
+```
+
+The error was swallowed, so nothing broke visibly — it simply filled the
+console with noise that hides real faults, and added a wasted round trip to
+every candidate sign-in.
+
+**Measured before and after**, signing in as the demo candidate:
+
+| | Before | After |
+|---|---|---|
+| Route commits | 2 (`/dashboard` → `/my-application`) | **1** |
+| Failed requests | 1 (406) | **0** |
+
+`landingPathFor()` now answers "where does this person belong" in one place,
+and both layouts ask it instead of each holding half the rule. The dashboard
+query uses `maybeSingle()`, because having no employee record is an ordinary
+fact about a candidate, not an error.
+
+**Honestly reported:** the two-to-three minute freeze was not reproduced. A
+clean sign-in took nine seconds before the fix and nine after. The
+"Maximum update depth exceeded" errors seen alongside it appeared only in
+browser tabs that had been through many hot-reload cycles during development,
+never in a fresh one. The wasted hop was real and is fixed; if the freeze
+returns on a clean load, it is still open.
+
+---
+
+## QA-43 — Every link Pulse sends points at localhost · P1 · FIXED
+
+**Module** Auth / Alumni **Found by** August during UAT, 27 October **Fixed in** `app-url.ts`
+
+Set-password invitations and alumni reactivation links were built from
+`window.location.origin` — whatever the person generating the link happens to
+be browsing. In development that is `http://localhost:5173`, so every link HR
+handed out pointed at a machine nobody else can reach.
+
+It looks completely normal and simply does not work for the recipient, which
+is the worst kind of broken: HR would not find out until the candidate said
+so.
+
+`VITE_PUBLIC_APP_URL` now sets the address people actually use, with the
+browser origin as the fallback so local development needs no setup. Both
+screens that hand over a link also warn on screen while it would point at
+localhost, rather than letting somebody send it.
+
+---
+
+## QA-44 — A candidate could read every profile in the company · P1 · FIXED
+
+**Module** RLS **Found by** reading what a candidate could reach while fixing QA-42 **Fixed in** migration 00085
+
+00053 hid the employee directory and open requisitions from candidates and
+alumni. It missed `profiles`, which carries name, email address and role for
+everybody.
+
+**Reproduction** — as the demo candidate:
+```
+select email, role from profiles  → 19 rows
+including  role: super_admin, @augustinnovate.com
+```
+
+A candidate login is handed out freely, to people who have not been hired and
+may never be. Any one of them could enumerate the entire staff list and learn
+exactly which address holds the super admin account — a ready-made target
+list for a phishing attempt, given away at the application stage.
+
+Reading your own profile still works, because sign-in depends on it. After
+the fix: candidate sees 1, employee sees 19, HR sees 19.
+
+---
+
 ## QA-40 — Leave balances existed but could not be seen, so leave could not be approved · P1 · FIXED
 
 **Module** Leave **Found by** August during UAT, 27 October **Fixed in** migration 00083

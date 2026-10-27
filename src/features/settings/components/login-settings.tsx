@@ -16,6 +16,7 @@ import {
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { useCreateLogin } from '@/features/auth/hooks/use-user-admin'
+import { appUrlIsLocal } from '@/lib/app-url'
 
 /** Roles a login can be given here. Super admin is deliberately not on the list. */
 const ASSIGNABLE_ROLES = [
@@ -197,6 +198,13 @@ export function LoginSettings() {
             <div className="space-y-3 py-2">
               {link ? (
                 <>
+                  {appUrlIsLocal() && (
+                    <p className="rounded-md bg-amber-50 p-2.5 text-xs text-amber-900">
+                      <strong>This link points at localhost.</strong> It will work for you and
+                      for nobody else. Set VITE_PUBLIC_APP_URL to the address people actually
+                      use before sending links out.
+                    </p>
+                  )}
                   <p className="text-sm">
                     The login is ready. Send this link to the person so they can set a password.
                   </p>
