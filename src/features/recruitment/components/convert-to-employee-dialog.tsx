@@ -152,25 +152,23 @@ export function ConvertToEmployeeDialog({ open, onOpenChange, offer }: Props) {
        * attendance, no payslip, and 00053 deliberately hides the employee
        * directory from them. The screen said the conversion had worked.
        *
-       * Scoped to `candidate` so a rehire who was once a manager is not
-       * quietly demoted on their way back in.
-       *
-       * Only HR and a super admin may change a role (admin_update_org_profiles,
-       * and the guard added in 00073). A recruiter converting the candidate is
-       * told plainly what is left to do rather than being shown a success
-       * message that is only half true.
+       * One server-side call rather than an update from here. become_employee
+       * promotes only a candidate — somebody rejoining who used to be a
+       * manager keeps their role — records their work address against the
+       * profile ready for company sign-on, and writes who did it to
+       * identity_events. A hiring manager may call it; a plain UPDATE from the
+       * browser would have been refused for anyone but HR.
        */
       if (existingProfileId) {
-        const { error: roleError } = await supabase
-          .from('profiles')
-          .update({ role: 'employee' })
-          .eq('id', existingProfileId)
-          .eq('role', 'candidate')
+        const { error: roleError } = await supabase.rpc('become_employee', {
+          p_profile: existingProfileId,
+          p_work_email: workEmail.trim(),
+        })
 
         if (roleError) {
           toast.warning(
             `${candidate.first_name} was added, but their login is still a candidate login. ` +
-              'Ask HR to switch it to an employee login, otherwise they cannot sign in to the app.'
+              'Ask HR to switch it over, otherwise they cannot sign in to the app.'
           )
           onOpenChange(false)
           return

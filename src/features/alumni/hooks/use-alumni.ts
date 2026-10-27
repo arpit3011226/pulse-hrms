@@ -60,6 +60,11 @@ export function useMarkAsAlumni() {
   return useMutation({ mutationFn: api.markAsAlumni, onSuccess: () => bust(qc) })
 }
 
+export function useIssueReactivationLink() {
+  const qc = useQueryClient()
+  return useMutation({ mutationFn: api.issueReactivationLink, onSuccess: () => bust(qc) })
+}
+
 export function useExitQuestions() {
   const { organization } = useAuth()
   return useQuery({

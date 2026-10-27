@@ -50,6 +50,14 @@ check "employee rewrites anchor email"    BLOCKED "begin; $(jwt $EMP) update pro
 check "first user into a brand new org"   ALLOWED "begin; insert into organizations (id,name,slug) values ('$NEWORG','Bootstrap Test','bootstrap-test'); update profiles set organization_id=null where id='$EMP'; $(jwt $EMP) update profiles set organization_id='$NEWORG', role='super_admin' where id='$EMP'; rollback;"
 check "walks into the existing org"       BLOCKED "begin; update profiles set organization_id=null where id='$EMP'; $(jwt $EMP) update profiles set organization_id='$ORG', role='super_admin' where id='$EMP'; rollback;"
 
+# 00074 added two more columns that decide how a person gets in. A column is
+# invisible to the guard until it is named there, so these two keep it honest.
+# Flipped to whatever it is not, so this is always a real change. Setting a
+# column to the value it already holds changes nothing and the guard correctly
+# lets it by — which looks like a pass and proves nothing.
+check "employee changes own sign-in method" BLOCKED "begin; $(jwt $EMP) update profiles set login_method = case when login_method='sso' then 'password' else 'sso' end where id='$EMP'; rollback;"
+check "employee claims another work email" BLOCKED "begin; $(jwt $EMP) update profiles set sso_email='ceo@augustinnovate.com' where id='$EMP'; rollback;"
+
 echo
 echo "  $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

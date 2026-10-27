@@ -18,6 +18,22 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>
 
+/**
+ * QA-38 — only show company sign-on when it actually works.
+ *
+ * The button was shown to everybody while Google was switched off on the
+ * project, so pressing it returned "Unsupported provider". Eighteen logins
+ * exist and every one of them is a password; no Google identity has ever been
+ * created here.
+ *
+ * This is read from the environment rather than from the organisation,
+ * because the login screen runs before anybody is signed in and there is no
+ * organisation to ask. Set VITE_SSO_ENABLED=true on the day the provider is
+ * turned on, and set organizations.sso_enabled to match so new joiners are
+ * marked as SSO users.
+ */
+const SSO_ENABLED = import.meta.env.VITE_SSO_ENABLED === 'true'
+
 export function LoginForm() {
   const { signIn, signInWithGoogle } = useAuth()
   const [error, setError] = useState<string | null>(null)
@@ -88,6 +104,8 @@ export function LoginForm() {
             Sign In
           </Button>
         </form>
+        {SSO_ENABLED && (
+        <>
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t" />
@@ -122,6 +140,8 @@ export function LoginForm() {
           </svg>
           Sign in with Google
         </Button>
+        </>
+        )}
       </CardContent>
       <CardFooter className="justify-center">
         <p className="text-center text-sm text-muted-foreground">

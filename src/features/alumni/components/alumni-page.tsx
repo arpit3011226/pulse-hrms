@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
-  BadgeCheck, BadgeX, Banknote, Loader2, Plus, Search, UserRoundCheck, Users,
+  BadgeCheck, BadgeX, Banknote, Copy, KeyRound, Loader2, Plus, Search, UserRoundCheck, Users,
 } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
@@ -24,7 +24,7 @@ import { SettlementDialog } from './settlement-dialog'
 import { ExitInterviewTab } from './exit-interview-tab'
 import {
   useSettlements, useSetSettlementStatus, useAlumni, useExitRecords,
-  useSetRehireEligibility, useMarkAsAlumni,
+  useSetRehireEligibility, useMarkAsAlumni, useIssueReactivationLink,
 } from '../hooks/use-alumni'
 import type { FinalSettlement } from '../api/alumni.api'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -58,11 +58,14 @@ export function AlumniPage() {
   const { data: exitRecords } = useExitRecords()
   const setStatus = useSetSettlementStatus()
   const setRehire = useSetRehireEligibility()
+  const issueLink = useIssueReactivationLink()
   const markAlumni = useMarkAsAlumni()
 
   const [settlementOpen, setSettlementOpen] = useState(false)
   const [editing, setEditing] = useState<FinalSettlement | null>(null)
   const [statusTarget, setStatusTarget] = useState<{ s: FinalSettlement; to: string } | null>(null)
+  const [linkFor, setLinkFor] = useState<Record<string, unknown> | null>(null)
+  const [issuedLink, setIssuedLink] = useState<string | null>(null)
   const [rehireTarget, setRehireTarget] = useState<Record<string, unknown> | null>(null)
   const [rehireEligible, setRehireEligible] = useState(true)
   const [rehireNotes, setRehireNotes] = useState('')
@@ -253,6 +256,35 @@ export function AlumniPage() {
             >
               <UserRoundCheck className="mr-1.5 h-3.5 w-3.5" /> Grant access
             </Button>
+            {/*
+              QA-39 — without this they cannot sign in at all. Their work
+              account is gone and anyone who joined through company sign-on
+              never had a password. HR presses this when they are ready, so a
+              link is never sitting in an inbox before the last working day.
+            */}
+            {runsExits && (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={issueLink.isPending}
+                onClick={async () => {
+                  const profileId = row.original.profile_id as string | null
+                  if (!profileId) {
+                    toast.error('This person has no login on record, so there is nothing to reactivate.')
+                    return
+                  }
+                  try {
+                    const result = await issueLink.mutateAsync(profileId)
+                    setLinkFor(row.original)
+                    setIssuedLink(result.link)
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : 'Could not make the link')
+                  }
+                }}
+              >
+                <KeyRound className="mr-1.5 h-3.5 w-3.5" /> Sign-in link
+              </Button>
+            )}
           </div>
         )
       },
@@ -421,6 +453,74 @@ export function AlumniPage() {
           }
         }}
       />
+
+      <Dialog
+        open={!!linkFor}
+        onOpenChange={(o) => {
+          if (!o) {
+            setLinkFor(null)
+            setIssuedLink(null)
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sign-in link ready</DialogTitle>
+            <DialogDescription>
+              {linkFor
+                ? `For ${linkFor.first_name} ${linkFor.last_name}. Their login now uses their personal email address.`
+                : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">Goes to</Label>
+              <p className="text-sm font-medium">
+                {(linkFor?.personal_email as string) ?? (linkFor?.email as string) ?? '—'}
+              </p>
+            </div>
+            {issuedLink ? (
+              <div>
+                <Label className="text-xs text-muted-foreground">Link</Label>
+                <div className="mt-1 flex items-start gap-2">
+                  <code className="flex-1 break-all rounded-md bg-muted p-2 text-xs">
+                    {issuedLink}
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(issuedLink)
+                      toast.success('Copied')
+                    }}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Send this to them yourself. It lets them set a password once, and it expires —
+                  if they leave it too long, come back and make another.
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                The login was moved across, but no link could be made. Try again, or set a password
+                for them from Settings.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setLinkFor(null)
+                setIssuedLink(null)
+              }}
+            >
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!rehireTarget} onOpenChange={(o) => !o && setRehireTarget(null)}>
         <DialogContent className="max-w-md">

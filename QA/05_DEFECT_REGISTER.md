@@ -270,6 +270,65 @@ Compute can be pressed again without doubling anything.
 
 ---
 
+## QA-39 — Everybody who left was locked out of their own records · P1 · FIXED
+
+**Module** Alumni / Identity **Fixed in** migration 00074 and the `issue-reactivation-link` function
+
+Completing an exit set the role to `alumni`. That is correct — and `mayUseGoogle()`
+blocks company sign-on for alumni on purpose, because the work account stops
+working the day they leave.
+
+What nothing did was give them another way in:
+
+* their work address no longer accepts mail or sign-in
+* anybody who joined through company sign-on never had a password
+* no reactivation link was ever issued, by anything
+
+So the whole point of keeping an alumni login — payslips, Form 16, relieving
+letter — was unreachable by the person it was built for. The exit screen
+reported the exit as complete.
+
+**Fix.** `become_alumni()` now puts the login back on a password against the
+personal address and clears the company one, and the exit trigger calls it.
+HR then presses **Sign-in link** on the alumni list when they are ready, which
+moves the login to the personal address and hands back a one-time link.
+
+Pressed by HR rather than fired automatically on completion — August's choice,
+so a link is never sitting in somebody's inbox before their last working day.
+
+**Not yet exercised end to end.** The database half is tested; the function
+refuses an unauthenticated and an anonymous caller. The signed-in HR path needs
+one run during UAT, because no alumnus exists in the test data to try it on.
+
+---
+
+## QA-38 — The login screen offers Google sign-in, which is switched off · P1 · OPEN
+
+**Module** Auth **Found by** reading the project's auth settings during the SSO spike
+
+`login-form.tsx` renders a "Continue with Google" button unconditionally. The
+project has only one provider enabled:
+
+```
+GET /auth/v1/settings
+→ enabled: email
+→ disabled: google, azure, apple, github, … (all others)
+```
+
+`auth.identities` agrees — 18 logins, every one of them `email`, not a single
+Google identity ever created. The button has never worked.
+
+A tester who presses it gets "Unsupported provider", and the whole of the
+intended joiner journey — personal password before joining, company Google
+account afterwards — rests on a provider that is not switched on.
+
+**Left open deliberately.** The fix depends on which identity provider August
+settles on after the move to Azure. Enabling Google here would be wasted if the
+company moves to Microsoft Entra ID with the rest of its estate. Either way the
+button should not be shown while it cannot work.
+
+---
+
 ## QA-36 — Any employee could make themselves a super admin · P0 · FIXED
 
 **Module** Identity / RLS **Found by** reading `profiles` policies while fixing QA-37 **Fixed in** migration 00073

@@ -121,7 +121,7 @@ export async function setSettlementStatus(params: {
 export async function getAlumni(orgId: string) {
   const { data, error } = await supabase
     .from('employees')
-    .select('id, first_name, last_name, email, personal_email, employee_code, date_of_joining, status, department:departments!department_id(id, name), designation:designations!designation_id(id, title)')
+    .select('id, profile_id, first_name, last_name, email, personal_email, employee_code, date_of_joining, status, department:departments!department_id(id, name), designation:designations!designation_id(id, title)')
     .eq('organization_id', orgId)
     .in('status', ['resigned', 'terminated', 'absconding', 'retired'])
     .order('first_name')
@@ -241,4 +241,47 @@ export async function getMyAlumniRecords(profileId: string) {
     settlement: settlementRes.data ?? null,
     exit: exitRes.data ?? null,
   }
+}
+
+/**
+ * QA-39 — give somebody who has left a way back in.
+ *
+ * Leaving sets the role to `alumni`, which blocks company sign-on by design.
+ * But anybody who joined through Google never had a password, and their work
+ * address stops working the day they go. Until this existed, every leaver was
+ * locked out while the exit screen said the exit was complete.
+ *
+ * HR presses this when they are ready, rather than it firing automatically on
+ * completion — that was the choice made for August, so the link is never
+ * sitting in an inbox before the last day.
+ *
+ * The work happens in the `issue-reactivation-link` function because moving a
+ * login needs the service role key, which must never reach the browser. That
+ * function is the only part of identity that knows which auth service is
+ * underneath; everything else is in Postgres and ports to Azure untouched.
+ */
+export async function issueReactivationLink(profileId: string): Promise<{
+  email: string
+  link: string | null
+}> {
+  const { data, error } = await supabase.functions.invoke('issue-reactivation-link', {
+    body: { profile_id: profileId, redirect_to: `${window.location.origin}/login` },
+  })
+  if (error) {
+    // The function puts a readable reason in the body; surface that rather
+    // than "Edge Function returned a non-2xx status code".
+    let message = error.message
+    const ctx = (error as { context?: Response }).context
+    if (ctx && typeof ctx.json === 'function') {
+      try {
+        const body = await ctx.json()
+        if (body?.error) message = body.error
+      } catch {
+        // keep the original message
+      }
+    }
+    throw new Error(message)
+  }
+  if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error)
+  return data as { email: string; link: string | null }
 }
