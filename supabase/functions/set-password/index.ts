@@ -60,10 +60,10 @@ Deno.serve(async (req) => {
       .eq('id', callerAuth.user.id)
       .single()
 
-    // Deliberately narrower than create-user. Handing someone a working
-    // password is a bigger thing than inviting them to choose their own.
-    if (!callerProfile || callerProfile.role !== 'super_admin') {
-      return json({ error: 'Only a super admin may reset a password' }, 403)
+    // Who may do this at all. The finer question — for WHOM — is settled
+    // below, once we know whose login it is.
+    if (!callerProfile || !['super_admin', 'hr_admin'].includes(callerProfile.role)) {
+      return json({ error: 'Only HR or a super admin may set a password' }, 403)
     }
     if (!callerProfile.organization_id) {
       return json({ error: 'Your account is not linked to an organisation' }, 400)
@@ -80,15 +80,44 @@ Deno.serve(async (req) => {
 
     const { data: target } = await admin
       .from('profiles')
-      .select('id, organization_id')
+      .select('id, organization_id, role')
       .eq('email', email)
       .maybeSingle()
 
     if (!target) return json({ error: 'No login exists for that email address' }, 404)
 
-    // Stops a super admin in one organisation reaching into another.
+    // Stops an admin in one organisation reaching into another.
     if (target.organization_id !== callerProfile.organization_id) {
       return json({ error: 'That login belongs to another organisation' }, 403)
+    }
+
+    /**
+     * HR may do this for candidates and alumni only.
+     *
+     * Those are the two groups who genuinely cannot help themselves: their
+     * sign-in address is usually a personal one the company does not control,
+     * and for a candidate it may be an address no mail will ever reach. HR
+     * already manages both, and neither role can reach anything beyond its
+     * own record — so handing one a password gives nothing else away.
+     *
+     * HR may NOT set a password on a member of staff. Letting them would mean
+     * an HR admin could set a password on a super admin's login and sign in
+     * as them, which is privilege escalation wearing a helpful face. For
+     * staff it stays with a super admin, and the ordinary route stays the
+     * set-password link, which nobody but the person themselves can use.
+     */
+    const CANDIDATE_LIKE = ['candidate', 'alumni']
+    if (
+      callerProfile.role === 'hr_admin' &&
+      !CANDIDATE_LIKE.includes(target.role)
+    ) {
+      return json(
+        {
+          error:
+            'HR can set a password for a candidate or an alumnus. For a member of staff, send them a set-password link or ask a super admin.',
+        },
+        403
+      )
     }
 
     const { error: updateErr } = await admin.auth.admin.updateUserById(target.id, {

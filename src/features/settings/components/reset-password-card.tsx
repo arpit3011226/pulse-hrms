@@ -28,7 +28,7 @@ function suggestPassword(): string {
  * a worse thing than inviting them to choose one, so the normal route stays
  * the link above and this says plainly what it is for.
  */
-export function ResetPasswordCard() {
+export function ResetPasswordCard({ canSetForStaff = false }: { canSetForStaff?: boolean }) {
   const setPassword = useSetLoginPassword()
   const [email, setEmail] = useState('')
   const [password, setPasswordValue] = useState('')
@@ -61,6 +61,12 @@ export function ResetPasswordCard() {
           For logins that can never use "Forgot password" — a candidate or alumnus on an address
           we do not control, a demo account, or somebody who has lost access to their work email.
           Everyone else should get the link above and choose their own.
+          {!canSetForStaff && (
+            <span className="mt-1.5 block">
+              You can do this for <strong>candidates and alumni</strong>. For a member of staff,
+              send them a set-password link above, or ask a super admin.
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">

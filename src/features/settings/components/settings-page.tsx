@@ -77,10 +77,12 @@ export function SettingsPage() {
           <TabsContent value="logins" className="mt-6 space-y-6">
             <LoginSettings />
             {/*
-              Super admin only. The function behind it refuses anyone else
-              anyway, but a button that always fails is worse than no button.
+              HR sees this too, because candidates and alumni are the people
+              who genuinely cannot reset their own password — their address is
+              often one the company does not control. The function limits HR
+              to those two roles; a super admin may do it for anybody.
             */}
-            {isAdmin && <ResetPasswordCard />}
+            {(isAdmin || isHR) && <ResetPasswordCard canSetForStaff={isAdmin} />}
           </TabsContent>
         )}
 
