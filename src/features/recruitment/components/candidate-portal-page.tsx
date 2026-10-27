@@ -219,9 +219,11 @@ export function CandidatePortalPage() {
               offer_status: liveOffer.offer_status as string,
               accepted_name: (liveOffer.accepted_name as string) ?? null,
               accepted_at: (liveOffer.accepted_at as string) ?? null,
+              accepted_pdf_path: (liveOffer.accepted_pdf_path as string) ?? null,
               decline_reason: (liveOffer.decline_reason as string) ?? null,
             }}
             candidateName={`${candidate.first_name} ${candidate.last_name}`}
+            candidateId={candidate.id as string}
           />
         )}
       </div>

@@ -16,10 +16,27 @@ import { supabase } from '@/lib/supabase'
  * the difference that QA-29 is fixed, so they now actually arrive.
  */
 
+/**
+ * The kinds the database will accept. Kept as a union rather than a plain
+ * string because the check constraint rejects anything else, and this helper
+ * swallows failures on purpose — so a wrong value here would mean nobody is
+ * ever told, with nothing on screen to say so. That happened once already.
+ * Add a value to migration 00089 before adding one here.
+ */
+export type NotificationKind =
+  | 'documents_requested'
+  | 'document_uploaded'
+  | 'document_rejected'
+  | 'offer_accepted'
+  | 'offer_declined'
+  | 'agreements_issued'
+  | 'agreement_signed'
+  | 'general'
+
 type Notify = {
   title: string
   message: string
-  type?: string
+  type?: NotificationKind
   referenceId?: string | null
   referenceType?: string | null
 }
@@ -31,7 +48,7 @@ export async function notifyPerson(profileId: string | null | undefined, n: Noti
       p_profile: profileId,
       p_title: n.title,
       p_message: n.message,
-      p_type: n.type ?? 'info',
+      p_type: n.type ?? 'general',
       p_reference_id: n.referenceId ?? null,
       p_reference_type: n.referenceType ?? null,
     })
@@ -49,7 +66,7 @@ export async function notifyRoles(roles: string[], n: Notify) {
       p_roles: roles,
       p_title: n.title,
       p_message: n.message,
-      p_type: n.type ?? 'info',
+      p_type: n.type ?? 'general',
       p_reference_id: n.referenceId ?? null,
       p_reference_type: n.referenceType ?? null,
     })

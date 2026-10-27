@@ -16,7 +16,9 @@ import {
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { companyName } from '@/lib/document-branding'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { Download } from 'lucide-react'
 import { useRespondToOffer } from '../hooks/use-preboarding'
+import { getOfferPdfUrl } from '../api/offer-response.api'
 import type { OfferTerms } from '../api/offer-response.api'
 
 interface OfferRow {
@@ -28,6 +30,7 @@ interface OfferRow {
   offer_status: string
   accepted_name: string | null
   accepted_at: string | null
+  accepted_pdf_path: string | null
   decline_reason: string | null
 }
 
@@ -50,9 +53,11 @@ const CONSENT =
 export function OfferDecisionCard({
   offer,
   candidateName,
+  candidateId,
 }: {
   offer: OfferRow
   candidateName: string
+  candidateId: string
 }) {
   const { organization } = useAuth()
   const respond = useRespondToOffer()
@@ -86,6 +91,8 @@ export function OfferDecisionCard({
         response,
         typed_name: response === 'accepted' ? typedName.trim() : candidateName,
         terms,
+        candidate_id: candidateId,
+        organization,
         decline_reason: response === 'rejected' ? reason.trim() || null : null,
       })
       toast.success(
@@ -162,6 +169,23 @@ export function OfferDecisionCard({
                 {offer.accepted_at ? ` on ${formatDate(offer.accepted_at)}` : ''}. We will be in
                 touch about joining, and about the documents we need before your first day.
               </p>
+              {offer.accepted_pdf_path && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-2"
+                  onClick={async () => {
+                    const url = await getOfferPdfUrl(offer.accepted_pdf_path)
+                    if (!url) {
+                      toast.error('That copy could not be found. Please ask your recruiter.')
+                      return
+                    }
+                    window.open(url, '_blank', 'noopener,noreferrer')
+                  }}
+                >
+                  <Download className="mr-1.5 h-3.5 w-3.5" /> Download your copy
+                </Button>
+              )}
             </div>
           ) : offer.offer_status === 'rejected' ? (
             <div className="mt-4 rounded-md bg-muted p-3 text-sm">

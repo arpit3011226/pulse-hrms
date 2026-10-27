@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { uploadFile, getSignedUrl } from '@/lib/storage'
 import { buildSignedAgreementPdf } from '../utils/generate-agreement-pdf'
+import { notifyPerson, notifyRoles, HR_AND_ADMIN } from '@/lib/notify'
 import type { DocumentOrg } from '@/lib/document-branding'
 
 /**
@@ -241,6 +242,22 @@ export async function issueAgreementsToEmployee(input: {
 
   const { error } = await supabase.from('employee_agreements').insert(rows)
   if (error) throw error
+
+  // Tell them. An NDA sitting unsigned because nobody mentioned it is the
+  // commonest way a joiner's first week goes wrong.
+  const { data: emp } = await supabase
+    .from('employees')
+    .select('profile_id')
+    .eq('id', input.employee_id)
+    .maybeSingle()
+
+  await notifyPerson(emp?.profile_id, {
+    title: 'Documents to read and sign',
+    message: `${rows.length} document${rows.length === 1 ? '' : 's'} ${rows.length === 1 ? 'is' : 'are'} waiting for you under Onboarding. You can download a copy of each one once you have signed it.`,
+    type: 'agreements_issued',
+    referenceType: 'employee_agreement',
+  })
+
   return { issued: rows.length, unresolved: [...unresolved] }
 }
 
@@ -313,6 +330,15 @@ export async function signAgreement(input: {
     })
     .eq('id', input.agreement.id)
   if (error) throw error
+
+  // So HR can see the pack completing without opening each record.
+  await notifyRoles(HR_AND_ADMIN, {
+    title: 'A document was signed',
+    message: `${input.typed_name} signed ${input.agreement.title}.`,
+    type: 'agreement_signed',
+    referenceId: input.agreement.id,
+    referenceType: 'employee_agreement',
+  })
 }
 
 export async function getAgreementPdfUrl(agreement: EmployeeAgreement): Promise<string | null> {

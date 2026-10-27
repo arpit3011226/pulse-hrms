@@ -1,6 +1,9 @@
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { notifyRoles, HR_AND_ADMIN } from '@/lib/notify'
+import { uploadFile, getSignedUrl } from '@/lib/storage'
+import { buildSignedAgreementPdf } from '@/features/onboarding/utils/generate-agreement-pdf'
+import type { DocumentOrg } from '@/lib/document-branding'
 
 /**
  * A candidate answering their own offer.
@@ -46,22 +49,65 @@ async function sha256(text: string): Promise<string> {
     .join('')
 }
 
+const OFFER_BUCKET = 'candidate-documents'
+
 export async function respondToOffer(input: {
   offer_id: string
   response: 'accepted' | 'rejected'
   typed_name: string
   terms: OfferTerms
+  candidate_id?: string | null
+  organization?: DocumentOrg | null
   decline_reason?: string | null
 }): Promise<void> {
   const html = renderOfferTerms(input.terms)
+  const answeredAt = new Date().toISOString()
+
+  /**
+   * A copy they keep.
+   *
+   * Agreements already work this way and an accepted offer is the bigger
+   * commitment of the two, so it was odd that one produced a document and
+   * the other produced a database row. Built from the same frozen text that
+   * is hashed below, not re-rendered later from whatever the code does then.
+   *
+   * Only on acceptance: nobody wants a keepsake of a job they turned down.
+   * And deliberately forgiving — if the PDF cannot be made or stored, the
+   * answer still goes through. Losing somebody's acceptance because a file
+   * would not write is far worse than them having to ask HR for a copy.
+   */
+  let pdfPath: string | null = null
+  if (input.response === 'accepted' && input.candidate_id && input.organization) {
+    try {
+      const pdf = buildSignedAgreementPdf({
+        title: 'Offer of Employment',
+        renderedHtml: html,
+        organization: input.organization,
+        signerName: input.typed_name,
+        signedName: input.typed_name,
+        signedAt: answeredAt,
+        consentStatement:
+          'I have read the terms above and I accept this offer of employment.',
+        contentHash: await sha256(html),
+      })
+      const path = `${input.candidate_id}/offer/${input.offer_id}.pdf`
+      await uploadFile(OFFER_BUCKET, path, new File([pdf], `${input.offer_id}.pdf`, {
+        type: 'application/pdf',
+      }))
+      pdfPath = path
+    } catch (err) {
+      console.warn('Could not store the signed offer PDF:', err)
+    }
+  }
 
   const { error } = await supabase
     .from('offer_letters')
     .update({
       offer_status: input.response,
-      responded_at: new Date().toISOString(),
+      responded_at: answeredAt,
       accepted_name: input.typed_name,
-      accepted_at: new Date().toISOString(),
+      accepted_at: answeredAt,
+      accepted_pdf_path: pdfPath,
       accepted_user_agent: navigator.userAgent,
       // Frozen whichever way they answered. Knowing what somebody turned
       // down matters as much as knowing what they took.
@@ -82,8 +128,14 @@ export async function respondToOffer(input: {
         ? `${input.typed_name} accepted the offer for ${input.terms.offered_designation ?? 'the role'}.`
         : `${input.typed_name} declined the offer for ${input.terms.offered_designation ?? 'the role'}.` +
           (input.decline_reason ? ` They said: ${input.decline_reason}` : ''),
-    type: input.response === 'accepted' ? 'success' : 'info',
+    type: input.response === 'accepted' ? 'offer_accepted' : 'offer_declined',
     referenceId: input.offer_id,
     referenceType: 'offer_letter',
   })
+}
+
+/** The signed copy of an accepted offer, if one was stored. */
+export async function getOfferPdfUrl(pdfPath: string | null): Promise<string | null> {
+  if (!pdfPath) return null
+  return getSignedUrl(OFFER_BUCKET, pdfPath)
 }

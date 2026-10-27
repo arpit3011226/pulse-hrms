@@ -216,7 +216,7 @@ export async function sendChecklist(input: {
       input.gate === 'before_offer'
         ? `We have asked for ${rows.length || chosen.length} document${(rows.length || chosen.length) === 1 ? '' : 's'} so we can take your application forward. You can upload them from your portal.`
         : `We have asked for the documents we need before your first day. You can upload them from your portal as you get them.`,
-    type: 'action_required',
+    type: 'documents_requested',
     referenceId: checklist.id,
     referenceType: 'preboarding_checklist',
   })
@@ -270,7 +270,7 @@ export async function uploadCandidateDocument(input: {
   await notifyRoles(HR_AND_ADMIN, {
     title: 'A candidate sent a document',
     message: `${input.item.label} has been uploaded and is waiting to be checked.`,
-    type: 'action_required',
+    type: 'document_uploaded',
     referenceId: input.item.checklist_id,
     referenceType: 'preboarding_checklist',
   })
