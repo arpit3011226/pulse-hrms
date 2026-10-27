@@ -12,8 +12,12 @@
 #
 # Every check runs inside a rolled-back transaction. Safe anywhere.
 #
+# Runs against Supabase by default. For Azure, or any plain Postgres:
+#   export PULSE_DB_URL=postgres://user:pass@host:5432/postgres
 set -uo pipefail
 cd "$(dirname "$0")/../.."
+# shellcheck source=QA/scripts/lib/dbq.sh
+. "$(dirname "$0")/lib/dbq.sh"
 
 ORG=328bd5f2-fcd1-43e2-ae0d-11e3076abc7f
 EMP_P=0639a54b-f2a7-457a-b73c-9edc5857f26f       # employee's profile
@@ -45,7 +49,7 @@ SQL
 # confidence, which is the failure mode this whole suite exists to catch.
 check() {
   local name="$1" want="$2" sql="$3" got out
-  out=$(npx --yes supabase db query --linked "$sql" 2>&1)
+  out=$(db_run "$sql" 2>&1)
   if printf '%s' "$out" | grep -qiE "42501|cannot be changed|only sign your own|already been signed|Only HR can|not something you can set|not yours to change|already answered|cannot be rewritten|accept or decline|only answer your own"; then
     got=REFUSED
   elif printf '%s' "$out" | grep -qiE "ERROR:"; then
@@ -64,7 +68,7 @@ check() {
 
 state_check() {
   local name="$1" want="$2" sql="$3" got out
-  out=$(npx --yes supabase db query --linked "$sql" 2>&1)
+  out=$(db_run "$sql" 2>&1)
   got=$(printf '%s' "$out" | grep -o '"v": "[^"]*"' | head -1 | cut -d'"' -f4)
   got=${got:-ERR}
   if [ "$got" = "$want" ]; then
@@ -74,7 +78,7 @@ state_check() {
   fi
 }
 
-echo "Digital agreements"
+echo "Digital agreements   [$(db_backend)]"
 
 check "employee signs their own"                 ALLOWED "begin; $(setup) $(jwt $EMP_P) update employee_agreements set status='signed', signed_name='Test', signed_at=now() where id='$A1'; rollback;"
 # Asserted on the row, not on the absence of an error.

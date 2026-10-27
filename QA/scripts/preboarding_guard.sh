@@ -12,8 +12,12 @@
 #
 #   ./QA/scripts/preboarding_guard.sh
 #
+# Runs against Supabase by default. For Azure, or any plain Postgres:
+#   export PULSE_DB_URL=postgres://user:pass@host:5432/postgres
 set -uo pipefail
 cd "$(dirname "$0")/../.."
+# shellcheck source=QA/scripts/lib/dbq.sh
+. "$(dirname "$0")/lib/dbq.sh"
 
 ORG=328bd5f2-fcd1-43e2-ae0d-11e3076abc7f
 CAND=2f85408e-bb11-465c-aecb-262ea9be998c          # candidate with a login
@@ -58,7 +62,7 @@ SQL
 # want REFUSED / ALLOWED
 check() {
   local name="$1" want="$2" sql="$3" got out
-  out=$(npx --yes supabase db query --linked "$sql" 2>&1)
+  out=$(db_run "$sql" 2>&1)
   if printf '%s' "$out" | grep -qiE "Only HR can|42501"; then got=REFUSED; else got=ALLOWED; fi
   if [ "$got" = "$want" ]; then
     printf '  ok    %-46s %s\n' "$name" "$got"; pass=$((pass+1))
@@ -70,7 +74,7 @@ check() {
 # want a specific visible row count
 count_check() {
   local name="$1" want="$2" sql="$3" got out
-  out=$(npx --yes supabase db query --linked "$sql" 2>&1)
+  out=$(db_run "$sql" 2>&1)
   got=$(printf '%s' "$out" | grep -o '"n": [0-9]*' | head -1 | grep -o '[0-9]*')
   got=${got:-ERR}
   if [ "$got" = "$want" ]; then
@@ -80,7 +84,7 @@ count_check() {
   fi
 }
 
-echo "Pre-boarding documents"
+echo "Pre-boarding documents   [$(db_backend)]"
 
 check "candidate marks own document verified"  REFUSED "begin; $(setup) $(jwt $CPROF) update preboarding_checklist_items set status='verified' where id='$ITEM'; rollback;"
 check "candidate records an upload"            ALLOWED "begin; $(setup) $(jwt $CPROF) update preboarding_checklist_items set status='uploaded', storage_path='$CAND/x.pdf' where id='$ITEM'; rollback;"

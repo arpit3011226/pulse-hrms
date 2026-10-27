@@ -14,12 +14,17 @@ behaves wrongly still shows up.
     python3 QA/scripts/access_matrix.py                # the sensitive set
     python3 QA/scripts/access_matrix.py employees      # named tables
 
+Runs against Supabase by default. For Azure, or any plain Postgres:
+
+    export PULSE_DB_URL=postgres://user:pass@host:5432/postgres
+
 Reads only. Safe against any environment.
 """
-import json
-import re
-import subprocess
+import os
 import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
+from dbq import query, backend  # noqa: E402
 
 # One demo account per role. Regenerate with:
 #   select p.role, p.id from profiles p join employees e on e.profile_id = p.id
@@ -82,16 +87,12 @@ def own_rows_check(profile_id, table, column):
         f"select count(*) as leaked from {table} t "
         f"where t.{column} not in (select id from employees where profile_id = auth.uid());"
     )
-    out = subprocess.run(
-        ["npx", "--yes", "supabase", "db", "query", "--linked", sql],
-        capture_output=True, text=True,
-    ).stdout
-    match = re.search(r"\{.*\}", out, re.S)
-    if not match:
+    rows = query(sql)
+    if not rows or "leaked" not in rows[0]:
         return None
     try:
-        return json.loads(match.group(0))["rows"][0]["leaked"]
-    except Exception:
+        return int(rows[0]["leaked"])
+    except (TypeError, ValueError):
         return None
 
 
@@ -103,17 +104,10 @@ def count_for(profile_id, tables):
         f"select set_config('request.jwt.claims','{{\"sub\":\"{profile_id}\",\"role\":\"authenticated\"}}',true); "
         f"select {selects};"
     )
-    out = subprocess.run(
-        ["npx", "--yes", "supabase", "db", "query", "--linked", sql],
-        capture_output=True, text=True,
-    ).stdout
-    match = re.search(r"\{.*\}", out, re.S)
-    if not match:
+    rows = query(sql)
+    if not rows:
         return {t: "err" for t in tables}
-    try:
-        return json.loads(match.group(0))["rows"][0]
-    except Exception:
-        return {t: "err" for t in tables}
+    return rows[0]
 
 
 def main():

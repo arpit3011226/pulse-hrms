@@ -11,8 +11,12 @@
 #
 #   ./QA/scripts/profile_guard.sh
 #
+# Runs against Supabase by default. For Azure, or any plain Postgres:
+#   export PULSE_DB_URL=postgres://user:pass@host:5432/postgres
 set -uo pipefail
 cd "$(dirname "$0")/../.."
+# shellcheck source=QA/scripts/lib/dbq.sh
+. "$(dirname "$0")/lib/dbq.sh"
 
 EMP=0639a54b-f2a7-457a-b73c-9edc5857f26f   # demo employee
 HR=eb8bb741-08f2-4037-a1d6-0a2b6032872f    # demo HR admin
@@ -27,7 +31,7 @@ check() {
   local name="$1" want="$2" sql="$3" got out
   # Captured rather than piped: a rejected query makes the CLI exit non-zero,
   # and under `pipefail` that sinks the whole pipeline even when grep matched.
-  out=$(npx --yes supabase db query --linked "$sql" 2>&1)
+  out=$(db_run "$sql" 2>&1)
   if printf '%s' "$out" | grep -qi "not allowed from this account"; then
     got=BLOCKED
   else
@@ -40,7 +44,7 @@ check() {
   fi
 }
 
-echo "Profile privilege guard (QA-36)"
+echo "Profile privilege guard (QA-36)   [$(db_backend)]"
 
 check "employee makes self super_admin"   BLOCKED "begin; $(jwt $EMP) update profiles set role='super_admin' where id='$EMP'; rollback;"
 check "employee edits own name"           ALLOWED "begin; $(jwt $EMP) update profiles set first_name=first_name||'' where id='$EMP'; rollback;"

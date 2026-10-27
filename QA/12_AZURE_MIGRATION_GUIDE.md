@@ -282,10 +282,22 @@ python3 QA/scripts/write_matrix.py     #  84 write checks
 ./QA/scripts/agreement_guard.sh        #  14 signing and offer checks
 ```
 
-The five database scripts currently call the Supabase CLI. **They need their
-query runner swapped for `psql` before they will run against Azure** — one
-function in each file, an afternoon's work. Ask for this and it will be done;
-it is the safety net for the whole move and it must cross with you.
+**All five run against either database.** By default they use the Supabase
+CLI. Point them at Azure with one variable:
+
+```bash
+export PULSE_DB_URL="postgres://user:pass@<azure-pg>:5432/postgres"
+```
+
+Each prints which backend answered — `[supabase]` or `[psql]` — so nobody
+mistakes a pass on the old platform for a pass on the new one.
+
+> **One honest caveat.** The psql path was written on a machine with no psql
+> and no direct Postgres URL, so it has never run against a live database.
+> The part that would actually go wrong — reading psql's output — is covered
+> by `QA/scripts/lib/test_dbq.py`, 9 cases against real psql output shapes.
+> Run that first (`python3 QA/scripts/lib/test_dbq.py`), then run one real
+> check and eyeball it before trusting the rest.
 
 Then check by hand, because these are the things a script cannot see:
 
@@ -347,11 +359,11 @@ None of this exists today and none of it is application work.
 | 1 | Postgres, schema, roles | half a day |
 | 2 | Containers running, app talking to them | 1–2 days |
 | 3 | Data and files across | half a day |
-| 4 | **Port the five verification scripts to psql** | half a day |
+| 4 | ~~Port the verification scripts~~ — **done, they run against either** | — |
 | 5 | **Run the gate, fix what it finds** | 1 day, unknown tail |
 | 6 | Static Web App, domain, TLS | half a day |
 | 7 | Backup and restore tested, monitoring | half a day |
-| | | **about a week**, plus whatever step 5 turns up |
+| | | **about four days**, plus whatever step 5 turns up |
 
 Step 5 is the one with an unknown tail, and it is the one not to compress.
 

@@ -24,12 +24,18 @@ against any environment, including one holding real data.
 
     python3 QA/scripts/write_matrix.py
 
+Runs against Supabase by default. For Azure, or any plain Postgres:
+
+    export PULSE_DB_URL=postgres://user:pass@host:5432/postgres
+    python3 QA/scripts/write_matrix.py
+
 Exits non-zero if any role can reach a row it has no business changing.
 """
-import json
-import re
-import subprocess
+import os
 import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
+from dbq import query, backend  # noqa: E402
 
 # One demo account per role. Same set as access_matrix.py.
 ROLES = [
@@ -88,20 +94,6 @@ FORBIDDEN = {
 }
 
 
-def run(sql):
-    out = subprocess.run(
-        ["npx", "--yes", "supabase", "db", "query", "--linked", sql],
-        capture_output=True, text=True,
-    ).stdout
-    m = re.search(r"\{.*\}", out, re.S)
-    if not m:
-        return None
-    try:
-        return json.loads(m.group())
-    except json.JSONDecodeError:
-        return None
-
-
 def victim_row(table, key, profile_id):
     """A row belonging to somebody other than this person, chosen as postgres."""
     if table == "payroll_runs":
@@ -110,8 +102,7 @@ def victim_row(table, key, profile_id):
         where = f"id not in (select id from employees where profile_id = '{profile_id}')"
     else:
         where = f"employee_id not in (select id from employees where profile_id = '{profile_id}')"
-    res = run(f"select {key} as k from {table} where {where} limit 1;")
-    rows = (res or {}).get("rows") or []
+    rows = query(f"select {key} as k from {table} where {where} limit 1;")
     return rows[0]["k"] if rows else None
 
 
@@ -128,10 +119,7 @@ def can_write(table, key, column, row_id, profile_id):
         f"with touched as (update {table} set {column} = {column} where {key} = '{row_id}' returning 1) "
         "select count(*) as n from touched; rollback;"
     )
-    res = run(sql)
-    if res is None:
-        return "error"
-    rows = res.get("rows") or []
+    rows = query(sql)
     if not rows or "n" not in rows[0]:
         return "error"
     return "yes" if int(rows[0]["n"]) > 0 else "no"
@@ -141,7 +129,7 @@ def main():
     only = sys.argv[1:]
     tables = {t: kc for t, kc in TABLES.items() if not only or t in only}
 
-    print("Who can change somebody else's row\n", flush=True)
+    print(f"Who can change somebody else's row   [{backend()}]\n", flush=True)
     print(f"  {'table':<24} " + " ".join(f"{r:<14}" for r, _ in ROLES))
     print("  " + "-" * (24 + 15 * len(ROLES)))
 
