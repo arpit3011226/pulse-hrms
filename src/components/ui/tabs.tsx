@@ -56,22 +56,36 @@ function tabLabel(node: React.ReactNode): string {
 function TabsList({
   className,
   variant = "default",
+  sorted = true,
   children,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.List> &
-  VariantProps<typeof tabsListVariants>) {
+  VariantProps<typeof tabsListVariants> & {
+    /**
+     * Sort the tabs alphabetically. True by default, which is the behaviour
+     * every existing screen relies on.
+     *
+     * Pass false where the ORDER ITSELF CARRIES MEANING — a sequence of
+     * steps, or a list whose first item is the one almost everybody wants.
+     * Alphabetical is a help when there are nine tabs and you are hunting
+     * for one; it is a hindrance when there are three and the first should
+     * be the common case.
+     */
+    sorted?: boolean
+  }) {
   // Every set of tabs in the app reads alphabetically, so nobody has to hunt for
   // one. Sorting here rather than in each screen means it holds for tabs added
   // later, and it survives tabs that are shown only to certain roles — those
   // simply are not in the list to begin with.
   //
   // Which tab opens first is unaffected: that is chosen by value, not position.
-  const sorted = React.useMemo(() => {
+  const ordered = React.useMemo(() => {
     const items = React.Children.toArray(children)
+    if (!sorted) return items
     return [...items].sort((a, b) =>
       tabLabel(a).trim().localeCompare(tabLabel(b).trim(), "en")
     )
-  }, [children])
+  }, [children, sorted])
 
   return (
     <TabsPrimitive.List
@@ -80,7 +94,7 @@ function TabsList({
       className={cn(tabsListVariants({ variant }), className)}
       {...props}
     >
-      {sorted}
+      {ordered}
     </TabsPrimitive.List>
   )
 }
