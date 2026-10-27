@@ -270,6 +270,66 @@ Compute can be pressed again without doubling anything.
 
 ---
 
+## QA-40 — Leave balances existed but could not be seen, so leave could not be approved · P1 · FIXED
+
+**Module** Leave **Found by** August during UAT, 27 October **Fixed in** migration 00083
+
+Reported from the floor: an employee with 12 days of casual leave and 9 still
+available applied for 3 days. The approval dialog said *"No balance record
+found for this leave type and year"* and refused to approve. The balance row
+was there the whole time.
+
+**Root cause.** Migration 00004 added `leave_balances.organization_id` with the
+comment *"for easier admin queries"*. Nullable, nothing backfilled it, nothing
+enforced it. Later `getAllLeaveBalances()` started filtering on it:
+
+```js
+.eq('organization_id', orgId).eq('year', year)
+```
+
+Every row where the column was null silently disappeared from that query. In
+this database that was **33 of 76 rows**, including three of the four belonging
+to the person who reported it. The dialog then saw no balance and blocked the
+approval — correct behaviour on the facts it was given, and the facts were
+wrong.
+
+**Fix.** Backfilled from the employee, derived by trigger on insert and update
+so no caller has to remember it, and the column is now NOT NULL.
+
+**The general lesson.** A denormalised column is a convenience only while it is
+guaranteed. The moment something filters on it, a null is not a gap — it is
+invisible data loss, and it looks exactly like "no such record".
+
+**Verified end to end** on the live test instance after the fix: the dialog
+showed 12 total, 0 used, 9 available; the leave was approved; used moved 0 → 3
+and pending 3 → 0.
+
+---
+
+## QA-41 — A leave request from someone with no manager reached nobody · P1 · FIXED
+
+**Module** Dashboard **Found by** August during UAT, 27 October **Fixed in** `things-to-do-widget.tsx`
+
+"Things to do" said *2 leave requests to approve* while the Leave screen and
+the dashboard's own Pending Leaves tile both said 3.
+
+The widget counted pending requests belonging to the approver's **direct
+reports**, and did that for everybody — including HR and admins, who approve
+across the whole organisation.
+
+Two consequences:
+
+* HR saw a number smaller than the queue they were actually looking at.
+* A request from somebody with **no reporting manager** — the head of the
+  company, or anyone whose manager field is simply blank — was in nobody's
+  list and was shown to no one at all. That was the missing third request.
+
+HR and admins now count the whole organisation, which is what they can act on.
+Managers keep their own reports plus anyone they are covering for through
+delegation.
+
+---
+
 ## QA-39 — Everybody who left was locked out of their own records · P1 · FIXED
 
 **Module** Alumni / Identity **Fixed in** migration 00074 and the `issue-reactivation-link` function

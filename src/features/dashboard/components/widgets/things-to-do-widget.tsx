@@ -84,17 +84,44 @@ export function ThingsToDoWidget({ employeeId }: { employeeId?: string }) {
         items.push({ label: `${waiting} helpdesk ticket${waiting === 1 ? '' : 's'} waiting on you`, count: waiting, to: '/helpdesk', tone: 'urgent' })
       }
 
-      // ── Approvers ──────────────────────────────────────────
-      if (canApproveLeave && approverIds.length > 0) {
-        const { data: reports } = await supabase.from('employees')
-          .select('id').eq('organization_id', orgId).in('reporting_manager_id', approverIds)
-        const reportIds = (reports ?? []).map((r) => r.id)
-        if (reportIds.length > 0) {
+      /**
+       * ── Approvers ──────────────────────────────────────────
+       *
+       * QA-41: this used to count only the approver's own direct reports,
+       * for everybody — including HR and admins, who approve across the
+       * whole company. Two things went wrong with that.
+       *
+       * HR saw a number smaller than the queue they were actually looking
+       * at on the Leave screen. And a request from somebody with no
+       * reporting manager — the head of the company, or anyone whose
+       * manager field is simply blank — belonged to nobody's list and was
+       * never shown to anyone at all.
+       *
+       * So HR and admins count the whole organisation, which is what they
+       * can act on. Managers keep their own reports, plus anybody they are
+       * covering for through delegation.
+       */
+      if (canApproveLeave) {
+        let leaveQuery = supabase.from('leave_requests')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', orgId).eq('status', 'pending')
+        let regsQuery = supabase.from('attendance_regularization_requests')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', orgId).eq('status', 'pending')
+
+        let reportIds: string[] = []
+        if (!isHrSide) {
+          const { data: reports } = await supabase.from('employees')
+            .select('id').eq('organization_id', orgId).in('reporting_manager_id', approverIds)
+          reportIds = (reports ?? []).map((r) => r.id)
+          leaveQuery = leaveQuery.in('employee_id', reportIds)
+          regsQuery = regsQuery.in('employee_id', reportIds)
+        }
+
+        if (isHrSide || reportIds.length > 0) {
           const [leaves, regs, travel] = await Promise.all([
-            supabase.from('leave_requests').select('id', { count: 'exact', head: true })
-              .in('employee_id', reportIds).eq('status', 'pending'),
-            supabase.from('attendance_regularization_requests').select('id', { count: 'exact', head: true })
-              .in('employee_id', reportIds).eq('status', 'pending'),
+            leaveQuery,
+            regsQuery,
             supabase.from('travel_requests').select('id', { count: 'exact', head: true })
               .in('manager_id', approverIds).eq('status', 'pending_manager'),
           ])
