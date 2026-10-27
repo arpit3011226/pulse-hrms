@@ -1,11 +1,19 @@
 # UAT Readiness Report — Pulse
 
 **Prepared for** August Innovate Pvt Ltd
-**Date** 23 October 2026
-**Verdict** **READY FOR UAT**, with three things to settle first — none of them blocking.
+**Date** 23 October 2026 · **revised 27 October 2026**
+**Verdict** **READY FOR UAT**, once the two fixes of 27 October are re-tested.
 
 > Supersedes the report of 16 October, which said **not ready**. What changed is
 > set out in section 2.
+>
+> **Revision of 27 October.** While planning the pre-boarding work, a P0 was
+> found that this report had not seen: any signed-in employee could make
+> themselves a super admin with a single request (QA-36). A P1 was found with
+> it — a converted candidate was never actually made an employee (QA-37). Both
+> are fixed and both have regression cover. The figures below now read 36
+> found, 36 fixed, three of them P0. The verdict stands, but it stands on
+> fixes that are two days old rather than on a settled week.
 
 ---
 
@@ -13,9 +21,10 @@
 
 Pulse is ready for people to use in earnest.
 
-**34 defects were found and 34 are fixed.** Two of them were P0 — one exposed
-every employee's identity documents to the open internet, the other paid people
-64% of the salary they had been promised. Sixteen were P1.
+**36 defects were found and 36 are fixed.** Three of them were P0 — one let any
+employee hand themselves full administrative access, one exposed every
+employee's identity documents to the open internet, and one paid people 64% of
+the salary they had been promised. Seventeen were P1.
 
 The two reasons the last report said no have both been dealt with. There was no
 automated test of any kind; there are now 63, covering the payroll arithmetic
@@ -36,7 +45,7 @@ defer, and areas that can only be judged by real people doing real work.
 | | 16 October | Today |
 |---|---|---|
 | Verdict | Not ready | **Ready** |
-| Defects found | 14 | **34** |
+| Defects found | 14 | **36** |
 | Still open | 3 | **0** (1 residual, 1 closed at your request) |
 | Automated tests | **0** | **63** |
 | Modules exercised through the UI | 4 of 20 | **20 of 20** |
@@ -54,15 +63,25 @@ instead of reading the code.
 
 | Severity | Found | Fixed | Open |
 |---|---:|---:|---:|
-| **P0** — data exposed, or wrong money paid | 2 | 2 | 0 |
-| **P1** — a core job cannot be done, or is done wrongly | 16 | 16 | 0 |
+| **P0** — data exposed, access escalated, or wrong money paid | 3 | 3 | 0 |
+| **P1** — a core job cannot be done, or is done wrongly | 17 | 17 | 0 |
 | **P2** — works, but wrongly or confusingly | 15 | 15 | 0 |
 | **P3** — minor | 1 | 1 | 0 |
-| **Total** | **34** | **34** | **0** |
+| **Total** | **36** | **36** | **0** |
 
 One further item, QA-15, was closed without action at your request.
 
-### The two P0s
+### The three P0s
+
+**QA-36 — any employee could make themselves a super admin.** Row-level
+security can say which rows you may write; it cannot say which columns. The
+policy on `profiles` allowed a person to update their own row, and `role` sits
+on their own row. One request and an ordinary employee held every payslip,
+every salary and every exit record in the company. A trigger now judges the
+change rather than the row. The first version of that fix had a hole of its
+own — its membership check ran under RLS, which hid the existing staff and let
+a stranger walk into the company as its administrator; the check now runs
+where RLS cannot distort the answer. Seven regression checks cover it.
 
 **QA-19 — identity documents were downloadable by anyone on the internet.**
 Both storage buckets were marked public, which serves every object with no
@@ -207,14 +226,16 @@ with what would change it.
 
 Everything in this report can be re-checked.
 
-- **Defect register** — `QA/05_DEFECT_REGISTER.md`, 34 entries with the cause,
+- **Defect register** — `QA/05_DEFECT_REGISTER.md`, 36 entries with the cause,
   the fix and how it was verified
 - **Execution report** — `QA/07_TEST_EXECUTION_REPORT.md`, including the payroll
   cycle that found four defects in one sitting
 - **Access matrix** — `QA/scripts/access_matrix.py`, re-runnable, exits non-zero
   on a finding
+- **Profile privilege guard** — `QA/scripts/profile_guard.sh`, 7 checks for
+  QA-36, each inside a rolled-back transaction, safe against any environment
 - **Unit tests** — `npm test`, 63 passing
-- **Migrations** — 23 added this engagement, each one carrying the reasoning for
+- **Migrations** — 24 added this engagement, each one carrying the reasoning for
   the change in its own comments
 
 ---
@@ -226,6 +247,13 @@ Everything in this report can be re-checked.
 Nothing P0 or P1 is open. The payroll arithmetic is tested and has been watched
 end to end. Every module has been opened and used. The authorization model holds
 up to an automated attack across 210 role-and-table combinations.
+
+One caution, added on 27 October. QA-36 sat in the first migration this project
+ever wrote and survived every round of testing until somebody read the policy
+while working on something else. The automated access matrix did not catch it,
+because that script asks what a role can **read** and this was a hole in what a
+role could **write**. Write-side checks are now the thinner half of the
+coverage, and worth extending during UAT rather than after it.
 
 What is left is the kind of thing only real users find: whether the screens make
 sense, whether the workflow matches how August actually works, and whether the

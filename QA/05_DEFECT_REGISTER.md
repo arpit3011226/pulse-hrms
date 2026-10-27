@@ -270,6 +270,82 @@ Compute can be pressed again without doubling anything.
 
 ---
 
+## QA-36 — Any employee could make themselves a super admin · P0 · FIXED
+
+**Module** Identity / RLS **Found by** reading `profiles` policies while fixing QA-37 **Fixed in** migration 00073
+
+`profiles` carries `role`, `organization_id` and `is_active`. The update policy
+was:
+
+```sql
+users_update_own_profile  FOR UPDATE
+  USING (id = auth.uid())  WITH CHECK (id = auth.uid())
+```
+
+Both halves are satisfied by a person editing their own row — and `role` sits
+on their own row. Row-level security decides which ROWS you may write. It
+cannot decide which COLUMNS. The grant agreed:
+`has_column_privilege('authenticated','profiles','role','UPDATE')` → true.
+
+**Reproduction** — as the demo employee, inside a rolled-back transaction:
+```sql
+set local role authenticated;
+select set_config('request.jwt.claims',
+                  '{"sub":"<employee profile>","role":"authenticated"}', true);
+update profiles set role = 'super_admin' where id = '<employee profile>';
+select role from profiles where id = '<employee profile>';
+→ super_admin
+```
+
+One PATCH to `/rest/v1/profiles` from any signed-in employee and they hold
+every payslip, every salary, every exit record in the company. The same hole
+moved `organization_id` and switched `is_active` back on after being disabled.
+
+**Why no policy could fix it** HR and the employee share one database role,
+`authenticated`. Revoking the column from `authenticated` would stop HR doing
+their job. A BEFORE UPDATE trigger is the right instrument: it sees the old row
+and the new one, so it can judge the *change* rather than the row.
+
+**A second hole, inside the first fix** The guard allows one exception — the
+company-setup screen, where a fresh sign-up creates an organisation and becomes
+its super admin. That was narrowed to an organisation nobody else had joined.
+The membership check ran as the signed-in user, and a fresh sign-up has no
+organisation, so `users_read_own_org_profiles` showed them nothing but their
+own row. The question "does anybody else belong to this organisation?" came
+back **no** for a company with a hundred people in it, and the guard waved them
+straight in as its administrator.
+
+RLS had answered a security question with a lie. The check now goes through
+`org_has_other_members()`, which is SECURITY DEFINER and gets the true answer.
+Worth remembering: **a guard that asks a question under RLS is not a guard.**
+
+**Regression** `QA/scripts/profile_guard.sh` — 7 checks, all inside rolled-back
+transactions, safe to run against any environment. 7 passed.
+
+---
+
+## QA-37 — A converted candidate was never made an employee · P1 · FIXED
+
+**Module** Recruitment **Fixed in** `convert-to-employee-dialog.tsx`
+
+Converting a candidate created the employee record and linked their profile,
+but never changed `profiles.role`. Nothing anywhere in the application did.
+
+So a new joiner who had been given a portal login kept the `candidate` role.
+That role reaches their own application and nothing else: no leave, no
+attendance, no payslip, and 00053 deliberately hides the employee directory
+from candidates. The conversion reported success.
+
+The role now moves to `employee`, scoped to rows currently holding
+`candidate` so a rehire who was once a manager is not quietly demoted.
+
+Only HR and a super admin may change a role. When a recruiter does the
+conversion the role change is refused, and they are now told exactly that —
+the employee exists, the login still needs HR — instead of seeing a success
+message that is only half true. Moving the whole conversion into one
+server-side step is Phase 1 of the pre-boarding work.
+---
+
 ## QA-34 — An HR admin was offered a payroll run they could not finish · P1 · FIXED
 
 **Module** Payroll **Fixed in** `use-permissions.ts`, `payroll-runs-tab.tsx`

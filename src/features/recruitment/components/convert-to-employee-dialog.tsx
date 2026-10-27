@@ -143,6 +143,40 @@ export function ConvertToEmployeeDialog({ open, onOpenChange, offer }: Props) {
         await supabase.from('candidates').update({ profile_id: existingProfileId }).eq('id', candidate.id)
       }
 
+      /**
+       * QA-37 — they are not a candidate any more.
+       *
+       * Conversion linked the profile and then left the role alone, so a new
+       * joiner who had a portal login kept the `candidate` role. That role
+       * reaches their own application and nothing else: no leave, no
+       * attendance, no payslip, and 00053 deliberately hides the employee
+       * directory from them. The screen said the conversion had worked.
+       *
+       * Scoped to `candidate` so a rehire who was once a manager is not
+       * quietly demoted on their way back in.
+       *
+       * Only HR and a super admin may change a role (admin_update_org_profiles,
+       * and the guard added in 00073). A recruiter converting the candidate is
+       * told plainly what is left to do rather than being shown a success
+       * message that is only half true.
+       */
+      if (existingProfileId) {
+        const { error: roleError } = await supabase
+          .from('profiles')
+          .update({ role: 'employee' })
+          .eq('id', existingProfileId)
+          .eq('role', 'candidate')
+
+        if (roleError) {
+          toast.warning(
+            `${candidate.first_name} was added, but their login is still a candidate login. ` +
+              'Ask HR to switch it to an employee login, otherwise they cannot sign in to the app.'
+          )
+          onOpenChange(false)
+          return
+        }
+      }
+
       toast.success(`${candidate.first_name} added as ${employeeCode || 'an employee'}`)
       onOpenChange(false)
     } catch (err) {
