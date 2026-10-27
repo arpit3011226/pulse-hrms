@@ -180,8 +180,31 @@ export async function issueAgreementsToEmployee(input: {
   context: AgreementContext
   template_ids?: string[]
 }): Promise<{ issued: number; unresolved: string[] }> {
+  /**
+   * Which documents apply to THIS person, from the assignment rules.
+   *
+   * Asked of the database rather than worked out here, because the same
+   * question is asked by the signing screen, by HR's view and by any report,
+   * and they must not be able to disagree. It is also plain Postgres, so it
+   * survives the move to Azure.
+   */
+  const { data: applicable, error: ruleErr } = await supabase.rpc('agreements_for_employee', {
+    p_employee: input.employee_id,
+  })
+  if (ruleErr) throw ruleErr
+
+  const mandatoryById = new Map(
+    ((applicable ?? []) as { template_id: string; is_mandatory: boolean }[]).map((r) => [
+      r.template_id,
+      r.is_mandatory,
+    ])
+  )
+
   const templates = (await getAgreementTemplates(input.organization_id)).filter(
-    (t) => t.is_active && (!input.template_ids?.length || input.template_ids.includes(t.id))
+    (t) =>
+      t.is_active &&
+      mandatoryById.has(t.id) &&
+      (!input.template_ids?.length || input.template_ids.includes(t.id))
   )
   if (templates.length === 0) return { issued: 0, unresolved: [] }
 
@@ -210,7 +233,7 @@ export async function issueAgreementsToEmployee(input: {
       rendered_sha256: await sha256(rendered.html),
       consent_statement: t.consent_statement,
       status: 'pending',
-      is_mandatory: true,
+      is_mandatory: mandatoryById.get(t.id) ?? true,
     })
   }
 
@@ -316,4 +339,36 @@ export async function getOutstandingAgreements(orgId: string) {
   return (data ?? []) as unknown as (EmployeeAgreement & {
     employee: { id: string; first_name: string; last_name: string; employee_code: string } | null
   })[]
+}
+
+// ── Who has to sign what ────────────────────────────────────────────────────
+
+export interface AssignmentRule {
+  id: string
+  organization_id: string
+  template_id: string
+  department_id: string | null
+  designation_id: string | null
+  employment_type: string | null
+  is_mandatory: boolean
+}
+
+export async function getAssignmentRules(templateId: string): Promise<AssignmentRule[]> {
+  const { data, error } = await supabase
+    .from('agreement_assignment_rules')
+    .select('*')
+    .eq('template_id', templateId)
+    .order('created_at')
+  if (error) throw error
+  return (data ?? []) as AssignmentRule[]
+}
+
+export async function addAssignmentRule(input: Omit<AssignmentRule, 'id'>) {
+  const { error } = await supabase.from('agreement_assignment_rules').insert(input)
+  if (error) throw error
+}
+
+export async function deleteAssignmentRule(id: string) {
+  const { error } = await supabase.from('agreement_assignment_rules').delete().eq('id', id)
+  if (error) throw error
 }

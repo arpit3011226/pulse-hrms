@@ -19,6 +19,7 @@ import { useAgreementTemplates, useSaveAgreementTemplate } from '../hooks/use-ag
 import {
   resolveAgreementPlaceholders, type AgreementTemplate,
 } from '../api/agreements.api'
+import { AgreementRulesEditor } from './agreement-rules-editor'
 
 const CATEGORIES = [
   { value: 'nda', label: 'Non-disclosure' },
@@ -264,6 +265,9 @@ export function AgreementTemplatesTab() {
                 what was agreed.
               </p>
             </div>
+
+            {/* Only once it exists — a rule needs something to attach to. */}
+            {editing?.id && <AgreementRulesEditor templateId={editing.id} />}
 
             <div className="flex flex-wrap items-center gap-6 rounded-md border p-3">
               <div className="flex items-center gap-2">

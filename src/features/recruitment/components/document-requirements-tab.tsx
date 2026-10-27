@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { useDocumentRequirements, useSaveDocumentRequirement } from '../hooks/use-preboarding'
+import { RetentionCard } from './retention-card'
 import type { DocumentRequirement, PreboardingGate } from '../api/preboarding.api'
 
 const GATES: { value: PreboardingGate; label: string; note: string }[] = [
@@ -94,6 +95,8 @@ export function DocumentRequirementsTab() {
       </div>
 
       <div className="space-y-6">
+        <RetentionCard />
+
         {GATES.map((g) => {
           const rows = (data ?? []).filter((r) => r.gate === g.value)
           return (

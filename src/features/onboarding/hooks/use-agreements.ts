@@ -59,3 +59,21 @@ export function useMarkAgreementViewed() {
   const qc = useQueryClient()
   return useMutation({ mutationFn: api.markAgreementViewed, onSuccess: () => bust(qc) })
 }
+
+export function useAssignmentRules(templateId: string | undefined) {
+  return useQuery({
+    queryKey: ['agreements', 'rules', templateId],
+    queryFn: () => api.getAssignmentRules(templateId!),
+    enabled: !!templateId,
+  })
+}
+
+export function useAddAssignmentRule() {
+  const qc = useQueryClient()
+  return useMutation({ mutationFn: api.addAssignmentRule, onSuccess: () => bust(qc) })
+}
+
+export function useDeleteAssignmentRule() {
+  const qc = useQueryClient()
+  return useMutation({ mutationFn: api.deleteAssignmentRule, onSuccess: () => bust(qc) })
+}

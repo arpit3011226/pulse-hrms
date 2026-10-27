@@ -348,3 +348,63 @@ export async function carryDocumentsToEmployee(input: {
 
   return { moved, failed }
 }
+
+// ── Erasing what we no longer have a reason to hold ─────────────────────────
+
+export interface PurgeCandidate {
+  candidate_id: string
+  candidate_name: string
+  closed_on: string
+  days_held: number
+  document_count: number
+  storage_paths: string[]
+}
+
+export async function getDocumentsDueForPurge(orgId: string): Promise<PurgeCandidate[]> {
+  const { data, error } = await supabase.rpc('candidate_documents_due_for_purge', {
+    p_org: orgId,
+  })
+  if (error) throw error
+  return (data ?? []) as PurgeCandidate[]
+}
+
+/**
+ * Erase one candidate's documents.
+ *
+ * Files first, then the row. That order matters: if the row were cleared
+ * first and the file delete then failed, nothing would ever point at the file
+ * again and it would sit in storage forever, unreachable and undeleted —
+ * which is exactly the state the DPDP Act is about.
+ *
+ * The label of what was asked for is kept. Being able to show that a PAN card
+ * was requested and provided is useful; holding the card is not.
+ */
+export async function purgeCandidateDocuments(input: {
+  candidate_id: string
+  storage_paths: string[]
+}): Promise<{ filesRemoved: number; rowsCleared: number }> {
+  let filesRemoved = 0
+
+  if (input.storage_paths.length > 0) {
+    const { data, error } = await supabase.storage
+      .from(CANDIDATE_BUCKET)
+      .remove(input.storage_paths)
+    if (error) throw error
+    filesRemoved = data?.length ?? 0
+  }
+
+  const { data: cleared, error: rpcErr } = await supabase.rpc('purge_candidate_documents', {
+    p_candidate: input.candidate_id,
+  })
+  if (rpcErr) throw rpcErr
+
+  return { filesRemoved, rowsCleared: (cleared as number) ?? 0 }
+}
+
+export async function setRetentionDays(orgId: string, days: number) {
+  const { error } = await supabase
+    .from('organizations')
+    .update({ candidate_data_retention_days: days })
+    .eq('id', orgId)
+  if (error) throw error
+}

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import * as api from '../api/preboarding.api'
+import * as offerApi from '../api/offer-response.api'
 
 function bust(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ['preboarding'] })
@@ -67,5 +68,39 @@ export function useApproveChecklist() {
     mutationFn: ({ checklistId, reviewerProfileId }: { checklistId: string; reviewerProfileId: string }) =>
       api.approveChecklist(checklistId, reviewerProfileId),
     onSuccess: () => bust(qc),
+  })
+}
+
+export function useDocumentsDueForPurge() {
+  const { organization } = useAuth()
+  return useQuery({
+    queryKey: ['preboarding', 'purge-due', organization?.id],
+    queryFn: () => api.getDocumentsDueForPurge(organization!.id),
+    enabled: !!organization?.id,
+  })
+}
+
+export function usePurgeCandidateDocuments() {
+  const qc = useQueryClient()
+  return useMutation({ mutationFn: api.purgeCandidateDocuments, onSuccess: () => bust(qc) })
+}
+
+export function useSetRetentionDays() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ orgId, days }: { orgId: string; days: number }) =>
+      api.setRetentionDays(orgId, days),
+    onSuccess: () => bust(qc),
+  })
+}
+
+export function useRespondToOffer() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: offerApi.respondToOffer,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-candidate-view'] })
+      qc.invalidateQueries({ queryKey: ['preboarding'] })
+    },
   })
 }
