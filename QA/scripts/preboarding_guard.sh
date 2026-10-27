@@ -36,6 +36,12 @@ jwt() { echo "set local role authenticated; select set_config('request.jwt.claim
 # to the first.
 setup() {
   cat <<SQL
+-- Clear anything real for this candidate first. Everything here runs inside a
+-- transaction that is rolled back, so nothing is actually lost — but without
+-- this the inserts below collide with a genuine checklist the moment somebody
+-- uses the feature, and the whole suite fails for the wrong reason.
+delete from preboarding_checklists where candidate_id in ('$CAND','$OTHERCAND');
+delete from candidates where id = '$OTHERCAND';
 insert into preboarding_checklists (id, organization_id, candidate_id, gate, status)
   values ('$LIST','$ORG','$CAND','before_offer','sent');
 insert into preboarding_checklist_items (id, organization_id, checklist_id, label, is_mandatory, status)

@@ -486,3 +486,43 @@ export async function getCurrentEmployee(profileId: string) {
 
   return data
 }
+
+// ============================================
+// Company leave calendar
+// ============================================
+
+export interface CalendarLeaveItem {
+  leave_id: string
+  employee_id: string
+  employee_name: string
+  avatar_url: string | null
+  department_name: string | null
+  start_date: string
+  end_date: string
+  is_half_day: boolean
+  status: string
+  /** Null unless the viewer is the person, their manager, or HR. */
+  leave_type_name: string | null
+  can_see_reason: boolean
+}
+
+/**
+ * Who is away across the company between two dates.
+ *
+ * Goes through a database function rather than querying leave_requests
+ * directly, because the privacy rule has to hold for anything that calls the
+ * API — not just for this screen. Everybody sees the days; only the person,
+ * their manager and HR see which kind of leave it is. Sick leave on a notice
+ * board tells the whole company something about somebody's health.
+ */
+export async function fetchLeaveCalendar(
+  from: string,
+  to: string
+): Promise<CalendarLeaveItem[]> {
+  const { data, error } = await supabase.rpc('org_leave_calendar', {
+    p_from: from,
+    p_to: to,
+  })
+  if (error) throw error
+  return (data ?? []) as CalendarLeaveItem[]
+}

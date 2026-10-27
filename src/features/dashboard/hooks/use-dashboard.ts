@@ -13,6 +13,7 @@ import {
   createAnnouncement,
   deleteAnnouncement,
   getCurrentEmployee,
+  fetchLeaveCalendar,
 } from '../api/dashboard.api'
 
 export function useDashboardStats() {
@@ -133,5 +134,15 @@ export function useDeleteAnnouncement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['announcements', organization?.id] })
     },
+  })
+}
+
+export function useLeaveCalendar(from: string, to: string) {
+  const { organization } = useAuth()
+  return useQuery({
+    queryKey: ['leave-calendar', organization?.id, from, to],
+    queryFn: () => fetchLeaveCalendar(from, to),
+    enabled: !!organization?.id,
+    staleTime: 60_000,
   })
 }

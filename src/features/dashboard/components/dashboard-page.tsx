@@ -11,7 +11,7 @@ import { QuickActions } from './quick-actions'
 import { GreetingBanner } from './widgets/greeting-banner'
 import { UpcomingHolidaysWidget } from './widgets/upcoming-holidays-widget'
 import { LeaveBalanceWidget } from './widgets/leave-balance-widget'
-import { TeamLeavesWidget } from './widgets/team-leaves-widget'
+import { LeaveCalendarWidget } from './widgets/leave-calendar-widget'
 import { BirthdaysAnniversariesWidget } from './widgets/birthdays-widget'
 import { PendingApprovalsWidget } from './widgets/pending-approvals-widget'
 import { MyAttendanceWidget } from './widgets/my-attendance-widget'
@@ -34,7 +34,6 @@ export function DashboardPage() {
   const isManager = role === 'manager'
   const isLeadership = role === 'leadership'
   const isPayrollAdmin = role === 'payroll_admin'
-  const showTeamWidgets = isAdmin || isManager || isLeadership
   const showPendingApprovals = isAdmin || isManager || isPayrollAdmin
   const canManageAnnouncements = isAdmin || isLeadership || isPayrollAdmin
 
@@ -51,6 +50,12 @@ export function DashboardPage() {
         {/* Left Column */}
         <div className="space-y-6 min-w-0">
           <ThingsToDoWidget employeeId={employeeId} />
+          {/*
+            Open to everybody, not just managers. You cannot plan a week
+            without knowing who is away. Who sees the REASON is decided in
+            the database, not here.
+          */}
+          <LeaveCalendarWidget />
           <AnnouncementsWidget
             canManage={canManageAnnouncements}
             userRole={role}
@@ -68,9 +73,6 @@ export function DashboardPage() {
         {/* Right Column */}
         <div className="space-y-6 min-w-0">
           <UpcomingHolidaysWidget />
-          {showTeamWidgets && (
-            <TeamLeavesWidget employeeId={employeeId} isOrgWide={isAdmin || isLeadership} />
-          )}
           <LeaveBalanceWidget employeeId={employeeId} />
           <BirthdaysAnniversariesWidget />
           <QuickActions />
