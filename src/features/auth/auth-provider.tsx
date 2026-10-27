@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { config, publicAppLink } from '@/lib/config'
 import type { Profile, Organization } from '@/types/database.types'
 import { AuthContext } from './hooks/use-auth'
 
@@ -141,10 +142,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // onAuthStateChange will handle setting session, profile, and isLoading=false
   }
 
+  /**
+   * Company sign-on.
+   *
+   * Three things that were wrong here and are easy to miss:
+   *
+   * 1. `redirectTo` was built from window.location.origin, so Google would
+   *    send people back to whatever the browser happened to be on. Behind a
+   *    proxy or a custom domain that is not where Pulse lives. It now uses
+   *    the configured public address, like every other link we hand out.
+   *
+   * 2. It landed everybody on /dashboard, which is not where a candidate or
+   *    an alumnus belongs. AppLayout bounced them, but through a page built
+   *    for staff — the wasted hop fixed in QA-42. It now lands on /login,
+   *    which sends each person to their own screen once the profile loads.
+   *
+   * 3. `hd` restricts the Google account chooser to the company's own
+   *    domain. Without it anybody with any Google account can start the
+   *    flow; mayUseGoogle() then signs them straight back out, which works
+   *    but is a confusing way to tell somebody they are in the wrong place.
+   *    It is a hint to Google, not a security control — the check in
+   *    fetchProfile remains the control.
+   */
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: {
+        redirectTo: publicAppLink('/login'),
+        queryParams: config.ssoDomain ? { hd: config.ssoDomain } : undefined,
+      },
     })
     if (error) throw error
   }

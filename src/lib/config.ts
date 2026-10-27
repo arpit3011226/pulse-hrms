@@ -14,6 +14,8 @@
  *   VITE_PUBLIC_APP_URL      strongly   the address people type to reach Pulse
  *                            advised
  *   VITE_SSO_ENABLED         optional   'true' once company sign-on works
+ *   VITE_SSO_DOMAIN          optional   e.g. augustinnovate.com, so Google only
+ *                                       offers company accounts
  *
  * The one that bites quietly is VITE_PUBLIC_APP_URL. Set-password invitations
  * and alumni reactivation links are built from it. Leave it unset and they
@@ -47,6 +49,17 @@ export const config = {
   /** Whether to offer company sign-on. Off until the provider genuinely works. */
   get ssoEnabled(): boolean {
     return env('VITE_SSO_ENABLED') === 'true'
+  },
+
+  /**
+   * The company's Google Workspace domain, e.g. augustinnovate.com.
+   *
+   * Passed to Google as `hd` so the account chooser only offers company
+   * accounts. A hint, not a control — somebody can still get past it, and
+   * mayUseGoogle() is what actually stops them.
+   */
+  get ssoDomain(): string {
+    return env('VITE_SSO_DOMAIN')
   },
 
   /** True when the app is being served from a developer's own machine. */
