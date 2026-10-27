@@ -270,6 +270,31 @@ Compute can be pressed again without doubling anything.
 
 ---
 
+## QA-47 — Saving the retention period told HR it had worked when it had not · P2 · FIXED
+
+**Module** Recruitment **Found by** checking the setting August asked to be admin-controlled **Fixed in** `preboarding.api.ts`, `retention-card.tsx`
+
+The data retention card is open to HR, and HR cannot write to `organizations`
+— only a super admin can. Row-level security does not refuse the update; it
+narrows it to no rows and returns success. So:
+
+```
+update organizations set candidate_data_retention_days = 365 …   → 0 rows
+```
+
+came back without an error, and the screen said **"Saved"**. The number had
+not moved. Wrong, and reassuring — the worst of both.
+
+The same shape as QA-29, QA-24 and QA-34: a screen reporting success for
+something the database quietly declined.
+
+**Fix.** The save asks for the row back and complains when nothing returns.
+August's decision is that an administrator sets the period, so the field is
+now read-only for HR with a line saying who to ask, while HR keeps the part
+they actually need — erasing what is overdue.
+
+---
+
 ## QA-45 — HR could delete an entire month's payroll, payslips and all · P1 · FIXED
 
 **Module** Payroll / RLS **Found by** `QA/scripts/write_matrix.py`, a new audit **Fixed in** migration 00087

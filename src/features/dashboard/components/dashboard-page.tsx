@@ -12,6 +12,7 @@ import { GreetingBanner } from './widgets/greeting-banner'
 import { UpcomingHolidaysWidget } from './widgets/upcoming-holidays-widget'
 import { LeaveBalanceWidget } from './widgets/leave-balance-widget'
 import { LeaveCalendarWidget } from './widgets/leave-calendar-widget'
+import { ConfigWarning } from '@/components/shared/config-warning'
 import { BirthdaysAnniversariesWidget } from './widgets/birthdays-widget'
 import { PendingApprovalsWidget } from './widgets/pending-approvals-widget'
 import { MyAttendanceWidget } from './widgets/my-attendance-widget'
@@ -39,6 +40,9 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Anything the deployment was never told. Admins only, silent locally. */}
+      <ConfigWarning />
+
       {/* Greeting Banner */}
       <GreetingBanner />
 

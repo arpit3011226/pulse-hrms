@@ -432,10 +432,26 @@ export async function purgeCandidateDocuments(input: {
   return { filesRemoved, rowsCleared: (cleared as number) ?? 0 }
 }
 
+/**
+ * Change how long candidate documents are kept.
+ *
+ * Returns the row, and complains if nothing came back. Only a super admin may
+ * write to organizations, and row-level security does not refuse an update it
+ * disallows — it narrows it to nothing and reports success. Without this
+ * check, HR pressing Save would see "Saved" and the number would not have
+ * moved, which is the worst of both: wrong, and reassuring.
+ */
 export async function setRetentionDays(orgId: string, days: number) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('organizations')
     .update({ candidate_data_retention_days: days })
     .eq('id', orgId)
+    .select('candidate_data_retention_days')
+
   if (error) throw error
+  if (!data || data.length === 0) {
+    throw new Error(
+      'That did not save. Changing the retention period is a super admin setting.'
+    )
+  }
 }

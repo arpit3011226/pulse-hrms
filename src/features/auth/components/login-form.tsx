@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '../hooks/use-auth'
+import { config } from '@/lib/config'
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -32,7 +33,7 @@ type LoginFormData = z.infer<typeof loginSchema>
  * turned on, and set organizations.sso_enabled to match so new joiners are
  * marked as SSO users.
  */
-const SSO_ENABLED = import.meta.env.VITE_SSO_ENABLED === 'true'
+const SSO_ENABLED = config.ssoEnabled
 
 export function LoginForm() {
   const { signIn, signInWithGoogle } = useAuth()

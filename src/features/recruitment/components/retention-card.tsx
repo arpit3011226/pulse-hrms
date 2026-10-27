@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { useAuth } from '@/features/auth/hooks/use-auth'
+import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
 import {
   useDocumentsDueForPurge, usePurgeCandidateDocuments, useSetRetentionDays,
@@ -25,6 +26,9 @@ import type { PurgeCandidate } from '../api/preboarding.api'
  */
 export function RetentionCard() {
   const { organization } = useAuth()
+  // August's choice: the administrator sets how long documents are kept. HR
+  // runs the erasing, which is the part that needs doing often.
+  const { isAdmin } = usePermissions()
   const { data: due, isLoading } = useDocumentsDueForPurge()
   const purge = usePurgeCandidateDocuments()
   const setDays = useSetRetentionDays()
@@ -76,25 +80,32 @@ export function RetentionCard() {
                 max={3650}
                 className="w-36"
                 value={days}
+                disabled={!isAdmin}
                 onChange={(e) => setLocalDays(e.target.value)}
               />
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={setDays.isPending || Number(days) === current || !Number(days)}
-              onClick={async () => {
-                if (!organization?.id) return
-                try {
-                  await setDays.mutateAsync({ orgId: organization.id, days: Number(days) })
-                  toast.success('Saved')
-                } catch {
-                  toast.error('Could not save it')
-                }
-              }}
-            >
-              Save
-            </Button>
+            {isAdmin ? (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={setDays.isPending || Number(days) === current || !Number(days)}
+                onClick={async () => {
+                  if (!organization?.id) return
+                  try {
+                    await setDays.mutateAsync({ orgId: organization.id, days: Number(days) })
+                    toast.success('Saved')
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : 'Could not save it')
+                  }
+                }}
+              >
+                Save
+              </Button>
+            ) : (
+              <p className="pb-2 text-xs text-muted-foreground">
+                Set by an administrator. You can still erase what is overdue below.
+              </p>
+            )}
           </div>
 
           {isLoading ? (
