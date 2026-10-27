@@ -1,11 +1,12 @@
-import { CalendarDays, CheckCircle2, FileText, Loader2, MapPin, Briefcase } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Loader2, MapPin, Briefcase } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { useMyCandidateView } from '../hooks/use-recruitment'
 import { CandidateDocumentsCard } from './candidate-documents-card'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { OfferDecisionCard } from './offer-decision-card'
+import { formatDate } from '@/lib/utils'
 
 const APPLICATION_STEPS = ['new', 'screening', 'interview', 'offer', 'hired']
 
@@ -52,8 +53,18 @@ export function CandidatePortalPage() {
   const upcoming = (interviews as Array<Record<string, unknown>>).filter(
     (i) => i.status === 'scheduled' && new Date(i.scheduled_start as string) >= new Date()
   )
+  /**
+   * The offer to show them.
+   *
+   * Includes 'rejected' as well as 'sent' and 'accepted': once somebody has
+   * answered, the answer should stay on their screen. Hiding a declined
+   * offer leaves them wondering whether it registered at all.
+   */
   const liveOffer = (offers as Array<Record<string, unknown>>).find(
-    (o) => o.offer_status === 'sent' || o.offer_status === 'accepted'
+    (o) =>
+      o.offer_status === 'sent' ||
+      o.offer_status === 'accepted' ||
+      o.offer_status === 'rejected'
   )
 
   return (
@@ -196,46 +207,22 @@ export function CandidatePortalPage() {
           </CardContent>
         </Card>
 
-        {/* Offer */}
+        {/* Offer — theirs to answer, not a message to ring somebody */}
         {liveOffer && (
-          <Card className="border-emerald-200 bg-emerald-50/40">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <FileText className="h-4 w-4" /> Your offer
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid grid-cols-2 gap-y-2 text-sm">
-                <dt className="text-muted-foreground">Position</dt>
-                <dd className="text-right font-medium">
-                  {(liveOffer.offered_designation as string) ?? '—'}
-                </dd>
-                <dt className="text-muted-foreground">Annual CTC</dt>
-                <dd className="text-right font-medium">
-                  {liveOffer.offered_ctc != null
-                    ? formatCurrency(liveOffer.offered_ctc as number)
-                    : '—'}
-                </dd>
-                <dt className="text-muted-foreground">Joining date</dt>
-                <dd className="text-right font-medium">
-                  {liveOffer.joining_date ? formatDate(liveOffer.joining_date as string) : '—'}
-                </dd>
-                {liveOffer.valid_until ? (
-                  <>
-                    <dt className="text-muted-foreground">Valid until</dt>
-                    <dd className="text-right font-medium">
-                      {formatDate(liveOffer.valid_until as string)}
-                    </dd>
-                  </>
-                ) : null}
-              </dl>
-              <p className="mt-3 text-xs text-muted-foreground">
-                {liveOffer.offer_status === 'accepted'
-                  ? 'You have accepted this offer. We will be in touch about joining.'
-                  : 'Please get back to your recruiter with your decision.'}
-              </p>
-            </CardContent>
-          </Card>
+          <OfferDecisionCard
+            offer={{
+              id: liveOffer.id as string,
+              offered_designation: (liveOffer.offered_designation as string) ?? null,
+              offered_ctc: (liveOffer.offered_ctc as number) ?? null,
+              joining_date: (liveOffer.joining_date as string) ?? null,
+              valid_until: (liveOffer.valid_until as string) ?? null,
+              offer_status: liveOffer.offer_status as string,
+              accepted_name: (liveOffer.accepted_name as string) ?? null,
+              accepted_at: (liveOffer.accepted_at as string) ?? null,
+              decline_reason: (liveOffer.decline_reason as string) ?? null,
+            }}
+            candidateName={`${candidate.first_name} ${candidate.last_name}`}
+          />
         )}
       </div>
     </div>
