@@ -270,6 +270,42 @@ Compute can be pressed again without doubling anything.
 
 ---
 
+## QA-48 — Sixteen of twenty tab strips were in an order nobody chose · P2 · FIXED
+
+**Module** UI, app-wide **Found by** August, after noticing the login tabs came out backwards **Fixed in** `components/ui/tabs.tsx`
+
+`TabsList` sorted every set of tabs in the app alphabetically, deliberately,
+with a comment explaining that nobody should have to hunt for a tab. It reads
+well. What it produced did not:
+
+| Screen | Written as | Shown as |
+|---|---|---|
+| Recruitment | Requisitions → Candidates → Applications → Interviews → Offers | Analytics → Applications → Background Checks → … |
+| New employee | Personal Info → Employment → Compliance → Family | **Compliance** → Employment → Family → Personal Info |
+| Payroll | My Payslips → Compensation → … → Settings | **Adjustments** → All Payslips → … |
+| Leave, Performance, Helpdesk, Attendance, Resignation, Self Service | mine → my team → everyone | **everyone** → mine → team |
+
+Sixteen of the twenty tab strips in the app were affected.
+
+**Why it matters more than it looks.** Alphabetical helps you find one item
+in a long flat list of unrelated things. It destroys a sequence — and almost
+every tab strip here is a sequence: a workflow, or a widening of scope from
+yourself to your team to the company. A form that opens on *Compliance*
+instead of *Personal Info* is not a cosmetic problem; it is a form that reads
+as though somebody assembled it at random.
+
+The person writing each screen already knew the right order and wrote it
+down. The sort threw that away.
+
+**Fix.** Tabs appear as written. `sorted` remains for a genuinely flat
+catalogue where alphabetical would help, and nothing uses it today. Three
+unit tests cover the ordering so this cannot come back quietly.
+
+**Not noticed sooner** because it looks deliberate on any single screen —
+you have to compare the code against the screen to see that they disagree.
+
+---
+
 ## QA-47 — Saving the retention period told HR it had worked when it had not · P2 · FIXED
 
 **Module** Recruitment **Found by** checking the setting August asked to be admin-controlled **Fixed in** `preboarding.api.ts`, `retention-card.tsx`

@@ -129,12 +129,8 @@ export function LoginForm() {
 
       <CardContent>
         <Tabs value={door} onValueChange={pick} className="mb-5">
-          {/*
-            Not sorted. TabsList orders alphabetically by default, which is
-            right for a long list somebody is hunting through and wrong here:
-            Employee is who almost everybody is, so it goes first.
-          */}
-          <TabsList sorted={false} className="grid w-full grid-cols-3">
+          {/* Employee first: that is who almost everybody signing in is. */}
+          <TabsList className="grid w-full grid-cols-3">
             {DOORS.map((d) => (
               <TabsTrigger key={d.id} value={d.id}>
                 {d.label}

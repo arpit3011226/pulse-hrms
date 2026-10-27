@@ -56,29 +56,52 @@ function tabLabel(node: React.ReactNode): string {
 function TabsList({
   className,
   variant = "default",
-  sorted = true,
+  sorted = false,
   children,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.List> &
   VariantProps<typeof tabsListVariants> & {
     /**
-     * Sort the tabs alphabetically. True by default, which is the behaviour
-     * every existing screen relies on.
+     * Sort the tabs alphabetically instead of leaving them as written.
      *
-     * Pass false where the ORDER ITSELF CARRIES MEANING — a sequence of
-     * steps, or a list whose first item is the one almost everybody wants.
-     * Alphabetical is a help when there are nine tabs and you are hunting
-     * for one; it is a hindrance when there are three and the first should
-     * be the common case.
+     * Off by default, and that default was the other way round until we
+     * looked at what it did. See the note below.
      */
     sorted?: boolean
   }) {
-  // Every set of tabs in the app reads alphabetically, so nobody has to hunt for
-  // one. Sorting here rather than in each screen means it holds for tabs added
-  // later, and it survives tabs that are shown only to certain roles — those
-  // simply are not in the list to begin with.
-  //
-  // Which tab opens first is unaffected: that is chosen by value, not position.
+  /**
+   * Tabs appear in the order the screen writes them.
+   *
+   * This used to sort every set of tabs in the app alphabetically, on the
+   * reasoning that nobody should have to hunt for one. It reads well until
+   * you look at what it produced: of twenty sets of tabs, sixteen came out
+   * in an order nobody had chosen.
+   *
+   *   Recruitment  Requisitions → Candidates → Applications → Interviews
+   *                → Offers, which is the hiring funnel, became
+   *                Analytics → Applications → Background Checks → …
+   *
+   *   New employee Personal Info → Employment → Compliance, a form somebody
+   *                fills top to bottom, opened on Compliance.
+   *
+   *   Payroll      eleven tabs beginning at Adjustments.
+   *
+   *   Everywhere   "mine, then my team, then everyone" — the shape most of
+   *                this app is built on — came out as "All, then mine,
+   *                then Team".
+   *
+   * Alphabetical helps you find a tab in a long flat list of unrelated
+   * things. It destroys a sequence, and almost every tab strip here is a
+   * sequence: a workflow, or a widening of scope. The person writing the
+   * screen already knew the right order and wrote it down; sorting threw
+   * that away.
+   *
+   * So: as written, by default. `sorted` is still there for a genuinely
+   * flat catalogue where alphabetical would help.
+   *
+   * Which tab opens first is unaffected either way — that is chosen by
+   * value, not position.
+   */
   const ordered = React.useMemo(() => {
     const items = React.Children.toArray(children)
     if (!sorted) return items
