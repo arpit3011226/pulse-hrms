@@ -635,12 +635,22 @@ export async function processCarryForward(orgId: string, fromYear: number, toYea
 // Current Employee Helper
 // ============================================
 
+/**
+ * The employee record behind a login, or null if there is not one.
+ *
+ * maybeSingle, not single. The same function exists in five places and this
+ * copy was the last one still using .single(), which throws PGRST116 for
+ * anybody with no employee row — a candidate, an alumnus, or somebody
+ * mid-exit. QA-42 fixed the dashboard's copy; this one was missed because
+ * nothing on the leave screens is reachable by those roles today. It would
+ * have surfaced the first time anything on this path ran for one of them.
+ */
 export async function getCurrentEmployee(profileId: string) {
   const { data, error } = await supabase
     .from('employees')
     .select('*')
     .eq('profile_id', profileId)
-    .single()
+    .maybeSingle()
   if (error) throw error
   return data
 }
