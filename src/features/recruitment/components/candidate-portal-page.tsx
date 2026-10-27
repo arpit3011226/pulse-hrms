@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { useMyCandidateView } from '../hooks/use-recruitment'
+import { CandidateDocumentsCard } from './candidate-documents-card'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 const APPLICATION_STEPS = ['new', 'screening', 'interview', 'offer', 'hired']
@@ -143,6 +144,9 @@ export function CandidatePortalPage() {
             </Card>
           )
         })}
+
+        {/* What we have asked them to send in */}
+        <CandidateDocumentsCard candidateId={candidate.id as string} />
 
         {/* Upcoming interviews */}
         <Card>

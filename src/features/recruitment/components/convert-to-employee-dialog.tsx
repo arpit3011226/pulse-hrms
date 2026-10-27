@@ -16,6 +16,7 @@ import { useDepartments, useDesignations } from '@/features/departments/hooks/us
 import { useEmployees, useCreateEmployee } from '@/features/employees/hooks/use-employees'
 import { generateNextEmployeeCode } from '@/features/employees/api/employees.api'
 import { useCreateCandidateConversion } from '../hooks/use-recruitment'
+import { carryDocumentsToEmployee } from '../api/preboarding.api'
 import { findProfileByPersonalEmail } from '@/features/auth/api/identity.api'
 import { toast } from 'sonner'
 
@@ -175,7 +176,39 @@ export function ConvertToEmployeeDialog({ open, onOpenChange, offer }: Props) {
         }
       }
 
-      toast.success(`${candidate.first_name} added as ${employeeCode || 'an employee'}`)
+      /**
+       * Everything they sent us before joining becomes part of their employee
+       * record. Without this the joining pack gets collected twice — once
+       * from the candidate and again from the new starter — which is the
+       * thing people actually complain about when they join somewhere.
+       *
+       * Deliberately forgiving. A file that will not copy must not stop
+       * somebody being hired, so it is counted and reported rather than
+       * thrown; HR can re-attach the odd one by hand.
+       */
+      let carried = { moved: 0, failed: 0 }
+      if (organization?.id) {
+        try {
+          carried = await carryDocumentsToEmployee({
+            organization_id: organization.id,
+            candidate_id: candidate.id,
+            employee_id: employee.id,
+          })
+        } catch {
+          carried = { moved: 0, failed: -1 }
+        }
+      }
+
+      toast.success(
+        `${candidate.first_name} added as ${employeeCode || 'an employee'}` +
+          (carried.moved > 0 ? ` · ${carried.moved} document${carried.moved === 1 ? '' : 's'} carried over` : '')
+      )
+      if (carried.failed > 0) {
+        toast.warning(
+          `${carried.failed} document${carried.failed === 1 ? '' : 's'} could not be copied across. ` +
+            'They are still on the candidate record — please attach them by hand.'
+        )
+      }
       onOpenChange(false)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not convert candidate')

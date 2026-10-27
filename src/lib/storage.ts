@@ -100,3 +100,37 @@ export function formatFileSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
+
+/**
+ * Move a copy of a file from one bucket to another.
+ *
+ * Used when a candidate joins: what they uploaded before starting becomes part
+ * of their employee record, so nobody is asked for the same certificate twice.
+ *
+ * Done by reading and writing rather than a server-side copy, because the two
+ * buckets have different owners and different rules — candidate-documents is
+ * keyed by candidate, employee-documents by employee. It also keeps the whole
+ * operation inside this one adapter, which is the file that gets rewritten
+ * when Pulse moves to Azure Blob.
+ *
+ * Returns the new path, or null if the source could not be read.
+ */
+export async function copyBetweenBuckets(
+  fromBucket: string,
+  fromPath: string,
+  toBucket: string,
+  toPath: string
+): Promise<string | null> {
+  const { data, error } = await supabase.storage
+    .from(fromBucket)
+    .download(storagePathFromUrl(fromBucket, fromPath))
+
+  if (error || !data) return null
+
+  const { error: upErr } = await supabase.storage
+    .from(toBucket)
+    .upload(toPath, data, { upsert: true })
+
+  if (upErr) throw upErr
+  return toPath
+}

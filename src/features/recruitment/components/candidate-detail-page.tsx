@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { EmptyState } from '@/components/shared/empty-state'
 import { useCandidateProfile } from '../hooks/use-recruitment'
+import { PreboardingPanel } from './preboarding-panel'
 import { usePermissions } from '@/hooks/use-permissions'
 import { usePersonContext } from '@/features/auth/hooks/use-identity'
 import { one } from '@/lib/supabase-embed'
@@ -214,6 +215,12 @@ export function CandidateDetailPage({ candidateId }: CandidateDetailPageProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* What we have asked them to send in */}
+      <PreboardingPanel
+        candidateId={candidateId}
+        applicationId={(applications[0]?.id as string) ?? null}
+      />
 
       {/* Roles applied for */}
       <Card>
