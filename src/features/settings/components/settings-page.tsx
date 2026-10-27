@@ -9,6 +9,7 @@ import { ExpiringDocuments } from '@/features/workplace/components/expiring-docu
 import { OrganizationSettings } from './organization-settings'
 import { AdminSettings } from './admin-settings'
 import { LoginSettings } from './login-settings'
+import { ResetPasswordCard } from './reset-password-card'
 import { RolesDefinitions } from './roles-definitions'
 import { SeedDemoData } from './seed-demo-data'
 
@@ -73,8 +74,13 @@ export function SettingsPage() {
         </TabsContent>
 
         {showLogins && (
-          <TabsContent value="logins" className="mt-6">
+          <TabsContent value="logins" className="mt-6 space-y-6">
             <LoginSettings />
+            {/*
+              Super admin only. The function behind it refuses anyone else
+              anyway, but a button that always fails is worse than no button.
+            */}
+            {isAdmin && <ResetPasswordCard />}
           </TabsContent>
         )}
 
