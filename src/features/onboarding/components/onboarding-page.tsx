@@ -10,6 +10,7 @@ import { JoinersTab } from './joiners-tab'
 import { MyOnboardingTab } from './my-onboarding-tab'
 import { ProbationTab } from './probation-tab'
 import { TemplatesTab } from './templates-tab'
+import { AgreementTemplatesTab } from './agreement-templates-tab'
 import { useOnboardingRuns, useProbationDue } from '../hooks/use-onboarding'
 import { taskProgress } from '../types'
 
@@ -38,8 +39,11 @@ function StatCard({
 
 export function OnboardingPage() {
   const { profile } = useAuth()
-  const { isAdmin, isHR } = usePermissions()
+  const { isAdmin, isHR, isLeadership } = usePermissions()
   const canManage = isAdmin || isHR
+  // The brief puts the legal wording with Admin, HR or Leadership —
+  // deliberately wider than the rest of onboarding, which is HR's work.
+  const canWriteAgreements = isAdmin || isHR || isLeadership
 
   const { data: me } = useQuery({
     queryKey: ['current-employee', profile?.id],
@@ -104,6 +108,7 @@ export function OnboardingPage() {
           <TabsTrigger value="joiners">Joiners</TabsTrigger>
           <TabsTrigger value="probation">Probation</TabsTrigger>
           {canManage && <TabsTrigger value="templates">Templates</TabsTrigger>}
+          {canWriteAgreements && <TabsTrigger value="agreements">Documents to sign</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="mine" className="mt-6">
@@ -121,6 +126,12 @@ export function OnboardingPage() {
         {canManage && (
           <TabsContent value="templates" className="mt-6">
             <TemplatesTab canManage={canManage} />
+          </TabsContent>
+        )}
+
+        {canWriteAgreements && (
+          <TabsContent value="agreements" className="mt-6">
+            <AgreementTemplatesTab />
           </TabsContent>
         )}
       </Tabs>

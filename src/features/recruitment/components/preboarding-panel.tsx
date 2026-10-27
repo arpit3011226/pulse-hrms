@@ -16,8 +16,10 @@ import { useAuth } from '@/features/auth/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatDate } from '@/lib/utils'
 import { formatFileSize } from '@/lib/storage'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   useCandidateChecklists, useSendChecklist, useReviewDocument, useApproveChecklist,
+  useDocumentRequirements,
 } from '../hooks/use-preboarding'
 import { getDocumentLink, type PreboardingGate, type PreboardingItem } from '../api/preboarding.api'
 
@@ -54,12 +56,14 @@ export function PreboardingPanel({
   const canReview = isAdmin || isHR
 
   const { data: lists, isLoading } = useCandidateChecklists(candidateId)
+  const { data: requirements } = useDocumentRequirements()
   const send = useSendChecklist()
   const review = useReviewDocument()
   const approve = useApproveChecklist()
 
   const [askGate, setAskGate] = useState<PreboardingGate | null>(null)
   const [dueDate, setDueDate] = useState('')
+  const [chosen, setChosen] = useState<Set<string>>(new Set())
   const [rejecting, setRejecting] = useState<PreboardingItem | null>(null)
   const [reason, setReason] = useState('')
 
@@ -81,6 +85,7 @@ export function PreboardingPanel({
         candidate_application_id: applicationId ?? null,
         gate: askGate,
         due_date: dueDate || null,
+        requirement_ids: [...chosen],
       })
       toast.success('Asked for. They will see it on their portal.')
       setAskGate(null)
@@ -140,7 +145,20 @@ export function PreboardingPanel({
                     <p className="mt-1 text-xs text-muted-foreground">{blurb}</p>
                   </div>
                   {!list ? (
-                    <Button size="sm" variant="outline" onClick={() => setAskGate(gate)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setAskGate(gate)
+                        setChosen(
+                          new Set(
+                            (requirements ?? [])
+                              .filter((r) => r.is_active && r.gate === gate)
+                              .map((r) => r.id)
+                          )
+                        )
+                      }}
+                    >
                       <Send className="mr-1.5 h-3.5 w-3.5" /> Ask for these
                     </Button>
                   ) : (
@@ -270,23 +288,72 @@ export function PreboardingPanel({
                 : 'Relieving letter, experience letter and final payslips. Only ask once the offer has been accepted — these do not exist before they resign.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label>By when (optional)</Label>
-            <Input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              min={new Date().toISOString().slice(0, 10)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Shown on their portal as a gentle nudge. Nothing is blocked if the date passes.
-            </p>
+          <div className="space-y-4">
+            {/*
+              Everything for this stage is ticked to start with, because that
+              is right most of the time. Untick what this particular person
+              does not need — a fresher has no relieving letter, somebody
+              joining from their own business has no final payslip.
+            */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>What to ask for</Label>
+                <span className="text-xs text-muted-foreground">{chosen.size} selected</span>
+              </div>
+              <div className="max-h-56 space-y-1 overflow-y-auto rounded-md border p-2">
+                {(requirements ?? [])
+                  .filter((r) => r.is_active && r.gate === askGate)
+                  .map((r) => (
+                    <label
+                      key={r.id}
+                      className="flex cursor-pointer items-start gap-2 rounded px-1.5 py-1 hover:bg-muted/50"
+                    >
+                      <Checkbox
+                        className="mt-0.5"
+                        checked={chosen.has(r.id)}
+                        onCheckedChange={(v) =>
+                          setChosen((prev) => {
+                            const next = new Set(prev)
+                            if (v === true) next.add(r.id)
+                            else next.delete(r.id)
+                            return next
+                          })
+                        }
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="text-sm">{r.label}</span>
+                        {!r.is_mandatory && (
+                          <span className="ml-1.5 text-xs text-muted-foreground">(optional)</span>
+                        )}
+                        {r.guidance && (
+                          <span className="block text-[11px] text-muted-foreground">
+                            {r.guidance}
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                  ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>By when (optional)</Label>
+              <Input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                min={new Date().toISOString().slice(0, 10)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Shown on their portal as a gentle nudge. Nothing is blocked if the date passes.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAskGate(null)}>
               Cancel
             </Button>
-            <Button onClick={handleSend} disabled={send.isPending}>
+            <Button onClick={handleSend} disabled={send.isPending || chosen.size === 0}>
               {send.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Send to candidate
             </Button>

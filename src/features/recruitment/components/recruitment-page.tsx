@@ -3,6 +3,7 @@ import { DateRangeFilter } from '@/components/shared/date-range-filter'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useModuleTab } from '@/hooks/use-module-tab'
+import { DocumentRequirementsTab } from './document-requirements-tab'
 import { RequisitionsTab } from './requisitions-tab'
 import { PipelineStagesTab } from './pipeline-stages-tab'
 import { CandidatesTab } from './candidates-tab'
@@ -15,6 +16,9 @@ import { HiringAnalyticsTab } from './hiring-analytics-tab'
 
 export function RecruitmentPage() {
   const { canManageRecruitment, canViewCandidates, isAdmin, isHR } = usePermissions()
+  // Who may change what candidates get asked for. A recruiter sends the
+  // list; HR decides what is on it.
+  const canEditDocuments = isAdmin || isHR
 
   const showAdminTabs = canManageRecruitment || isAdmin || isHR
   const showStagesTab = isAdmin
@@ -30,6 +34,8 @@ export function RecruitmentPage() {
     ...(showStagesTab ? ['stages'] : []),
     ...(showAdminTabs || showViewTabs ? ['candidates', 'applications', 'interviews'] : []),
     ...(showAdminTabs ? ['offers', 'pool', 'bgv', 'analytics'] : []),
+    // Editing the catalogue of documents is HR's, not every recruiter's.
+    ...(canEditDocuments ? ['documents'] : []),
   ]
   const [tab, setTab] = useModuleTab('requisitions', allowedTabs)
 
@@ -58,6 +64,7 @@ export function RecruitmentPage() {
           {showAdminTabs && <TabsTrigger value="pool">Talent Pool</TabsTrigger>}
           {showAdminTabs && <TabsTrigger value="bgv">Background Checks</TabsTrigger>}
           {showAdminTabs && <TabsTrigger value="analytics">Analytics</TabsTrigger>}
+          {canEditDocuments && <TabsTrigger value="documents">Documents</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="requisitions" className="mt-6">
@@ -111,6 +118,12 @@ export function RecruitmentPage() {
             <HiringAnalyticsTab />
           </TabsContent>
         )}
+        {canEditDocuments && (
+          <TabsContent value="documents" className="mt-6">
+            <DocumentRequirementsTab />
+          </TabsContent>
+        )}
+
       </Tabs>
     </div>
   )
