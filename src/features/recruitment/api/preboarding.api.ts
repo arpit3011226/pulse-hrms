@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { uploadFile, getSignedUrl, copyBetweenBuckets } from '@/lib/storage'
+import { notifyPerson, notifyRoles, HR_AND_ADMIN } from '@/lib/notify'
 
 /**
  * Pre-boarding — what we ask a candidate for before they start.
@@ -200,6 +201,26 @@ export async function sendChecklist(input: {
     if (itemErr) throw itemErr
   }
 
+  // The candidate has no reason to keep checking the portal on the off
+  // chance. Without this the first they hear of it is a chasing email, which
+  // is the thing the portal was meant to replace.
+  const { data: cand } = await supabase
+    .from('candidates')
+    .select('profile_id, first_name')
+    .eq('id', input.candidate_id)
+    .maybeSingle()
+
+  await notifyPerson(cand?.profile_id, {
+    title: 'Some documents are needed',
+    message:
+      input.gate === 'before_offer'
+        ? `We have asked for ${rows.length || chosen.length} document${(rows.length || chosen.length) === 1 ? '' : 's'} so we can take your application forward. You can upload them from your portal.`
+        : `We have asked for the documents we need before your first day. You can upload them from your portal as you get them.`,
+    type: 'action_required',
+    referenceId: checklist.id,
+    referenceType: 'preboarding_checklist',
+  })
+
   return checklist as PreboardingChecklist
 }
 
@@ -243,6 +264,16 @@ export async function uploadCandidateDocument(input: {
     })
     .eq('id', input.item.id)
   if (error) throw error
+
+  // Somebody has to look at it. Told after the row is saved, so a failure
+  // here cannot lose the upload.
+  await notifyRoles(HR_AND_ADMIN, {
+    title: 'A candidate sent a document',
+    message: `${input.item.label} has been uploaded and is waiting to be checked.`,
+    type: 'action_required',
+    referenceId: input.item.checklist_id,
+    referenceType: 'preboarding_checklist',
+  })
 }
 
 export async function getDocumentLink(item: PreboardingItem): Promise<string | null> {

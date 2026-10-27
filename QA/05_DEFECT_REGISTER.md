@@ -270,6 +270,71 @@ Compute can be pressed again without doubling anything.
 
 ---
 
+## QA-45 — HR could delete an entire month's payroll, payslips and all · P1 · FIXED
+
+**Module** Payroll / RLS **Found by** `QA/scripts/write_matrix.py`, a new audit **Fixed in** migration 00087
+
+QA-34 established the segregation of duties and enforced it carefully:
+`payroll_earnings`, `payroll_deductions` and `payslips` are writable only by a
+payroll admin or a super admin. HR may set up a cycle; HR may not compute the
+money. All of that held.
+
+What nobody checked was **DELETE on the row above them**.
+`admin_manage_payroll_runs` was `FOR ALL` and included `hr_admin`, and the
+foreign keys cascade:
+
+```
+payroll_runs
+  └── payroll_run_employees        ON DELETE CASCADE
+        ├── payroll_earnings       ON DELETE CASCADE
+        ├── payroll_deductions     ON DELETE CASCADE
+        └── payslips               ON DELETE CASCADE
+```
+
+**Reproduction** — as the demo HR admin, inside a rolled-back transaction:
+```sql
+delete from payroll_runs where id = (select id from payroll_runs limit 1);
+→ 1 row
+```
+
+So an HR admin could not alter a single payslip — and could erase every one
+of them with one request.
+
+**The lesson.** The control on *writing* was built with care and the control
+on *deleting* was never considered. That is the more dangerous half: a wrong
+figure is visible and argued about, a missing record is not.
+
+**Fix.** Writing a run now belongs to whoever may compute it — payroll admin
+and super admin. HR still reads. On top of that, a run that has been approved
+or completed cannot be deleted through the API by anybody, whatever their
+role, because the payslips under it are the record of what people were
+actually paid.
+
+**Verified after the fix:** HR delete 0 rows, HR edit 0 rows, HR read still 6;
+a payroll admin may edit an open run and is refused on a settled one.
+
+---
+
+## QA-46 — The write audit silently skipped two tables · P2 · FIXED
+
+**Module** QA tooling **Fixed in** `QA/scripts/write_matrix.py`
+
+The first run of the new audit reported "no data" for `employee_statutory`
+and `employee_personal`. Both hold eleven rows. The script assumed every
+table is keyed on `id`; those two are keyed on `employee_id`, so the query to
+pick a target row returned nothing and the result was indistinguishable from
+an empty table.
+
+A test that reports "nothing to check here" when it means "I could not look"
+is worse than no test, because it is counted as coverage. Both tables are now
+probed and both are correctly blocked for everybody but HR.
+
+The same class of mistake was fixed twice more in the guard suites on the
+same day: one treating an RLS-filtered update as permitted, another treating
+a broken fixture as a pass.
+
+---
+
 ## QA-42 — A candidate's sign-in went through the staff dashboard · P2 · FIXED
 
 **Module** Auth / Routing **Found by** August during UAT, 27 October **Fixed in** `landing.ts`, `auth-layout.tsx`, `app-layout.tsx`

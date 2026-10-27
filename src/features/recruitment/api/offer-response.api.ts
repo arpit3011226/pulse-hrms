@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { notifyRoles, HR_AND_ADMIN } from '@/lib/notify'
 
 /**
  * A candidate answering their own offer.
@@ -71,4 +72,18 @@ export async function respondToOffer(input: {
     .eq('id', input.offer_id)
 
   if (error) throw error
+
+  // This is the answer the hiring team has been waiting for. Leaving them to
+  // notice it on a list is how a start date slips.
+  await notifyRoles([...HR_AND_ADMIN, 'manager'], {
+    title: input.response === 'accepted' ? 'An offer was accepted' : 'An offer was declined',
+    message:
+      input.response === 'accepted'
+        ? `${input.typed_name} accepted the offer for ${input.terms.offered_designation ?? 'the role'}.`
+        : `${input.typed_name} declined the offer for ${input.terms.offered_designation ?? 'the role'}.` +
+          (input.decline_reason ? ` They said: ${input.decline_reason}` : ''),
+    type: input.response === 'accepted' ? 'success' : 'info',
+    referenceId: input.offer_id,
+    referenceType: 'offer_letter',
+  })
 }
