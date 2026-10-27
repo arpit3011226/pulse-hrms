@@ -33,6 +33,7 @@ import {
 import type { PermissionFeature, PermissionModule } from '@/lib/constants'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { supabase } from '@/lib/supabase'
+import { mustWrite } from '@/lib/write-guard'
 import { toast } from 'sonner'
 import type { OrganizationSettings, PermissionLevel, RolePermissionLevels } from '@/types/database.types'
 
@@ -228,14 +229,19 @@ export function RolesDefinitions() {
     setIsLoading(true)
     try {
       const currentSettings = (organization.settings ?? {}) as Partial<OrganizationSettings>
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('organizations')
         .update({
           settings: { ...currentSettings, role_permission_levels: permLevels },
         })
         .eq('id', organization.id)
+        .select('id')
 
-      if (error) throw error
+      await mustWrite(Promise.resolve({ data, error }), {
+        deniedMessage:
+          'That did not save. Only a super admin can change roles and permissions.',
+      })
+
       await refreshProfile()
       toast.success('Role permissions saved successfully')
     } catch {

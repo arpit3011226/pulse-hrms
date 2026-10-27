@@ -270,6 +270,43 @@ Compute can be pressed again without doubling anything.
 
 ---
 
+## QA-49 — The permissions screen could promise what the database refuses · P2 · FIXED
+
+**Module** Settings / RLS **Found by** sweeping for the QA-47 shape elsewhere **Fixed in** `write-guard.ts` and the three organisation write screens
+
+Roles & Permissions writes any combination into `role_permission_levels`.
+Row-level security is a separate, hard-coded source of truth. Grant HR
+`org_settings: manage` and they get the Organization Settings tab — then Save
+affects **0 rows, with no error**, and the screen says it worked.
+
+Six tables have write policies naming `super_admin` but not `hr_admin`:
+`organizations`, `payroll_runs`, `payroll_run_employees`, `payroll_earnings`,
+`payroll_deductions`, `payslips`. Today's defaults keep HR out of all six, so
+nothing was broken — it would break the first time somebody customised
+permissions.
+
+**Why this fix and not the other.** The alternative was stopping the
+permissions screen offering combinations RLS will not honour. That needs a
+second hard-coded copy of what RLS allows — a third source of truth to drift
+from the other two — and it takes a capability away rather than fixing
+anything. August's instruction was that nothing built should be deprecated.
+
+`mustWrite()` takes nothing away. Grant whatever you like; if the database
+declines it, the person is told plainly instead of being lied to.
+
+**A trap recorded in the helper.** `.select()` after a write asks PostgREST
+for the rows back, which applies the SELECT policy as well as the write
+policy. Where somebody may write a row but not read it, adding `.select()`
+turns a working write into a 403 and rolls it back — that is QA-29 exactly.
+So this is applied deliberately to writes where the writer can also read,
+not as a blanket wrapper round all 144 update calls in the codebase.
+
+**Verified** against the live database: HR updating `organizations` returns
+0 rows, so `mustWrite` throws and the screen shows "Only a super admin can
+change organisation settings." Six unit tests pin the behaviour.
+
+---
+
 ## QA-48 — Sixteen of twenty tab strips were in an order nobody chose · P2 · FIXED
 
 **Module** UI, app-wide **Found by** August, after noticing the login tabs came out backwards **Fixed in** `components/ui/tabs.tsx`

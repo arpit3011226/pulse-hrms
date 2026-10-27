@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { supabase } from '@/lib/supabase'
+import { mustWrite } from '@/lib/write-guard'
 import { toast } from 'sonner'
 import { DEFAULT_ORG_SETTINGS, DAYS_OF_WEEK, DATE_FORMAT_OPTIONS } from '@/lib/constants'
 import type { OrganizationSettings } from '@/types/database.types'
@@ -59,16 +60,21 @@ export function AdminSettings() {
     if (!organization) return
     setIsLoading(true)
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('organizations')
         .update({ settings })
         .eq('id', organization.id)
+        .select('id')
 
-      if (error) throw error
+      await mustWrite(Promise.resolve({ data, error }), {
+        deniedMessage:
+          'That did not save. Only a super admin can change organisation settings.',
+      })
+
       await refreshProfile()
       toast.success('Admin settings saved')
-    } catch {
-      toast.error('Failed to save settings')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save settings')
     } finally {
       setIsLoading(false)
     }

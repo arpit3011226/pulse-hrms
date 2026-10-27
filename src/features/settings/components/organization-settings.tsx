@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
 import { supabase } from '@/lib/supabase'
+import { mustWrite } from '@/lib/write-guard'
 import { toast } from 'sonner'
 import { TIMEZONE_OPTIONS, CURRENCY_OPTIONS, MONTH_OPTIONS } from '@/lib/constants'
 
@@ -66,16 +67,24 @@ export function OrganizationSettings() {
       const updateData = canEditRegional
         ? { ...withSignature, fiscal_year_start: Number(fiscalYear), timezone, currency }
         : withSignature
-      const { error } = await supabase
+      const { data: saved, error } = await supabase
         .from('organizations')
         .update(updateData)
         .eq('id', organization.id)
+        .select('id')
 
-      if (error) throw error
+      // Asks for the row back and complains if none comes. RLS narrows a
+      // write it disallows to nothing and returns success, so without this
+      // the screen says "Organization updated" and nothing has moved.
+      await mustWrite(Promise.resolve({ data: saved, error }), {
+        deniedMessage:
+          'That did not save. Only a super admin can change organisation settings.',
+      })
+
       await refreshProfile()
       toast.success('Organization updated')
-    } catch {
-      toast.error('Failed to update organization')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update organization')
     } finally {
       setIsLoading(false)
     }
