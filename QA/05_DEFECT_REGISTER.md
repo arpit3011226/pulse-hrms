@@ -612,7 +612,7 @@ one run during UAT, because no alumnus exists in the test data to try it on.
 
 ---
 
-## QA-38 — The login screen offers Google sign-in, which is switched off · P1 · OPEN
+## QA-38 — The login screen offers Google sign-in, which is switched off · P1 · DEFERRED
 
 **Module** Auth **Found by** reading the project's auth settings during the SSO spike
 
@@ -632,10 +632,25 @@ A tester who presses it gets "Unsupported provider", and the whole of the
 intended joiner journey — personal password before joining, company Google
 account afterwards — rests on a provider that is not switched on.
 
-**Left open deliberately.** The fix depends on which identity provider August
-settles on after the move to Azure. Enabling Google here would be wasted if the
-company moves to Microsoft Entra ID with the rest of its estate. Either way the
-button should not be shown while it cannot work.
+**Deferred by decision, 28 October 2026.** August will set up Google sign-on
+after the Azure move and after UAT, not before — which avoids configuring the
+provider twice, once against Supabase and again against GoTrue, and throwing
+the first away.
+
+The button is hidden behind `VITE_SSO_ENABLED`, which is unset. Nothing can
+switch on by itself: `organizations.sso_enabled` is false, no profile is
+marked `sso`, and all 19 are on a password. The enforcement added in 00092
+only engages for somebody marked `sso`, so it is inert until the switch-over
+is deliberately run.
+
+**What is already built, so none of this is repeated later:** the role
+transitions and audit trail (00074), the switch-over with its preview and
+break-glass account (00092), the browser-side enforcement, and
+`identity_check.py` to prove a Google sign-in attaches to the existing
+account rather than making a second one.
+
+**What is left is configuration**, in `QA/11_CONFIGURATION_CHECKLIST.md` and
+the GoTrue section of `QA/12_AZURE_MIGRATION_GUIDE.md`.
 
 ---
 

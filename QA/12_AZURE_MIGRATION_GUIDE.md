@@ -255,6 +255,18 @@ AZURE_STORAGE_KEY       one of its access keys
 and the company-setup screen that makes the first super admin has already been
 run. Leaving open sign-up on would let anybody with the URL create an account.
 
+### Google sign-on is NOT part of this move
+
+August decided on 28 October to set it up after Azure and after UAT. So for
+the migration itself:
+
+* Leave `GOTRUE_EXTERNAL_GOOGLE_*` **out** of the compose file entirely.
+* Leave `VITE_SSO_ENABLED` unset, so the button stays hidden.
+* Everybody signs in with email and password, exactly as they do today.
+
+The settings below are written down for when you come back to it. They are
+not work for this week.
+
 ### Both sign-in methods at once, and one account per person
 
 August's requirement: email and password keeps working alongside Google, and
@@ -467,11 +479,13 @@ Step 5 is the one with an unknown tail, and it is the one not to compress.
 
 ## 9. After the move, before the next thing
 
-Two items were deliberately left until Azure:
+Two items were deliberately left until after Azure **and after UAT**:
 
-- **Google sign-on** (QA-38). The database model is already in place and the
-  button is hidden behind a flag. `QA/11_CONFIGURATION_CHECKLIST.md` has the
-  steps.
+- **Google sign-on** (QA-38). Everything that needed building is built — the
+  switch-over with its preview and break-glass account, the enforcement, and
+  `identity_check.py` to prove one person does not become two accounts. What
+  is left is configuration: a Google OAuth client, four GoTrue settings, and
+  one flag. `QA/11_CONFIGURATION_CHECKLIST.md` has the steps.
 - **The retention purge** currently runs when HR presses a button, because
   Supabase had no scheduler Pulse could rely on across this move. Azure does.
 
