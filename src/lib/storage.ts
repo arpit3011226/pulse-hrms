@@ -1,5 +1,32 @@
 import { supabase } from '@/lib/supabase'
 
+/**
+ * Files live in Azure Blob Storage, reached through the `files` function.
+ *
+ * Nothing outside this file knows that. Every caller still asks for a bucket
+ * and a path, still gets a path back from an upload, and still gets a link
+ * that expires — the same four functions, the same shapes. Moving from
+ * Supabase Storage to Blob changed only what is below.
+ *
+ * Who may touch which file is not decided here, and must not be. Those rules
+ * are `can_access_file()` in migration 00091, checked by the function with
+ * the caller's own token, and covered by QA/scripts/file_access_guard.sh.
+ */
+
+/** The readable reason a function refused, rather than its status code. */
+async function readFunctionError(error: unknown): Promise<string> {
+  const e = error as { message: string; context?: Response }
+  if (e.context && typeof e.context.json === 'function') {
+    try {
+      const body = await e.context.json()
+      if (body?.error) return body.error as string
+    } catch {
+      // fall through to the generic message
+    }
+  }
+  return e.message
+}
+
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
 
@@ -44,11 +71,25 @@ export function validateFile(file: File) {
 export async function uploadFile(bucket: string, path: string, file: File): Promise<string> {
   validateFile(file)
 
-  const { error } = await supabase.storage
-    .from(bucket)
-    .upload(path, file, { upsert: true })
+  // Two steps, on purpose. The `files` function checks who you are and
+  // whether this path is yours, then hands back a URL that works for ten
+  // minutes. The browser then PUTs straight to storage — the bytes never
+  // pass through the function, so there is no size limit to tune and no
+  // chance of a document ending up in a log.
+  const { data, error } = await supabase.functions.invoke('files', {
+    body: { action: 'upload', bucket, path, contentType: file.type },
+  })
+  if (error) throw new Error(await readFunctionError(error))
+  if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error)
 
-  if (error) throw error
+  const { uploadUrl, headers } = data as { uploadUrl: string; headers?: Record<string, string> }
+  const put = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'x-ms-blob-type': 'BlockBlob', ...(headers ?? {}) },
+    body: file,
+  })
+  if (!put.ok) throw new Error(`Upload failed (${put.status})`)
+
   return path
 }
 
@@ -82,17 +123,22 @@ export async function getSignedUrl(bucket: string, pathOrUrl: string): Promise<s
   const path = storagePathFromUrl(bucket, pathOrUrl)
   if (!path) return null
 
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .createSignedUrl(path, SIGNED_URL_SECONDS)
-
-  if (error || !data?.signedUrl) return null
-  return data.signedUrl
+  const { data, error } = await supabase.functions.invoke('files', {
+    body: { action: 'link', bucket, path },
+  })
+  // A refusal is a null, not a throw: every caller treats null as "cannot be
+  // opened" and says so to the person, which is the right outcome whether the
+  // file is missing or not theirs.
+  if (error) return null
+  return (data as { url?: string })?.url ?? null
 }
 
 export async function deleteFile(bucket: string, path: string) {
-  const { error } = await supabase.storage.from(bucket).remove([storagePathFromUrl(bucket, path)])
-  if (error) throw error
+  const { data, error } = await supabase.functions.invoke('files', {
+    body: { action: 'delete', bucket, path: storagePathFromUrl(bucket, path) },
+  })
+  if (error) throw new Error(await readFunctionError(error))
+  if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error)
 }
 
 export function formatFileSize(bytes: number): string {
@@ -121,16 +167,24 @@ export async function copyBetweenBuckets(
   toBucket: string,
   toPath: string
 ): Promise<string | null> {
-  const { data, error } = await supabase.storage
-    .from(fromBucket)
-    .download(storagePathFromUrl(fromBucket, fromPath))
+  const readUrl = await getSignedUrl(fromBucket, fromPath)
+  if (!readUrl) return null
 
-  if (error || !data) return null
+  const got = await fetch(readUrl)
+  if (!got.ok) return null
+  const blob = await got.blob()
 
-  const { error: upErr } = await supabase.storage
-    .from(toBucket)
-    .upload(toPath, data, { upsert: true })
+  const { data, error } = await supabase.functions.invoke('files', {
+    body: { action: 'upload', bucket: toBucket, path: toPath, contentType: blob.type },
+  })
+  if (error) throw new Error(await readFunctionError(error))
 
-  if (upErr) throw upErr
+  const { uploadUrl, headers } = data as { uploadUrl: string; headers?: Record<string, string> }
+  const put = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'x-ms-blob-type': 'BlockBlob', ...(headers ?? {}) },
+    body: blob,
+  })
+  if (!put.ok) throw new Error(`Copy failed (${put.status})`)
   return toPath
 }

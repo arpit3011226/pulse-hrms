@@ -21,7 +21,7 @@ and run anywhere Docker runs:
 |---|---|---|
 | **PostgREST** | Turns Postgres tables into the REST API the app talks to | **698 call sites** |
 | **GoTrue** | Sign-in, sessions, JWTs | 12 call sites |
-| **Storage API** | Documents and payslips, behind signed URLs | 1 adapter file |
+| ~~Storage API~~ | **Replaced by Azure Blob — see below** | 1 adapter file |
 | **Edge Runtime** | 4 functions that need the service key | 4 call sites |
 
 Run those four containers on Azure, point them at Azure Database for
@@ -46,6 +46,11 @@ Keep the chain, keep the proof.
 
 ### What you are *not* keeping
 
+- **Storage API** — replaced by Azure Blob, 28 October. It cannot write to
+  Blob: its file backend wants extended attributes an Azure Files share may
+  not provide, and the alternative adds a container to run and watch. Pulse
+  now talks to Blob through its own `files` function, which also brings soft
+  delete and backups for well under a dollar a month. **One container fewer.**
 - **Realtime** — Pulse does not use it. Leave it out.
 - **Supabase Studio** — a convenience. Leave it out of production; use psql or
   pgAdmin.
@@ -68,8 +73,7 @@ Keep the chain, keep the proof.
         │   Caddy or nginx  → TLS, one hostname   │
         │   PostgREST       → the REST API        │
         │   GoTrue          → auth                │
-        │   Storage API     → files               │
-        │   Edge Runtime    → the 4 functions     │
+        │   Edge Runtime    → 5 functions          │
         └───────────┬────────────────────────────┘
                     │  private endpoint
         ┌───────────┴───────────────────────────┐
@@ -125,8 +129,8 @@ Genuinely small. The whole list:
 |---|---|
 | `.env` / build variables | Four values, below |
 | `src/lib/config.ts` | Nothing. It already reads them all — it is the only file in the codebase that touches the environment |
-| `src/lib/storage.ts` | Nothing, if you run the Storage API container. One file to rewrite if you go direct to Blob |
-| `supabase/functions/*` | Nothing, if you run Edge Runtime. Otherwise port 4 small Deno functions |
+| `src/lib/storage.ts` | **Already done.** It talks to the `files` function, which talks to Blob. The four exported functions kept their shapes, so all eight callers are untouched |
+| `supabase/functions/*` | Nothing, if you run Edge Runtime. Otherwise port 5 small Deno functions |
 | Everything else | Nothing |
 
 ```
@@ -156,8 +160,12 @@ nobody.
    `anon`, `authenticated`, `service_role` and `authenticator`. Every RLS
    policy in this project is written against them, so the names must match
    exactly.
-4. Create the `auth` and `storage` schemas. GoTrue and the Storage API create
-   their own tables on first run.
+4. Create the `auth` and `storage` schemas. GoTrue creates its own tables on
+   first run. Nothing creates `storage` any more — the Storage API is gone —
+   but several migrations still reference `storage.buckets` and
+   `storage.objects`, so the schema and those two tables have to exist.
+   `QA/scripts/replay_migrations.sh` creates exactly what is needed and is
+   the easiest place to copy it from.
 
 ### Step 2 — Apply the schema
 
@@ -169,9 +177,9 @@ for f in supabase/migrations/*.sql; do psql "$AZURE_PG_URL" -v ON_ERROR_STOP=1 -
 
 Run them in order. Stop at the first error — do not skip and come back.
 
-A few touch `storage.buckets` and `storage.objects`, so the Storage API's
-schema must exist first. If one fails for that reason, start the Storage API
-container, then re-run.
+A few touch `storage.buckets` and `storage.objects`. Those tables are vestigial
+now that files live in Blob, but the migrations still mention them, so they
+must exist or the replay stops. Step 1 above creates them.
 
 ### Step 3 — Move the data
 
@@ -227,10 +235,11 @@ GOTRUE_JWT_SECRET     ${JWT_SECRET}
 GOTRUE_DISABLE_SIGNUP true     ← HR creates every account; see note below
 GOTRUE_SMTP_*         or leave unset, since Pulse sends via Resend
 
-# storage
-STORAGE_BACKEND       s3
-# Azure Blob speaks the S3 protocol through its own endpoint, or use the
-# `file` backend on a mounted Azure Files share. Test signed URLs either way.
+# files  (replaces the Storage API container)
+AZURE_STORAGE_ACCOUNT   the storage account name
+AZURE_STORAGE_KEY       one of its access keys
+# The key never leaves this function. The browser only ever receives a URL
+# that expires in ten minutes.
 ```
 
 `GOTRUE_DISABLE_SIGNUP=true` matters. Pulse creates every login through HR,
@@ -250,16 +259,42 @@ when it builds, not when it runs.
 
 Add `pulse.augustinnovate.com` as a custom domain. TLS is included.
 
-### Step 6 — Files
+### Step 6 — Files, on Azure Blob
 
-Copy the three Storage buckets across: `employee-documents`,
-`reimbursement-receipts`, `candidate-documents`. All three are private, capped
-at 5 MB, and limited to JPEG, PNG and PDF. **Keep all three settings** — one
-of them being public was a reportable data breach (QA-19).
+Create **three private containers**, named exactly as the application names
+them:
 
-Paths must be preserved exactly. Rows point at `bucket` + `key`, and
-`employee_identity_documents.file_url` holds one full URL that will need
+```
+employee-documents        <employee_id>/…
+candidate-documents       <candidate_id>/…
+reimbursement-receipts    <org_id>/<employee_id>/…
+```
+
+**Private. Every one of them.** One bucket being public was a reportable
+personal data breach (QA-19) — a PAN card scan was fetched from the open
+internet with no credentials at all. Turn on soft delete while you are there;
+it costs nothing at this size and it is the difference between a mistake and
+an incident.
+
+Copy the objects across with `azcopy`, preserving the paths exactly. Rows in
+the database point at a container and a key, so a renamed path is a lost
+file. `employee_identity_documents.file_url` holds one full URL that needs
 rewriting by hand.
+
+**Who may read what** is not configured on the containers. Blob has no
+row-level security, so the twelve policies that used to live on
+`storage.objects` are now one Postgres function, `can_access_file()`, added
+in migration 00091. The `files` function asks it with the caller's own token
+before it mints any URL.
+
+That is checked, and it is worth running after the move:
+
+```bash
+./QA/scripts/file_access_guard.sh     # 24 checks across all three containers
+```
+
+It covers both directions for every role, and the path tricks — climbing out
+with `..`, a leading slash, a bare filename, an unknown container.
 
 ---
 
@@ -280,6 +315,9 @@ python3 QA/scripts/write_matrix.py     #  84 write checks
 ./QA/scripts/profile_guard.sh          #   9 privilege checks
 ./QA/scripts/preboarding_guard.sh      #  10 document privacy checks
 ./QA/scripts/agreement_guard.sh        #  14 signing and offer checks
+./QA/scripts/file_access_guard.sh      #  24 file access checks
+python3 QA/scripts/check_migrations.py #   reads the migrations for replay faults
+./QA/scripts/replay_migrations.sh --docker   # builds a database from nothing
 ```
 
 **All five run against either database.** By default they use the Supabase
