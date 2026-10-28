@@ -129,6 +129,70 @@ CREATE POLICY "org_read_clearances" ON exit_clearances
 -- 4. Notifications table
 -- ============================================
 
+-- ── Reconcile the table 00001 already created ───────────────────────────
+--
+-- 00001 creates `notifications` with a `user_id` column. This migration owns
+-- the shape the application actually uses, and names that column
+-- `recipient_profile_id`.
+--
+-- Because the CREATE below is IF NOT EXISTS, it finds the 00001 table, does
+-- nothing, and says nothing. The migration then fails three statements later
+-- at the index on `recipient_profile_id`, a column that does not exist — and
+-- every migration after this one never runs. 00048 and 00068 fail with it.
+--
+-- The live project was patched by hand and carried on, so nobody saw this
+-- until somebody tried to build a database from scratch for Azure. That is
+-- the whole lesson: production was the only database that had ever run these
+-- files.
+--
+-- Renamed rather than dropped. On a fresh database the table is empty and it
+-- makes no difference; anywhere that has notifications in it, they are kept.
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'notifications'
+      AND column_name = 'user_id'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'notifications'
+      AND column_name = 'recipient_profile_id'
+  ) THEN
+    ALTER TABLE notifications RENAME COLUMN user_id TO recipient_profile_id;
+
+    -- 00001 allowed a notification with no message. The application has
+    -- always written one, so this only tidies the column definition.
+    UPDATE notifications SET message = COALESCE(message, title);
+    ALTER TABLE notifications ALTER COLUMN message SET NOT NULL;
+
+    -- 00001 left `type` free text. The constraint below is the one this
+    -- migration intends; 00089 widens it later for the hiring flows.
+    UPDATE notifications
+    SET type = 'general'
+    WHERE type IS NULL OR type NOT IN (
+      'resignation_submitted', 'resignation_manager_approved',
+      'resignation_hr_approved', 'resignation_rejected',
+      'clearance_requested', 'clearance_updated', 'general'
+    );
+    ALTER TABLE notifications ALTER COLUMN type SET NOT NULL;
+
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_constraint
+      WHERE conrelid = 'public.notifications'::regclass
+        AND conname = 'notifications_type_check'
+    ) THEN
+      ALTER TABLE notifications ADD CONSTRAINT notifications_type_check CHECK (
+        type = ANY (ARRAY[
+          'resignation_submitted', 'resignation_manager_approved',
+          'resignation_hr_approved', 'resignation_rejected',
+          'clearance_requested', 'clearance_updated', 'general'
+        ])
+      );
+    END IF;
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
