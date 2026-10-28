@@ -235,6 +235,15 @@ GOTRUE_JWT_SECRET     ${JWT_SECRET}
 GOTRUE_DISABLE_SIGNUP true     ← HR creates every account; see note below
 GOTRUE_SMTP_*         or leave unset, since Pulse sends via Resend
 
+# gotrue — email and password, which stays ON
+GOTRUE_EXTERNAL_EMAIL_ENABLED  true
+
+# gotrue — Google, when you are ready
+GOTRUE_EXTERNAL_GOOGLE_ENABLED        true
+GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID      <from Google Cloud>
+GOTRUE_EXTERNAL_GOOGLE_SECRET         <from Google Cloud>
+GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI   https://api.pulse.augustinnovate.com/auth/v1/callback
+
 # files  (replaces the Storage API container)
 AZURE_STORAGE_ACCOUNT   the storage account name
 AZURE_STORAGE_KEY       one of its access keys
@@ -245,6 +254,54 @@ AZURE_STORAGE_KEY       one of its access keys
 `GOTRUE_DISABLE_SIGNUP=true` matters. Pulse creates every login through HR,
 and the company-setup screen that makes the first super admin has already been
 run. Leaving open sign-up on would let anybody with the URL create an account.
+
+### Both sign-in methods at once, and one account per person
+
+August's requirement: email and password keeps working alongside Google, and
+signing in either way must reach the **same** account.
+
+**Both at once needs nothing.** Leave `GOTRUE_EXTERNAL_EMAIL_ENABLED` on and
+turn Google on beside it. Pulse already supports this — a password stops
+working for a person only when they are marked as an SSO user, and nobody is
+until you run the switch-over described in
+`QA/11_CONFIGURATION_CHECKLIST.md`. Until then both doors are open for
+everybody.
+
+**One account per person is the default**, and it rests on one condition that
+is easy to lose in a migration.
+
+GoTrue attaches a Google sign-in to an existing account when the email
+matches **and that account's email is confirmed**. If `email_confirmed_at` is
+null, it does not link — it creates a second account. That person then opens
+Pulse, finds it empty, and it looks exactly like data loss.
+
+So when you copy `auth.users`, **`email_confirmed_at` must come across.** The
+`pg_dump` in step 3 includes it; a hand-written insert script is where it
+usually gets dropped.
+
+Check it before anybody signs in with Google, and again after the first few
+do:
+
+```bash
+python3 QA/scripts/identity_check.py
+```
+
+It fails if any address has two accounts, if any account has an unconfirmed
+email, or if accounts and profiles disagree. On the Supabase data today it
+reads clean: 19 accounts, all confirmed.
+
+**The order that avoids trouble**
+
+1. Move everything to Azure with email and password only. Prove it works.
+2. Run `identity_check.py`. Every account must show a confirmed email.
+3. Turn Google on. Change nothing else.
+4. **One person** signs in with Google — ideally you. Run `identity_check.py`
+   again: that account should now show *two* identities, not two accounts.
+5. If it shows two accounts, stop. Turn Google off and fix the confirmation
+   state before anybody else signs in. One person to disentangle is a
+   nuisance; seventeen is a weekend.
+6. Let everybody use whichever door they like for a week or two.
+7. Only then, if you want Google to be the only way in, run the switch-over.
 
 Put Caddy in front for TLS and route one hostname to the right container by
 path, the way Supabase's Kong does: `/rest/v1/*` → PostgREST, `/auth/v1/*` →
@@ -316,6 +373,7 @@ python3 QA/scripts/write_matrix.py     #  84 write checks
 ./QA/scripts/preboarding_guard.sh      #  10 document privacy checks
 ./QA/scripts/agreement_guard.sh        #  14 signing and offer checks
 ./QA/scripts/file_access_guard.sh      #  24 file access checks
+python3 QA/scripts/identity_check.py   #  one person, one account
 python3 QA/scripts/check_migrations.py #   reads the migrations for replay faults
 ./QA/scripts/replay_migrations.sh --docker   # builds a database from nothing
 ```
