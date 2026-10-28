@@ -65,6 +65,13 @@ export interface Profile {
   avatar_url: string | null
   role: AppRole
   is_active: boolean
+  /**
+   * How this person is meant to sign in. Recorded in the database rather
+   * than inferred from the auth provider, so it survives the move to Azure.
+   */
+  login_method: 'password' | 'sso'
+  /** The company address used for sign-on. Null before joining and after leaving. */
+  sso_email: string | null
   created_at: string
   updated_at: string
 }

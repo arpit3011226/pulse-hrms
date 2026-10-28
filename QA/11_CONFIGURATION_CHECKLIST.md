@@ -64,6 +64,42 @@ set sso_enabled = true,
 where id = '<your organisation id>';
 ```
 
+### Switching the staff over
+
+Enabling the provider does not move anybody. Until somebody is marked as an
+SSO user, their password still works — which defeats the point, since the
+whole reason for company sign-on is that losing the Google account ends
+access to Pulse.
+
+Do it in two steps, and do the first one on a day you can watch it.
+
+```
+# 1. See what it would do. Changes nothing.
+POST /functions/v1/enable-sso   { "dryRun": true }
+
+# 2. Do it.
+POST /functions/v1/enable-sso   { "confirm": true }
+```
+
+It moves every active member of staff to company sign-on and replaces their
+passwords with random bytes nobody holds. It refuses outright if anybody has
+no work address recorded, because switching them would lock them out with no
+way back.
+
+**It always leaves your own password working.** That is deliberate. If Google
+then fails — an expired client secret, a redirect URL that no longer matches,
+somebody editing the consent screen — that account is the only way back into
+Pulse for the whole company. Make sure it is an account whose password
+somebody can actually use today, not in principle.
+
+To put one person back on a password, as a super admin:
+
+```sql
+select set_login_method('<profile id>', 'password');
+```
+
+Then set them a password from **Settings → Logins**.
+
 **Why those are two separate flags.** `VITE_SSO_ENABLED` decides whether the
 button is shown, which is a question the login screen has to answer before
 anybody has signed in and before there is an organisation to ask.

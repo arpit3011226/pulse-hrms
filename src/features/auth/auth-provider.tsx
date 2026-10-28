@@ -19,6 +19,24 @@ function mayUseGoogle(user: User, profile: Profile | null): boolean {
   return profile.role !== 'candidate' && profile.role !== 'alumni'
 }
 
+/**
+ * Somebody on company sign-on, arriving with a password.
+ *
+ * The point of company sign-on is that losing the Google account ends access
+ * to Pulse. A password that still works quietly undoes that, so once a person
+ * is marked `sso` their password is no longer a way in.
+ *
+ * This is the courteous half — it tells them which button to press. The half
+ * that actually holds is the password being scrambled server-side when they
+ * are switched over, because a check in a browser is not a control. Both
+ * exist, and only one of them is load-bearing.
+ */
+function mustUseGoogle(user: User, profile: Profile | null): boolean {
+  if (!profile) return false
+  if (profile.login_method !== 'sso') return false
+  return user.app_metadata?.provider !== 'google'
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(null)
@@ -49,6 +67,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null)
         setOrganization(null)
         toast.error('This Google account does not have access. Please ask HR to set up your login.')
+        return
+      }
+
+      if (user && mustUseGoogle(user, data as Profile | null)) {
+        await supabase.auth.signOut()
+        setSession(null)
+        setUser(null)
+        setProfile(null)
+        setOrganization(null)
+        toast.error('Please sign in with your company Google account, using the button on the sign-in page.')
         return
       }
 
