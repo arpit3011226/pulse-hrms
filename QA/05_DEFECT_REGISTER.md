@@ -307,6 +307,44 @@ change organisation settings." Six unit tests pin the behaviour.
 
 ---
 
+## QA-50 — The Azure deployment sends no security headers · P2 · FIXED (needs applying)
+
+**Module** Deployment **Found by** checking the live site on 29 October **Fix in** `deploy/nginx-security-headers.conf`
+
+Supabase's edge sent these. A self-hosted nginx sends none of them by
+default, and nobody thinks to look because the application behaves perfectly
+without them.
+
+Checked against `https://pulse.augustinnovate.com/login`:
+
+| Header | Present |
+|---|---|
+| `Strict-Transport-Security` | no |
+| `X-Frame-Options` | no |
+| `X-Content-Type-Options` | no |
+| `Referrer-Policy` | no |
+| `Content-Security-Policy` | no |
+| `Permissions-Policy` | no |
+
+Also `server: nginx/1.27.5`, which names the version to look advisories up
+against.
+
+The two that matter most here. **`X-Content-Type-Options`**, because Pulse
+accepts uploads and without it a browser may decide a file is something more
+interesting than its declared type. **`Referrer-Policy`**, because Pulse
+URLs carry record identifiers and without it they travel in the `Referer`
+header to anything the page links to.
+
+`http` already redirects to `https` (301), but a redirect still sends the
+first request of the day in the clear. HSTS closes that.
+
+**Not yet applied** — the config is written and commented, and needs
+including in the server block and a reload. Test the whole app with the
+content-security-policy on before trusting it in front of everybody; it is
+the one line here that can break a page.
+
+---
+
 ## QA-48 — Sixteen of twenty tab strips were in an order nobody chose · P2 · FIXED
 
 **Module** UI, app-wide **Found by** August, after noticing the login tabs came out backwards **Fixed in** `components/ui/tabs.tsx`
