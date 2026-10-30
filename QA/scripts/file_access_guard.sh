@@ -14,18 +14,24 @@
 #
 set -uo pipefail
 cd "$(dirname "$0")/../.."
-# shellcheck source=QA/scripts/lib/dbq.sh
-. "$(dirname "$0")/lib/dbq.sh"
+# shellcheck source=QA/scripts/lib/subjects.sh
+. "$(dirname "$0")/lib/subjects.sh"
 
-EMP_P=0639a54b-f2a7-457a-b73c-9edc5857f26f      # an ordinary employee
-EMP_E=41ce5a21-2986-4a33-9969-e67c710f205a      # their employee row
-OTHER_E=cfe53950-ee98-45d4-891f-a57450f226ef    # somebody else
-HR=eb8bb741-08f2-4037-a1d6-0a2b6032872f
-PAY=b56ed460-8bb9-4641-a5f0-1c33349808bf
-LEAD=a8dbc6e7-7dcf-4f38-bff6-54c2f7ce3524
-CAND_P=a703979c-c492-485e-9e41-e3dd34b5d2bc     # a candidate
-CAND_C=2f85408e-bb11-465c-aecb-262ea9be998c     # their candidate row
-ORG=328bd5f2-fcd1-43e2-ae0d-11e3076abc7f
+# Found by role, every run — see profile_guard.sh for why.
+EMP_P=$(subject_for_role employee)
+EMP_E=$(employee_for_profile "$EMP_P")
+OTHER_E=$(other_employee_than "$EMP_P")
+HR=$(subject_for_role hr_admin)
+PAY=$(subject_for_role payroll_admin)
+LEAD=$(subject_for_role leadership)
+CAND_C=$(candidate_with_login)
+CAND_P=$(profile_of_candidate "$CAND_C")
+ORG=$(subject_org)
+
+require_subjects "an employee" "$EMP_P" "that employee's record" "$EMP_E" \
+                 "a second employee" "$OTHER_E" "an HR admin" "$HR" \
+                 "a payroll admin" "$PAY" "a leadership account" "$LEAD" \
+                 "a candidate with a login" "$CAND_C" "an organisation" "$ORG"
 
 pass=0; fail=0
 jwt() { echo "set local role authenticated; select set_config('request.jwt.claims','{\"sub\":\"$1\",\"role\":\"authenticated\"}',true);"; }

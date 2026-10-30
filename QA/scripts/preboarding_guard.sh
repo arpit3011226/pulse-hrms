@@ -16,14 +16,19 @@
 #   export PULSE_DB_URL=postgres://user:pass@host:5432/postgres
 set -uo pipefail
 cd "$(dirname "$0")/../.."
-# shellcheck source=QA/scripts/lib/dbq.sh
-. "$(dirname "$0")/lib/dbq.sh"
+# shellcheck source=QA/scripts/lib/subjects.sh
+. "$(dirname "$0")/lib/subjects.sh"
 
-ORG=328bd5f2-fcd1-43e2-ae0d-11e3076abc7f
-CAND=2f85408e-bb11-465c-aecb-262ea9be998c          # candidate with a login
-CPROF=a703979c-c492-485e-9e41-e3dd34b5d2bc         # that candidate's profile
-HR=eb8bb741-08f2-4037-a1d6-0a2b6032872f
-EMP=0639a54b-f2a7-457a-b73c-9edc5857f26f           # an ordinary employee
+# Found by role, every run — see profile_guard.sh for why.
+ORG=$(subject_org)
+CAND=$(candidate_with_login)
+CPROF=$(profile_of_candidate "$CAND")
+HR=$(subject_for_role hr_admin)
+EMP=$(subject_for_role employee)
+
+require_subjects "an organisation" "$ORG" "a candidate with a login" "$CAND" \
+                 "that candidate's profile" "$CPROF" "an HR admin" "$HR" \
+                 "an employee" "$EMP"
 
 LIST=bbbbbbbb-0000-0000-0000-00000000000b
 ITEM=cccccccc-0000-0000-0000-00000000000c

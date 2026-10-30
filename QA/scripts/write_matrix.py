@@ -36,16 +36,10 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
 from dbq import query, backend  # noqa: E402
+from subjects import roles_present, stop_if_meaningless  # noqa: E402
 
 # One demo account per role. Same set as access_matrix.py.
-ROLES = [
-    ("employee",      "0639a54b-f2a7-457a-b73c-9edc5857f26f"),
-    ("contractor",    "82df94c4-5f35-4926-af28-337d2faaf792"),
-    ("manager",       "d622e365-0e50-4ff6-bc0c-216c3346ee5e"),
-    ("payroll_admin", "b56ed460-8bb9-4641-a5f0-1c33349808bf"),
-    ("leadership",    "a8dbc6e7-7dcf-4f38-bff6-54c2f7ce3524"),
-    ("hr_admin",      "eb8bb741-08f2-4037-a1d6-0a2b6032872f"),
-]
+ROLES: list[tuple[str, str]] = []   # filled in at run time, see below
 
 # table -> (key column, column we touch).
 #
@@ -126,6 +120,18 @@ def can_write(table, key, column, row_id, profile_id):
 
 
 def main():
+    # Look the subjects up here rather than carrying a list of UUIDs.
+    #
+    # The hard-coded list was from the Supabase demo data. Run against Azure
+    # it matched nobody, every count came back zero, and this printed PASS —
+    # a security check that tested nothing and said it was fine.
+    global ROLES
+    stop_if_meaningless()
+    ROLES = roles_present()
+    if len(ROLES) < 3:
+        print("  INCONCLUSIVE — fewer than three roles have anybody in them.")
+        return 3
+
     only = sys.argv[1:]
     tables = {t: kc for t, kc in TABLES.items() if not only or t in only}
 

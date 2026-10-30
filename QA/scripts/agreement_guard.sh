@@ -16,14 +16,19 @@
 #   export PULSE_DB_URL=postgres://user:pass@host:5432/postgres
 set -uo pipefail
 cd "$(dirname "$0")/../.."
-# shellcheck source=QA/scripts/lib/dbq.sh
-. "$(dirname "$0")/lib/dbq.sh"
+# shellcheck source=QA/scripts/lib/subjects.sh
+. "$(dirname "$0")/lib/subjects.sh"
 
-ORG=328bd5f2-fcd1-43e2-ae0d-11e3076abc7f
-EMP_P=0639a54b-f2a7-457a-b73c-9edc5857f26f       # employee's profile
-EMP_E=41ce5a21-2986-4a33-9969-e67c710f205a       # that employee's record
-OTHER_E=cfe53950-ee98-45d4-891f-a57450f226ef     # somebody else
-HR=eb8bb741-08f2-4037-a1d6-0a2b6032872f
+# Found by role, every run — see profile_guard.sh for why.
+ORG=$(subject_org)
+EMP_P=$(subject_for_role employee)
+EMP_E=$(employee_for_profile "$EMP_P")
+OTHER_E=$(other_employee_than "$EMP_P")
+HR=$(subject_for_role hr_admin)
+
+require_subjects "an organisation" "$ORG" "an employee profile" "$EMP_P" \
+                 "that employee's record" "$EMP_E" "a second employee" "$OTHER_E" \
+                 "an HR admin" "$HR"
 
 A1=11111111-0000-0000-0000-000000000001
 A2=22222222-0000-0000-0000-000000000002

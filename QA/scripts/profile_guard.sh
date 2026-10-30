@@ -15,13 +15,18 @@
 #   export PULSE_DB_URL=postgres://user:pass@host:5432/postgres
 set -uo pipefail
 cd "$(dirname "$0")/../.."
-# shellcheck source=QA/scripts/lib/dbq.sh
-. "$(dirname "$0")/lib/dbq.sh"
+# shellcheck source=QA/scripts/lib/subjects.sh
+. "$(dirname "$0")/lib/subjects.sh"
 
-EMP=0639a54b-f2a7-457a-b73c-9edc5857f26f   # demo employee
-HR=eb8bb741-08f2-4037-a1d6-0a2b6032872f    # demo HR admin
-ORG=328bd5f2-fcd1-43e2-ae0d-11e3076abc7f   # the demo organisation
-NEWORG=aaaaaaaa-0000-0000-0000-00000000000a
+# Found by role, every run. These used to be hard-coded UUIDs from the
+# Supabase demo data, so the moment the suite ran anywhere else every row
+# was missing — and an UPDATE that matches nothing reads as "allowed".
+EMP=$(subject_for_role employee)
+HR=$(subject_for_role hr_admin)
+ORG=$(subject_org)
+NEWORG=aaaaaaaa-0000-0000-0000-00000000000a   # invented, and rolled back
+
+require_subjects "an employee" "$EMP" "an HR admin" "$HR" "an organisation" "$ORG"
 
 pass=0; fail=0
 

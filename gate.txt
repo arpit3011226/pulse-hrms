@@ -1,0 +1,214 @@
+NOTE FROM THE PERSON WHO RAN THIS (read first)
+----------------------------------------------
+Run on 29 Oct 2026 as a Container Apps job inside the Azure network (the database has
+no public endpoint, so it cannot be run from a laptop or an SSH session).
+
+This run does NOT prove the security model survived the move, for two reasons:
+
+1. The Azure database is EMPTY (one user, the super admin). Checks 2 and 3 print only
+   zeros / "no data", so their PASS is vacuous. Check 1 passes but notes nobody has
+   linked a second sign-in method yet.
+2. Checks 4-7 hard-code user and organisation IDs from the old Supabase demo database
+   (e.g. EMP=0639a54b-..., ORG=328bd5f2-...). Those rows do not exist here, so an UPDATE
+   matches nothing and reads as "ALLOWED", and fixture inserts error out. The FAILs
+   there are fixture mismatches, not evidence of a hole.
+
+What was tested for real instead, against the live API with a throwaway employee
+(since deleted): an employee could NOT set role=super_admin, is_active=false,
+personal_email or login_method on their own profile (all HTTP 403, "not allowed from
+this account"), while editing their own first name worked.
+
+To get a meaningful result the gate needs the Supabase demo data copied into Azure
+(same IDs), or the guard scripts changed to look users up by role.
+
+----------------------------------------------------------------------------------
+Pulse — Azure verification gate
+Database: postgres://…@psql-pulse-uuxs8-pg2.postgres.database.azure.com:5432/pulse?sslmode=require
+Date:     2026-10-29 14:54 UTC
+
+1. One person, one account
+──────────────────────────
+One person, one account   [psql]
+
+  ok    no address has more than one account
+  ok    no personal email belongs to two profiles
+  ok    every account has a confirmed email, so linking can happen
+  ok    every account has a profile
+  ok    every profile has an account
+
+  email         1 identities across 1 accounts
+  0 account(s) have more than one way to sign in — that is linking working
+
+  note  Nobody has linked a second sign-in method yet. Expected until somebody has used Google. Re-run this after the first few do — that is the real test.
+
+  Nothing would split a person into two accounts.
+  → PASS
+
+2. Who can READ what
+────────────────────
+  reading as employee…
+  reading as contractor…
+  reading as manager…
+  reading as payroll_admin…
+  reading as leadership…
+  reading as hr_admin…
+  reading as super_admin…
+table                     employee       contractor     manager        payroll_admin  leadership     hr_admin       super_admin    
+-----------------------------------------------------------------------------------------------------------------------------------
+employees                 0              0              0              0              0              0              0              
+employee_statutory        0              0              0              0              0              0              0              
+employee_personal         0              0              0              0              0              0              0              
+employee_compensation     0              0              0              0              0              0              0              
+payslips                  0              0              0              0              0              0              0              
+payroll_runs              0              0              0              0              0              0              0              
+leave_requests            0              0              0              0              0              0              0              
+leave_balances            0              0              0              0              0              0              0              
+attendance_records        0              0              0              0              0              0              0              
+candidates                0              0              0              0              0              0              0              
+interview_feedback        0              0              0              0              0              0              0              
+job_requisition_budget    0              0              0              0              0              0              0              
+offer_letters             0              0              0              0              0              0              0              
+mentorship_checkins       0              0              0              0              0              0              0              
+mentorships               0              0              0              0              0              0              0              
+helpdesk_tickets          0              0              0              0              0              0              0              
+employee_exit_records     0              0              0              0              0              0              0              
+final_settlements         0              0              0              0              0              0              0              
+exit_interview_responses  0              0              0              0              0              0              0              
+activity_log              0              0              0              0              0              0              0              
+workflow_runs             0              0              0              0              0              0              0              
+recognitions              0              0              0              0              0              0              0              
+
+PASS — no role read a table it is forbidden, and no cross-employee rows leaked.
+  → PASS
+
+3. Who can CHANGE what
+──────────────────────
+Who can change somebody else's row   [psql]
+
+  table                    employee       contractor     manager        payroll_admin  leadership     hr_admin      
+  ------------------------------------------------------------------------------------------------------------------
+  employee_compensation    no data        no data        no data        no data        no data        no data       
+  employee_statutory       no data        no data        no data        no data        no data        no data       
+  employee_personal        no data        no data        no data        no data        no data        no data       
+  employee_bank_accounts   no data        no data        no data        no data        no data        no data       
+  employee_documents       no data        no data        no data        no data        no data        no data       
+  payslips                 no data        no data        no data        no data        no data        no data       
+  leave_balances           no data        no data        no data        no data        no data        no data       
+  leave_requests           no data        no data        no data        no data        no data        no data       
+  attendance_records       no data        no data        no data        no data        no data        no data       
+  performance_reviews      no data        no data        no data        no data        no data        no data       
+  employee_exit_records    no data        no data        no data        no data        no data        no data       
+  final_settlements        no data        no data        no data        no data        no data        no data       
+  employees                no data        no data        no data        no data        no data        no data       
+  payroll_runs             no data        no data        no data        no data        no data        no data       
+
+  No role can change a row it should not.
+  → PASS
+
+4. Profile privileges
+─────────────────────
+Profile privilege guard (QA-36)   [psql]
+  FAIL  employee makes self super_admin            got ALLOWED, wanted BLOCKED
+  ok    employee edits own name                    ALLOWED
+  ok    HR changes an employee's role              ALLOWED
+  FAIL  employee deactivates self                  got ALLOWED, wanted BLOCKED
+  FAIL  employee rewrites anchor email             got ALLOWED, wanted BLOCKED
+  ok    first user into a brand new org            ALLOWED
+  FAIL  walks into the existing org                got ALLOWED, wanted BLOCKED
+  FAIL  employee changes own sign-in method        got ALLOWED, wanted BLOCKED
+  FAIL  employee claims another work email         got ALLOWED, wanted BLOCKED
+
+  3 passed, 6 failed
+  → FAIL
+
+5. Pre-boarding documents
+─────────────────────────
+Pre-boarding documents   [psql]
+  FAIL  candidate marks own document verified          got ALLOWED, wanted REFUSED
+  ok    candidate records an upload                    ALLOWED
+  FAIL  candidate writes a rejection reason            got ALLOWED, wanted REFUSED
+  FAIL  candidate renames what was asked for           got ALLOWED, wanted REFUSED
+  ok    HR verifies it                                 ALLOWED
+  FAIL  candidate sees only their own items            sees ERR, wanted 1
+  FAIL  candidate sees only their own list             sees ERR, wanted 1
+  FAIL  an ordinary employee sees no lists             sees ERR, wanted 0
+  FAIL  an ordinary employee sees no items             sees ERR, wanted 0
+  FAIL  HR sees both candidates' lists                 sees ERR, wanted 2
+
+  2 passed, 8 failed
+  → FAIL
+
+6. Agreements and offers
+────────────────────────
+Digital agreements   [psql]
+  ERROR employee signs their own                         
+  FAIL  employee signs somebody else's                   is ERR, wanted pending
+  ERROR employee rewrites what they agreed to            
+  ERROR employee fakes the fingerprint                   
+  ERROR employee makes it non-mandatory                  
+  ERROR employee un-signs a signed agreement             
+  ERROR HR rewrites text after it was signed             
+  ERROR HR changes the title (allowed)                   
+
+Offer acceptance
+  ERROR candidate accepts their own offer                
+  ERROR candidate raises their own CTC                   
+  ERROR candidate pulls the joining date in              
+  ERROR candidate answers a second time                  
+  ERROR HR rewrites terms already accepted               
+  ERROR HR revises an unanswered offer                   
+
+  0 passed, 14 failed
+  → FAIL
+
+7. File access rules
+────────────────────
+File access rules   [psql]
+
+  employee-documents
+  FAIL  owner reads their own                                got no, wanted yes
+  ok    employee reads somebody else's                       no
+  FAIL  owner writes their own                               got no, wanted yes
+  ok    owner cannot delete their own                        no
+  FAIL  HR reads anybody's                                   got no, wanted yes
+  FAIL  HR deletes                                           got no, wanted yes
+  FAIL  leadership reads                                     got no, wanted yes
+  ok    leadership cannot delete                             no
+  ok    payroll admin cannot read                            no
+
+  candidate-documents
+  FAIL  candidate reads their own                            got no, wanted yes
+  FAIL  candidate writes their own                           got no, wanted yes
+  ok    candidate cannot delete                              no
+  ok    candidate reads another's                            no
+  FAIL  HR reads a candidate's                               got no, wanted yes
+  ok    an employee cannot read one                          no
+
+  reimbursement-receipts   (owner is the SECOND folder)
+  FAIL  owner reads their own                                got no, wanted yes
+  ok    employee reads another's                             no
+  FAIL  payroll admin reads any                              got no, wanted yes
+  FAIL  owner deletes their own                              got no, wanted yes
+
+  paths that must never be accepted
+  ok    climbing out with ..                                 no
+  ok    leading slash                                        no
+  ok    bare filename, no folder                             no
+  ok    an unknown bucket                                    no
+  ok    a made-up intent                                     no
+
+  13 passed, 11 failed
+  → FAIL
+
+8. Migrations would replay
+──────────────────────────
+Checked 92 migrations for faults that only show on a fresh build
+
+  handled  00017_resignation_management.sql: `notifications` differs from 00001_initial_schema.sql and is reconciled (user_id renamed)
+
+  Nothing wrong. Run replay_migrations.sh to be certain.
+  → PASS
+
+Result
+──────
+  4 check(s) failed. Do not let anybody sign in until they are understood.

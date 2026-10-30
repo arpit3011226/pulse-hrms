@@ -22,11 +22,23 @@ command -v psql >/dev/null || { echo "psql not found — install the postgres cl
 line() { printf '\n%s\n%s\n' "$1" "$(printf '%.0s─' $(seq 1 ${#1}))"; }
 
 failed=0
+# Three outcomes, not two.
+#
+# The first run of this gate reported PASS against an empty database: every
+# role could reach nothing, because there was nothing. A check that cannot
+# run must never look like a check that ran, so exit code 3 means
+# INCONCLUSIVE and is counted separately.
+inconclusive=0
 run() {
   local label="$1"; shift
   line "$label"
-  if "$@"; then
+  "$@"
+  local code=$?
+  if [ "$code" -eq 0 ]; then
     echo "  → PASS"
+  elif [ "$code" -eq 3 ]; then
+    echo "  → INCONCLUSIVE — nothing was tested"
+    inconclusive=$((inconclusive + 1))
   else
     echo "  → FAIL"
     failed=$((failed + 1))
@@ -54,9 +66,16 @@ line "8. Migrations would replay"
 if python3 QA/scripts/check_migrations.py; then echo "  → PASS"; else echo "  → FAIL"; failed=$((failed+1)); fi
 
 line "Result"
-if [ "$failed" -eq 0 ]; then
+if [ "$inconclusive" -gt 0 ]; then
+  echo "  $inconclusive check(s) could not run — this database has too little data"
+  echo "  in it to answer the question. Load representative data and run again."
+  echo
+fi
+if [ "$failed" -eq 0 ] && [ "$inconclusive" -eq 0 ]; then
   echo "  Everything passed. The security model survived the move."
+elif [ "$failed" -eq 0 ]; then
+  echo "  Nothing failed, but nothing was proved either. Not a green light."
 else
   echo "  $failed check(s) failed. Do not let anybody sign in until they are understood."
 fi
-exit "$failed"
+exit $(( failed + inconclusive ))
